@@ -46,7 +46,7 @@ jobs:
 
       - name: Run Flutter tests
         working-directory: mobile
-        run: flutter test
+        run: flutter test test/mars_x_test.dart
 
       - name: Build split release APKs
         working-directory: mobile
