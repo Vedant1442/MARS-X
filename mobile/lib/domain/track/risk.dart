@@ -16,12 +16,33 @@ class RiskPart {
   });
 }
 
+class EvaConsumables {
+  final int crewSize;
+  final double activeWalkingMin;
+  final double restStopsMin;
+  final double totalEvaMin;
+  final double oxygenKg;
+  final double batteryKwh;
+  final double coolingWaterKg;
+
+  const EvaConsumables({
+    required this.crewSize,
+    required this.activeWalkingMin,
+    required this.restStopsMin,
+    required this.totalEvaMin,
+    required this.oxygenKg,
+    required this.batteryKwh,
+    required this.coolingWaterKg,
+  });
+}
+
 class RiskAssessment {
   final int score;
   final String level;
   final double estimatedTimeMin;
   final int scienceScore;
   final List<RiskPart> parts;
+  final EvaConsumables consumables;
 
   const RiskAssessment({
     required this.score,
@@ -29,18 +50,24 @@ class RiskAssessment {
     required this.estimatedTimeMin,
     required this.scienceScore,
     required this.parts,
+    required this.consumables,
   });
 }
 
 class RiskModel {
   static const double cautionDeg = 10.0;
-  static const double timeBudgetMin = 480.0;
+  static const double timeBudgetMin = 480.0; // 8-hour maximum NASA EVA budget
+  static const int defaultCrewSize = 2; // NASA 2-person buddy EVA standard
+  static const double equipmentLoadFactor = 0.92; // 8% walking speed penalty for 25kg sampling gear
 
-  static double speedMps(double slopeDeg) {
-    return math.max(0.2, 1.4 * (1.0 - slopeDeg / (MarsRouter.defaultMaxSlopeDeg * 1.3)));
+  /// Speed-slope mobility curve with equipment load adjustment.
+  static double speedMps(double slopeDeg, {bool withPayload = true}) {
+    final base = math.max(0.2, 1.4 * (1.0 - slopeDeg / (MarsRouter.defaultMaxSlopeDeg * 1.3)));
+    return withPayload ? base * equipmentLoadFactor : base;
   }
 
-  static double legTimeMin(TerrainGrid grid, List<GridPoint> path) {
+  /// Traverse walk time without rest breaks.
+  static double activeTraverseMin(TerrainGrid grid, List<GridPoint> path) {
     var sec = 0.0;
     for (var k = 1; k < path.length; k++) {
       final a = path[k - 1];
@@ -50,6 +77,49 @@ class RiskModel {
       sec += d / speedMps(grid.slope[i]);
     }
     return sec / 60.0;
+  }
+
+  /// Human exploration consumables model (SIMULATED per PLAN Section 6.4).
+  /// Accounts for 10-min rest per 60-min walk, steep slope recovery, and 2-person buddy crew.
+  static EvaConsumables computeConsumables(
+    TerrainGrid grid,
+    List<GridPoint> path, {
+    int crewSize = defaultCrewSize,
+  }) {
+    final activeMin = activeTraverseMin(grid, path);
+
+    // Mandatory rest: 10 minutes for every 60 minutes of active walking
+    var restMin = (activeMin / 60.0).floor() * 10.0;
+
+    // Steep grade recovery: +5 min rest for steep ascents (> 15 deg)
+    for (var k = 1; k < path.length; k++) {
+      final i = path[k].y * grid.w + path[k].x;
+      if (grid.slope[i] > 15.0) {
+        restMin += 1.0; // 1 min fatigue penalty per cell above 15 deg
+      }
+    }
+    restMin = math.min(120.0, restMin);
+
+    final totalHours = (activeMin + restMin) / 60.0;
+
+    // Simulated astronaut life support consumables (Apollo/Artemis baseline rates)
+    final o2Kg = totalHours * 0.060 * crewSize; // 60 g/hr per crew
+    final batteryKwh = totalHours * 0.220 * crewSize; // 220 W per suit system
+    final waterKg = totalHours * 0.350 * crewSize; // 350 g/hr sublimation cooling
+
+    return EvaConsumables(
+      crewSize: crewSize,
+      activeWalkingMin: activeMin,
+      restStopsMin: restMin,
+      totalEvaMin: activeMin + restMin,
+      oxygenKg: o2Kg,
+      batteryKwh: batteryKwh,
+      coolingWaterKg: waterKg,
+    );
+  }
+
+  static double legTimeMin(TerrainGrid grid, List<GridPoint> path) {
+    return computeConsumables(grid, path).totalEvaMin;
   }
 
   static RiskAssessment assess(TerrainGrid grid, RouteResult route) {
@@ -69,7 +139,8 @@ class RiskModel {
       }
     }
 
-    final timeMin = legTimeMin(grid, p);
+    final consumables = computeConsumables(grid, p);
+    final timeMin = consumables.totalEvaMin;
     final parts = [
       RiskPart(
         key: 'max',
@@ -119,6 +190,7 @@ class RiskModel {
       estimatedTimeMin: timeMin,
       scienceScore: sciScore,
       parts: parts,
+      consumables: consumables,
     );
   }
 }

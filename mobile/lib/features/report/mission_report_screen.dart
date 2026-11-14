@@ -34,11 +34,12 @@ class MissionReportScreen extends ConsumerWidget {
             pw.Text('Elevation gain: ${route.elevGainM.toStringAsFixed(0)} m (DERIVED)'),
             pw.Text('Simulated risk score: ${risk.score}/100 (${risk.level})'),
             pw.Text('Simulated science score: ${risk.scienceScore}/100'),
-            pw.Text('Simulated time: ${risk.estimatedTimeMin.toStringAsFixed(0)} min'),
+            pw.Text('Traverse time: ${risk.consumables.activeWalkingMin.toStringAsFixed(0)} min walking + ${risk.consumables.restStopsMin.toStringAsFixed(0)} min rest = ${risk.consumables.totalEvaMin.toStringAsFixed(0)} min total (SIMULATED)'),
+            pw.Text('Life support (2 crew): O2: ${risk.consumables.oxygenKg.toStringAsFixed(2)} kg | Power: ${risk.consumables.batteryKwh.toStringAsFixed(2)} kWh | Water: ${risk.consumables.coolingWaterKg.toStringAsFixed(2)} kg (SIMULATED)'),
             pw.SizedBox(height: 12),
             pw.Text('Landmarks (${lms.length}):', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
             for (final l in lms)
-              pw.Text('${l.n}. ${l.name} — ${l.desc}'),
+              pw.Text('${l.n}. ${l.name} — ${l.desc} [${l.why}]'),
             pw.SizedBox(height: 12),
             pw.Text('Limitations: Terrain is resampled from USGS HiRISE DTM (35.99 m/cell). Sub-cell hazards are unknown. Risk, time, targets, and pressure are simulated.'),
           ],
@@ -100,6 +101,31 @@ class MissionReportScreen extends ConsumerWidget {
                       _MetricRow('Elevation gain', '${route.elevGainM.toStringAsFixed(0)} m', DataType.derived),
                       _MetricRow('Est. duration', '${risk.estimatedTimeMin.toStringAsFixed(0)} min', DataType.simulated),
                       _MetricRow('Data confidence', route.confidence, DataType.modeled),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('HUMAN EVA CONSUMABLES (SIMULATED)', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600)),
+                          DataBadge(DataType.simulated),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _MetricRow('Crew Configuration', '${risk.consumables.crewSize} astronauts (Buddy system)', DataType.simulated),
+                      _MetricRow('Active Traverse Time', '${risk.consumables.activeWalkingMin.toStringAsFixed(0)} min', DataType.simulated),
+                      _MetricRow('Mandatory Rest Stops', '${risk.consumables.restStopsMin.toStringAsFixed(0)} min (10m/hr + slope recovery)', DataType.simulated),
+                      _MetricRow('Oxygen Consumption', '${risk.consumables.oxygenKg.toStringAsFixed(2)} kg O2', DataType.simulated),
+                      _MetricRow('Suit System Power', '${risk.consumables.batteryKwh.toStringAsFixed(2)} kWh', DataType.simulated),
+                      _MetricRow('Sublimator Cooling Water', '${risk.consumables.coolingWaterKg.toStringAsFixed(2)} kg H2O', DataType.simulated),
                     ],
                   ),
                 ),

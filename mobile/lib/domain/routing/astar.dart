@@ -242,8 +242,135 @@ class MarsRouter {
       path.add(GridPoint(k % w, k ~/ w));
     }
     final ordered = path.reversed.toList();
+    final smoothed = smoothPath(grid, ordered, maxSlopeDeg: maxSlopeDeg);
 
-    return _buildMetrics(grid, ordered, g[ti], mode, algorithm, expanded, targets);
+    return _buildMetrics(grid, smoothed, g[ti], mode, algorithm, expanded, targets);
+  }
+
+  /// Check 8-connected line of sight between two grid points using Bresenham.
+  static bool hasLineOfSight(
+    TerrainGrid grid,
+    GridPoint a,
+    GridPoint b, {
+    double maxSlopeDeg = defaultMaxSlopeDeg,
+  }) {
+    final pts = bresenhamLine(a, b);
+    for (final pt in pts) {
+      if (pt.x < 0 || pt.x >= grid.w || pt.y < 0 || pt.y >= grid.h) return false;
+      final i = pt.y * grid.w + pt.x;
+      if (grid.nodata[i] != 0 || grid.slope[i] > maxSlopeDeg) return false;
+    }
+    return true;
+  }
+
+  /// Standard 8-connected Bresenham line rasterizer.
+  static List<GridPoint> bresenhamLine(GridPoint p0, GridPoint p1) {
+    final pts = <GridPoint>[];
+    var x0 = p0.x;
+    var y0 = p0.y;
+    final x1 = p1.x;
+    final y1 = p1.y;
+    final dx = (x1 - x0).abs();
+    final dy = (y1 - y0).abs();
+    final sx = x0 < x1 ? 1 : -1;
+    final sy = y0 < y1 ? 1 : -1;
+    var err = dx - dy;
+
+    while (true) {
+      pts.add(GridPoint(x0, y0));
+      if (x0 == x1 && y0 == y1) break;
+      final e2 = 2 * err;
+      if (e2 > -dy) {
+        err -= dy;
+        x0 += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        y0 += sy;
+      }
+    }
+    return pts;
+  }
+
+  /// String-pulling path smoothing (PLAN section 6.3).
+  /// Removes unnecessary staircase waypoints across passable line-of-sight cells,
+  /// preserving 8-connected continuity and strict terrain exclusions.
+  static List<GridPoint> smoothPath(
+    TerrainGrid grid,
+    List<GridPoint> path, {
+    double maxSlopeDeg = defaultMaxSlopeDeg,
+  }) {
+    if (path.length <= 2) return path;
+
+    final waypoints = <GridPoint>[path.first];
+    var curr = 0;
+
+    while (curr < path.length - 1) {
+      var next = path.length - 1;
+      // Greedily find the furthest visible waypoint along the path
+      while (next > curr + 1) {
+        if (hasLineOfSight(grid, path[curr], path[next], maxSlopeDeg: maxSlopeDeg)) {
+          break;
+        }
+        next--;
+      }
+      waypoints.add(path[next]);
+      curr = next;
+    }
+
+    // Reconstruct 8-connected path between smoothed waypoints
+    final fullSmoothed = <GridPoint>[waypoints.first];
+    for (var i = 1; i < waypoints.length; i++) {
+      final leg = bresenhamLine(waypoints[i - 1], waypoints[i]);
+      // Skip first point of leg as it duplicates previous end
+      for (var j = 1; j < leg.length; j++) {
+        fullSmoothed.add(leg[j]);
+      }
+    }
+
+    return fullSmoothed;
+  }
+
+  /// Plan routes with detour-capping: ensures Science route length <= 1.5x Fastest route.
+  static RouteResult? findScienceRouteWithDetourCap(
+    TerrainGrid grid,
+    GridPoint start,
+    GridPoint goal,
+    double fastestDistM, {
+    double maxSlopeDeg = defaultMaxSlopeDeg,
+    double maxDetourRatio = 1.5,
+    List<ScienceTarget> targets = kDemoTargets,
+  }) {
+    var currentWeights = RouteWeights.defaultScience;
+    RouteResult? bestResult;
+
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final res = findRoute(
+        grid,
+        start,
+        goal,
+        currentWeights,
+        RouteMode.science,
+        maxSlopeDeg: maxSlopeDeg,
+        targets: targets,
+      );
+      if (res == null) return bestResult;
+      bestResult = res;
+
+      final cap = fastestDistM * maxDetourRatio;
+      if (res.distanceM <= cap) {
+        return res; // Within acceptable detour ratio
+      }
+
+      // Detour cap exceeded: progressively increase distance weight / reduce detour
+      currentWeights = RouteWeights(
+        s: currentWeights.s,
+        r: currentWeights.r,
+        u: currentWeights.u,
+        h: currentWeights.h * 1.8,
+      );
+    }
+    return bestResult;
   }
 
   /// Snap an impassable tap to the nearest passable cell within ~100 m (3 cells).

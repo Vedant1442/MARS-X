@@ -120,9 +120,23 @@ class PlannerNotifier extends StateNotifier<PlannerState> {
     if (s == null || e == null) return;
 
     final out = <RouteMode, RouteResult?>{};
-    for (final m in RouteMode.values) {
-      out[m] = MarsRouter.findRoute(grid, s, e, RouteWeights.forMode(m), m);
-    }
+    // Compute fastest route first as reference for detour cap
+    final fastest = MarsRouter.findRoute(grid, s, e, RouteWeights.forMode(RouteMode.fastest), RouteMode.fastest);
+    out[RouteMode.fastest] = fastest;
+
+    // Compute safest route with terrain risk weights
+    out[RouteMode.safest] = MarsRouter.findRoute(grid, s, e, RouteWeights.forMode(RouteMode.safest), RouteMode.safest);
+
+    // Compute science route respecting <= 1.5x detour cap relative to fastest
+    final refDist = fastest?.distanceM ?? 10000.0;
+    out[RouteMode.science] = MarsRouter.findScienceRouteWithDetourCap(
+      grid,
+      s,
+      e,
+      refDist,
+      maxDetourRatio: 1.5,
+    );
+
     state = state.copyWith(routes: out, landmarkStep: 0, clearStatus: true);
   }
 

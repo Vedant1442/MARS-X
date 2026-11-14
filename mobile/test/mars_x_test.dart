@@ -55,5 +55,58 @@ void main() {
 
     final rk = RiskModel.assess(grid, route);
     expect(rk.score, inInclusiveRange(0, 100));
+    expect(rk.consumables.crewSize, equals(2));
+    expect(rk.consumables.totalEvaMin, greaterThan(0.0));
+    expect(rk.consumables.oxygenKg, greaterThan(0.0));
+    expect(rk.consumables.batteryKwh, greaterThan(0.0));
+  });
+
+  test('String-pulling path smoothing preserves 8-connected continuity and valid slope bounds', () {
+    const w = 40;
+    const h = 30;
+    final elev = Float32List(w * h);
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        elev[y * w + x] = (x * 2.0);
+      }
+    }
+    final grid = TerrainGrid.fromElevation(w: w, h: h, cellM: 35.99, elev: elev);
+    final route = MarsRouter.findRoute(
+      grid,
+      const GridPoint(2, 5),
+      const GridPoint(35, 25),
+      RouteWeights.forMode(RouteMode.fastest),
+      RouteMode.fastest,
+    )!;
+
+    expect(MarsRouter.validateRoute(grid, route), isTrue);
+    expect(route.path.first, equals(const GridPoint(2, 5)));
+    expect(route.path.last, equals(const GridPoint(35, 25)));
+  });
+
+  test('Science route with detour cap stays within 1.5x of fastest route', () {
+    const w = 40;
+    const h = 30;
+    final grid = TerrainGrid.fromElevation(w: w, h: h, cellM: 35.99, elev: Float32List(w * h));
+    const start = GridPoint(2, 10);
+    const goal = GridPoint(36, 10);
+
+    final fastest = MarsRouter.findRoute(
+      grid,
+      start,
+      goal,
+      RouteWeights.forMode(RouteMode.fastest),
+      RouteMode.fastest,
+    )!;
+
+    final sciCapped = MarsRouter.findScienceRouteWithDetourCap(
+      grid,
+      start,
+      goal,
+      fastest.distanceM,
+      maxDetourRatio: 1.5,
+    )!;
+
+    expect(sciCapped.distanceM, lessThanOrEqualTo(fastest.distanceM * 1.5 + 1e-3));
   });
 }
