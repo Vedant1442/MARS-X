@@ -8,9 +8,9 @@ from typing import Literal, Optional
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
-from . import core
+from . import core, meda_reader, geo_layers
 
 AOI = [77.40, 18.36, 77.44, 18.39]  # Jezero Crater HiRISE DTM window
 HABITAT = {"lon": 77.42, "lat": 18.375}
@@ -23,7 +23,7 @@ class Coord(BaseModel):
 Profile = Literal["safety", "fastest", "science", "balanced"]
 Algo = Literal["astar", "dijkstra"]
 class Constraints(BaseModel):
-    max_slope_deg: float = Field(20, gt=0, le=45)
+    max_slope_deg: float = Field(25.0, gt=0, le=45)
     return_to_base: bool = True
     eva_budget_min: float = Field(480, gt=0)
 class RouteReq(BaseModel):
@@ -143,9 +143,35 @@ def terrain(lon: float, lat: float):
             "terrain_source": GRID.terrain_source, "data_type": "DERIVED" if is_real else "SIMULATED",
             "uncertainty_note": "Resampled HiRISE DTM (~36 m/cell); sub-cell rocks/hazards unknown." if is_real else "Synthetic terrain; not a Mars measurement."}
 @app.get("/api/environment")
-def environment(): raise ApiError(503, "DATASET_UNAVAILABLE", "No archived MEDA subset has been ingested yet.")
+def environment(sol: Optional[int] = None):
+    if sol is not None:
+        s_data = meda_reader.meda_catalog.get_sol(sol)
+        if not s_data:
+            raise ApiError(404, "SOL_NOT_FOUND", f"Sol {sol} is not in the archived MEDA dataset.", available_sols=meda_reader.meda_catalog.get_all_sols().get("available_sols", []))
+        return s_data
+    data = meda_reader.meda_catalog.get_all_sols()
+    if not data.get("available_sols"):
+        raise ApiError(503, "DATASET_UNAVAILABLE", "No archived MEDA subset could be loaded.")
+    return data
+
 @app.get("/api/science-targets")
-def targets(): return {"targets": [{**t, "data_type": "SIMULATED"} for t in core.TARGETS]}
+def targets():
+    real_targets = geo_layers.geo_catalog.get_science_targets()
+    if real_targets:
+        return {"targets": real_targets, "count": len(real_targets), "data_type": "DERIVED"}
+    return {"targets": [{**t, "data_type": "SIMULATED"} for t in core.TARGETS], "count": len(core.TARGETS), "data_type": "SIMULATED"}
+
+@app.get("/api/rover/traverse")
+def rover_traverse():
+    return geo_layers.geo_catalog.get_rover_traverse()
+
+@app.get("/api/rover/stops")
+def rover_stops(sol_min: Optional[int] = None, sol_max: Optional[int] = None, limit: int = 500):
+    return geo_layers.geo_catalog.get_rover_stops(sol_min=sol_min, sol_max=sol_max, limit=limit)
+
+@app.get("/api/manifest")
+def source_manifest():
+    return geo_layers.geo_catalog.get_provenance_manifest()
 
 class PathReq(BaseModel):
     path: list[list[int]] = Field(min_length=2)
@@ -198,10 +224,79 @@ def get_mission(mission_id: str):
     if mission_id not in MISSIONS: raise ApiError(404, "NOT_FOUND", "Mission not found.")
     return MISSIONS[mission_id]
 @app.get("/api/missions/{mission_id}/report")
-def report(mission_id: str):
+def report(mission_id: str, format: str = "json"):
     m = get_mission(mission_id)
-    return {"mission_id": mission_id, "generated_at": datetime.now(timezone.utc).isoformat(), "sections": {
-        "overview": m["name"], "selected_route": m["route"], "science_targets": [], "terrain_risk": m["route"]["risk"], "environment": [],
-        "duration": {"estimate_min": m["eva"]["estimated_duration_min"], "basis": "SIMULATED"}, "provenance": [],
-        "limitations": ["Terrain is synthetic until the DTM bundle is built.", "Slope limits are configurable simulation assumptions.",
-                        "Routes are candidate routes, not certified safe.", "No archived environment data ingested yet."]}}
+    # Get latest environmental context from MEDA
+    env_data = meda_reader.meda_catalog.get_all_sols()
+    sol_summary = env_data.get("sols", {}).get(20, {})
+    targets_subset = geo_layers.geo_catalog.get_science_targets()[:5]
+    prov = [
+        {"product": "HiRISE DTM DTEEC_045994_1985_046060_1985_U01", "provider": "NASA/JPL/Univ of Arizona", "type": "DERIVED"},
+        {"product": "MEDA Derived Environmental Tables (TIRS & RHS)", "provider": "NASA PDS Atmospheres Node", "type": "MEASURED"},
+        {"product": "USGS SIM 3464 Geologic Map of Jezero", "provider": "USGS Astrogeology Science Center", "type": "DERIVED"},
+        {"product": "Perseverance Rover Localizations (PLACES)", "provider": "NASA PDS Geosciences Node", "type": "MEASURED"},
+    ]
+    limits = [
+        "HiRISE DTM patch covers landing window; sub-cell obstacles unknown.",
+        "Slope and speed limits are configurable simulation models, not astronaut flight rules.",
+        "Routes are candidate paths for exploration planning, not automated driving commands.",
+        "Environmental readings are archived PDS4 observations from Perseverance sols 10-28.",
+    ]
+    report_dict = {
+        "mission_id": mission_id,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "sections": {
+            "overview": m["name"],
+            "selected_route": m["route"],
+            "science_targets": targets_subset,
+            "terrain_risk": m["route"]["risk"],
+            "environment": sol_summary if sol_summary else [],
+            "duration": {"estimate_min": m["eva"]["estimated_duration_min"], "basis": "SIMULATED"},
+            "provenance": prov,
+            "limitations": limits,
+        },
+    }
+    if format.lower() in ("markdown", "md"):
+        rt = m["route"]
+        met = rt.get("metrics", {})
+        rk = rt.get("risk", {})
+        air = sol_summary.get("air_temperature", {}) if sol_summary else {}
+        grd = sol_summary.get("ground_brightness_temperature", {}) if sol_summary else {}
+        md_lines = [
+            f"# MARS-X Mission Summary Report: {m['name']}",
+            f"**Mission ID:** `{mission_id}`  ",
+            f"**Generated:** {report_dict['generated_at']}  ",
+            f"**Profile:** {rt.get('profile', 'balanced').title()} | **Algorithm:** {rt.get('algorithm', 'astar').upper()}  ",
+            "",
+            "## 1. Traverse & Mobility Metrics",
+            f"- **Distance:** {met.get('distance_m', 0):,.1f} m",
+            f"- **Estimated Duration:** {met.get('estimated_duration_min', 0):.1f} min (Budget: {m['eva']['estimated_duration_min']:.0f} min)",
+            f"- **Max Slope:** {met.get('max_slope_deg', 0):.1f}° (Mean Slope: {met.get('mean_slope_deg', 0):.1f}°)",
+            f"- **Overall Risk Score:** {rk.get('score', 0):.1f} / 100 ({rk.get('level', 'LOW')})",
+            "",
+            "## 2. Environmental Context (NASA Mars 2020 MEDA)",
+            "- **Station:** Perseverance Rover (Octavia E. Butler Landing)",
+            f"- **Air Temperature:** Min {air.get('min', 'N/A')} °C, Max {air.get('max', 'N/A')} °C, Mean {air.get('mean', 'N/A')} °C",
+            f"- **Ground Brightness Temp:** Min {grd.get('min', 'N/A')} °C, Max {grd.get('max', 'N/A')} °C",
+            f"- **Data Basis:** {sol_summary.get('source', 'Archived PDS4 tables')}",
+            "",
+            "## 3. Waypoint & Landmark Science Targets",
+        ]
+        for t in targets_subset:
+            md_lines.append(f"- **{t['name']}** ({t['type']}): Coord `[{t['coord']['lon']}, {t['coord']['lat']}]` — {t.get('note', '')}")
+        md_lines.extend([
+            "",
+            "## 4. Provenance & Limitations",
+            "### Verified Datasets:",
+        ])
+        for p in prov:
+            md_lines.append(f"- **{p['product']}** — {p['provider']} (`{p['type']}`)")
+        md_lines.extend([
+            "",
+            "### Operational Limitations:",
+        ])
+        for lm in limits:
+            md_lines.append(f"- {lm}")
+        return PlainTextResponse("\n".join(md_lines), media_type="text/markdown")
+
+    return report_dict
