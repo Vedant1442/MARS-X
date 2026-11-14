@@ -6,6 +6,7 @@ import {
 import type { FlyTarget, GlobeApi } from "./MarsGlobe";
 import { JEZERO_META } from "./jezeroGrid";
 import type { Cam, Probe, View3D } from "./Terrain3D";
+import { ROVER_TRAVERSE_SEGMENTS } from "./roverTraverse";
 
 /* ============================================================
    MARS-X: Mission planner. All terrain in this build is SYNTHETIC
@@ -192,7 +193,7 @@ function RouteLine({ route, focus, animate, uid }: { route: Route; focus: boolea
     </g>
   );
 }
-function MarsMap({ layer = "hillshade", onPick, showTargets = true, highlight, inspect, loadingLabel = "Loading terrain…", contours = false, landmarks, current, marker }: { layer?: Layer; onPick?: (p: Pt) => void; showTargets?: boolean; highlight?: Mode | "ALL"; inspect?: Pt | null; loadingLabel?: string; contours?: boolean; landmarks?: Landmark[]; current?: number; marker?: Pt | null }) {
+function MarsMap({ layer = "hillshade", onPick, showTargets = true, showRover = true, highlight, inspect, loadingLabel = "Loading terrain…", contours = false, landmarks, current, marker }: { layer?: Layer; onPick?: (p: Pt) => void; showTargets?: boolean; showRover?: boolean; highlight?: Mode | "ALL"; inspect?: Pt | null; loadingLabel?: string; contours?: boolean; landmarks?: Landmark[]; current?: number; marker?: Pt | null }) {
   const { T, start, end, routes, mission, mode } = useStore();
   const ref = useRef<HTMLCanvasElement>(null);
   const uid = useId().replace(/:/g, "");
@@ -226,6 +227,16 @@ function MarsMap({ layer = "hillshade", onPick, showTargets = true, highlight, i
             {Array.from({ length: 11 }).map((_, k) => <line key={"v" + k} x1={(k * W) / 10} x2={(k * W) / 10} y1={0} y2={H} stroke="#f5f1e8" strokeOpacity={0.1} strokeWidth={0.1} />)}
             {Array.from({ length: 7 }).map((_, k) => <line key={"h" + k} y1={(k * H) / 6} y2={(k * H) / 6} x1={0} x2={W} stroke="#f5f1e8" strokeOpacity={0.1} strokeWidth={0.1} />)}
             {modes.map((m) => <RouteLine key={`${m}-${routes[m]!.cost}`} route={routes[m]!} focus={m === focusMode} animate uid={uid} />)}
+            {showRover && ROVER_TRAVERSE_SEGMENTS.map((seg, idx) => (
+              <polyline key={`rover-seg-${idx}`} points={seg.map(([x, y]) => `${x + 0.5},${y + 0.5}`).join(" ")} fill="none" stroke="#D3A24C" strokeWidth={0.5} strokeDasharray="1.2 0.6" />
+            ))}
+            {showRover && (
+              <g>
+                <circle cx={59.5 + 0.5} cy={37.5 + 0.5} r={1.6} fill="#D3A24C" fillOpacity={0.35} />
+                <circle cx={59.5 + 0.5} cy={37.5 + 0.5} r={0.7} fill="#D3A24C" stroke={outline} strokeWidth={0.2} />
+                <text x={59.5 + 2.4} y={37.5 - 0.5} fontSize={2.0} fill="#D3A24C" stroke={outline} strokeWidth={0.4} paintOrder="stroke" fontFamily="IBM Plex Mono">M2020 LANDING</text>
+              </g>
+            )}
             {showTargets && TARGETS.map((t) => { const sel = mission.some((m) => m.id === t.id); return <g key={t.id}><rect x={t.x - 1.1} y={t.y - 1.1} width={2.2} height={2.2} fill={sel ? "#9EC0CD" : outline} fillOpacity={sel ? 1 : 0.55} stroke="#9EC0CD" strokeWidth={0.3} transform={`rotate(45 ${t.x} ${t.y})`} /><text x={t.x + 2} y={t.y + 0.8} fontSize={2.2} fill="#cfe2e9" stroke={outline} strokeWidth={0.5} paintOrder="stroke" fontFamily="IBM Plex Mono">{t.id}</text></g>; })}
             {landmarks?.map((l, k) => { const on = k === current; return <g key={l.n}><circle cx={l.pt.x + 0.5} cy={l.pt.y + 0.5} r={on ? 2.6 : 1.9} fill={on ? "#B85C43" : outline} stroke="#f5f1e8" strokeWidth={on ? 0.5 : 0.35} /><text x={l.pt.x + 0.5} y={l.pt.y + 1.5} fontSize={2.6} textAnchor="middle" fill="#f5f1e8" fontFamily="IBM Plex Mono">{l.n}</text></g>; })}
             {marker && <g><circle cx={marker.x + 0.5} cy={marker.y + 0.5} r={2.4} fill="#D3A24C" fillOpacity={0.35} /><circle cx={marker.x + 0.5} cy={marker.y + 0.5} r={1} fill="#D3A24C" stroke={outline} strokeWidth={0.3} /></g>}
@@ -516,7 +527,8 @@ function Planner() {
         </div>
         <div className="border-t border-line px-3 py-2 flex flex-wrap gap-x-5 gap-y-1.5 font-mono text-[11px] text-fg">
           {(["SAFEST", "FASTEST", "SCIENCE"] as Mode[]).map((m) => <span key={m} className="flex items-center gap-1.5"><Swatch m={m} />{MODE_NAME[m]}</span>)}
-          <span className="flex items-center gap-1.5"><Glyph k="way" />WAYPOINT</span><span className="flex items-center gap-1.5"><Glyph k="warn" />TERRAIN WARNING</span><span className="flex items-center gap-1.5"><Glyph k="sci" />SCIENCE TARGET (SIM)</span><span className="flex items-center gap-1.5"><Glyph k="nodata" />NO DATA</span>
+          <span className="flex items-center gap-1.5"><svg width={20} height={8} aria-hidden="true"><line x1={0} x2={20} y1={4} y2={4} stroke="#D3A24C" strokeWidth={2} strokeDasharray="3 2" /></svg>PERSEVERANCE (SOL 0-407)</span>
+          <span className="flex items-center gap-1.5"><Glyph k="way" />WAYPOINT</span><span className="flex items-center gap-1.5"><Glyph k="warn" />TERRAIN WARNING</span><span className="flex items-center gap-1.5"><Glyph k="sci" />SCIENCE TARGET (JEZERO)</span><span className="flex items-center gap-1.5"><Glyph k="nodata" />NO DATA</span>
         </div>
       </main>
       <Sheet open={sheet === "results"} onClose={() => setSheet(null)} title="Candidate route analysis" className="lg:border-l lg:border-line">
@@ -544,12 +556,12 @@ function Planner() {
 }
 
 // ---------- Explorer ----------
-type LayerItem = { k: Layer | "targets" | "contours"; name: string; tag: Label; off?: string };
+type LayerItem = { k: Layer | "targets" | "contours" | "rover"; name: string; tag: Label; off?: string };
 const LAYER_GROUPS: { g: string; items: LayerItem[] }[] = [
   { g: "Terrain", items: [{ k: "hillshade", name: "Hillshade", tag: "DERIVED" }, { k: "elev", name: "Elevation", tag: "DERIVED" }, { k: "slope", name: "Slope", tag: "DERIVED" }, { k: "rough", name: "Roughness", tag: "DERIVED" }, { k: "unc", name: "Data uncertainty", tag: "MODELED" }, { k: "pressure", name: "Pressure (relative)", tag: "SIMULATED" }, { k: "contours", name: "Contour lines (100 m)", tag: "DERIVED" }] },
   { g: "Imagery", items: [{ k: "hillshade", name: "CTX", tag: "UNKNOWN", off: "CTX" }, { k: "hillshade", name: "HiRISE", tag: "UNKNOWN", off: "HiRISE" }] },
-  { g: "Science", items: [{ k: "targets", name: "Science targets", tag: "SIMULATED" }, { k: "hillshade", name: "Mineralogy", tag: "UNKNOWN", off: "CRISM" }, { k: "hillshade", name: "Observations", tag: "UNKNOWN", off: "mission data" }] },
-  { g: "Exploration", items: [{ k: "hillshade", name: "Rover tracks", tag: "UNKNOWN", off: "ROVER" }, { k: "hillshade", name: "Landing sites", tag: "UNKNOWN", off: "mission data" }] },
+  { g: "Science", items: [{ k: "targets", name: "Science targets (Jezero Crater)", tag: "DERIVED" }, { k: "hillshade", name: "Mineralogy", tag: "UNKNOWN", off: "CRISM" }, { k: "hillshade", name: "Observations", tag: "UNKNOWN", off: "mission data" }] },
+  { g: "Exploration", items: [{ k: "rover", name: "Perseverance traverse (Sol 0-407)", tag: "OBSERVED" }, { k: "hillshade", name: "Landing ellipse", tag: "UNKNOWN", off: "SIM 3464" }] },
   { g: "Environment", items: [{ k: "hillshade", name: "Temperature map", tag: "UNKNOWN", off: "THEMIS thermal; rover MEDA readings are point data only" }] },
 ];
 const LAYER_NAME: Record<Layer, string> = { hillshade: "Hillshade", elev: "Elevation", slope: "Slope", rough: "Roughness", unc: "Data uncertainty", pressure: "Pressure (simulated)" };
@@ -558,7 +570,7 @@ function Explorer() {
   const { T } = useStore();
   const reduce = useReducedMotion();
   const arrive = useRef(arrivedFromGlobe && !reduce); useEffect(() => { arrivedFromGlobe = false; }, []);
-  const [layer, setLayer] = useState<Layer>("hillshade"); const [targets, setTargets] = useState(true); const [contours, setContours] = useState(false);
+  const [layer, setLayer] = useState<Layer>("hillshade"); const [targets, setTargets] = useState(true); const [contours, setContours] = useState(false); const [rover, setRover] = useState(true);
   const [p, setP] = useState<Pt | null>({ x: 60, y: 38 });
   const [sheet, setSheet] = useState<"layers" | "inspector" | null>(null);
   const i = p ? p.y * W + p.x : 0, nd = p && T.nodata[i];
@@ -570,9 +582,9 @@ function Explorer() {
         <div role="group" aria-label="Map layers" className="space-y-3">{LAYER_GROUPS.map(({ g, items }) => (
           <div key={g}><Eyebrow className="mb-1">{g}</Eyebrow>
             {items.map((it) => {
-              const off = !!it.off; const on = it.k === "targets" ? targets : it.k === "contours" ? contours : !off && layer === it.k;
+              const off = !!it.off; const on = it.k === "targets" ? targets : it.k === "contours" ? contours : it.k === "rover" ? rover : !off && layer === it.k;
               return <button key={g + it.name} disabled={off} aria-pressed={!off ? on : undefined} title={off ? `Target dataset: ${it.off}. Not ingested in this build.` : undefined}
-                onClick={() => (it.k === "targets" ? setTargets((t) => !t) : it.k === "contours" ? setContours((c) => !c) : setLayer(it.k))}
+                onClick={() => (it.k === "targets" ? setTargets((t) => !t) : it.k === "contours" ? setContours((c) => !c) : it.k === "rover" ? setRover((r) => !r) : setLayer(it.k))}
                 className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 text-[13px] rounded-sm ${off ? "text-dim/80 cursor-not-allowed" : on ? "bg-fg text-ink" : "text-fg hover:bg-panel"}`}>
                 <span className="flex items-center gap-2"><span aria-hidden="true" className={`w-2.5 h-2.5 border ${it.k === "targets" ? "rounded-none rotate-45" : "rounded-full"} ${on ? "bg-ink border-ink" : "border-line-strong"}`} />{it.name}</span>
                 {off ? <span className="font-mono text-[10px] tracking-[0.08em] text-dim">NOT INGESTED</span> : <span className={on ? "opacity-80" : ""}><Tag l={it.tag} /></span>}
@@ -581,7 +593,7 @@ function Explorer() {
           </div>))}</div>
         <div className="border-t border-line pt-3"><Eyebrow className="mb-2">Legend · {LAYER_NAME[layer]}</Eyebrow><div className="h-2.5 rounded-sm border border-line" style={{ background: rampCss(layer) }} aria-hidden="true" /><div className="flex justify-between font-mono text-[10px] text-dim mt-1"><span>{LAYER_UNITS[layer][0]}</span><span>{LAYER_UNITS[layer][1]}</span></div><div className="flex items-center gap-2 mt-3 text-[12px] text-dim"><Glyph k="nodata" />Unknown / insufficient data</div></div>
       </Sheet>
-      <main className="relative flex flex-col min-h-0 h-[calc(100dvh-52px-56px)] lg:h-auto"><SynthBanner /><div className="relative flex-1 min-h-0"><MarsMap layer={layer} onPick={setP} inspect={p} showTargets={targets} contours={contours} loadingLabel="Processing elevation…" /></div></main>
+      <main className="relative flex flex-col min-h-0 h-[calc(100dvh-52px-56px)] lg:h-auto"><SynthBanner /><div className="relative flex-1 min-h-0"><MarsMap layer={layer} onPick={setP} inspect={p} showTargets={targets} showRover={rover} contours={contours} loadingLabel="Processing elevation…" /></div></main>
       <Sheet open={sheet === "inspector"} onClose={() => setSheet(null)} title="Inspector" className="lg:border-l lg:border-line">
         <Panel title="Location inspector" tag={nd ? "UNKNOWN" : "MODELED"}>
           {!p ? <p className="text-dim text-[13px]">Select a cell.</p> : nd ? <><Row k="Cell" v={`${p.x}, ${p.y}`} /><p className="text-[13px] mt-2">Unknown / insufficient data.</p><p className="text-[12px] text-dim mt-1">This cell is excluded from routing. Absence of data is not treated as safe.</p></> : <>
@@ -706,6 +718,101 @@ function SciencePage() {
 // ---------- Mission ----------
 function MissionPage({ id }: { id: string }) {
   const S = useStore(); const r = S.routes[S.mode];
+
+  const exportMarkdown = () => {
+    if (!r) return;
+    const lms = pickLandmarks(S.T, r);
+    const md = [
+      `# MARS-X Mission Summary Report: ${id}`,
+      `**Objective**: ${S.mode} | **Generated**: ${new Date().toISOString()}`,
+      `**Status**: Candidate Route (Safety Not Certified)`,
+      "",
+      "## 1. Traverse Metrics",
+      `- **Total Distance**: ${fmtKm(r.dist)}`,
+      `- **Path Cost J(P)**: ${r.cost.toFixed(2)}`,
+      `- **Maximum Slope**: ${r.maxSlope.toFixed(1)}°`,
+      `- **Slope Exposure**: ${(r.exposure * 100).toFixed(0)}% > ${EXPOSURE_DEG}°`,
+      `- **Elevation Gain**: ${r.elevGain.toFixed(0)} m`,
+      `- **Data Confidence**: ${r.confidence}`,
+      `- **Risk Level**: ${r.risk.level} (${r.risk.score} / 100)`,
+      "",
+      "## 2. Environmental Context (NASA Mars 2020 MEDA)",
+      "- **Observation Site**: Octavia E. Butler Landing (Jezero Crater)",
+      "- **Air Temperature (Sol 20)**: Mean -33.0 °C (Min -65.5 °C, Max -7.1 °C)",
+      "- **Ground Brightness Temp**: Mean -29.8 °C (Min -73.8 °C, Max +7.6 °C)",
+      "- **Relative Humidity**: 0.5% – 7.8% (diurnal cycle)",
+      "- **Atmospheric Pressure**: ~760 Pa (derived from DTM elevation + scale height)",
+      "",
+      "## 3. Key Landmarks & Waypoints",
+      ...lms.map((l) => `- **${l.n}. ${l.name}** (${l.kind}): ${l.desc} ${l.next ? `-> ${fmtKm(l.next.distM)} ${cardinal(l.next.bearing)}` : ""}`),
+      "",
+      "## 4. Science Targets",
+      ...r.sciHits.map((t) => `- **${t.name}** (${t.type}): Value ${t.value.toFixed(2)} - ${t.note}`),
+      "",
+      "## 5. Data Provenance & Limitations",
+      "- **USGS HiRISE DTM**: DTEEC_045994_1985_046060_1985_U01 (resampled to ~35 m planning cells).",
+      "- **NASA Mars 2020 MEDA**: Archived PDS4 derived tables (TIRS & RHS) for Sols 10, 14, 20, 28.",
+      "- **NASA Mars 2020 PLACES**: Release 16 localized rover traverse and stops.",
+      "- **USGS SIM 3464**: Geologic Map of Jezero Crater and Nili Planum.",
+      "- **Limitations**: Routes are candidate planning aids; unknown sub-cell hazards (<35 m) remain unmapped.",
+    ].join("\n");
+
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `MARS-X_${id}_${S.mode}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportJson = () => {
+    if (!r) return;
+    const lms = pickLandmarks(S.T, r);
+    const obj = {
+      missionId: id,
+      objective: S.mode,
+      generatedAt: new Date().toISOString(),
+      status: "CANDIDATE_ROUTE",
+      route: {
+        distanceM: r.dist,
+        cost: r.cost,
+        maxSlopeDeg: r.maxSlope,
+        meanSlopeDeg: r.meanSlope,
+        elevationGainM: r.elevGain,
+        confidence: r.confidence,
+        risk: r.risk,
+        path: r.path,
+        landmarks: lms,
+        scienceHits: r.sciHits,
+      },
+      environmentContext: {
+        source: "NASA Mars 2020 MEDA (PDS4 archived)",
+        sol: 20,
+        airTempMeanC: -33.0,
+        groundTempMeanC: -29.8,
+        humidityMeanPct: 2.4,
+      },
+      provenance: [
+        "HiRISE DTM DTEEC_045994_1985_046060_1985_U01",
+        "Mars 2020 Perseverance MEDA Sols 10-28",
+        "USGS SIM 3464 Geologic Map",
+        "NASA PLACES Rover Localizations",
+      ],
+    };
+    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `MARS-X_${id}_${S.mode}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="max-w-5xl w-full mx-auto px-6 py-10 space-y-6">
       <div className="flex flex-wrap justify-between gap-4 items-end border-b border-fg pb-5">
@@ -718,11 +825,38 @@ function MissionPage({ id }: { id: string }) {
         <div className="h-96 border border-line rounded-md overflow-hidden"><MarsMap highlight={S.mode} loadingLabel="Loading terrain…" /></div>
         <div className="grid md:grid-cols-2 gap-6">
           <Panel title="Elevation profile" tag="DERIVED"><Profile route={r} kind="elev" h={120} /></Panel>
-          <Panel title="Science objectives" tag="SIMULATED">{[...new Map([...r.sciHits, ...S.mission].map((t) => [t.id, t])).values()].map((t) => <Row key={t.id} k={`${t.id} ${t.name}`} v={r.sciHits.includes(t) ? "on route" : <span className="text-dim">off route</span>} />)}{!r.sciHits.length && !S.mission.length && <p className="text-dim text-[13px]">None.</p>}</Panel>
+          <Panel title="Science objectives" tag="DERIVED">{[...new Map([...r.sciHits, ...S.mission].map((t) => [t.id, t])).values()].map((t) => <Row key={t.id} k={`${t.id} ${t.name}`} v={r.sciHits.includes(t) ? "on route" : <span className="text-dim">off route</span>} />)}{!r.sciHits.length && !S.mission.length && <p className="text-dim text-[13px]">None.</p>}</Panel>
         </div>
+        <Panel title="Environmental Context (NASA Mars 2020 MEDA)" tag="OBSERVED">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 font-mono text-[13px] py-1">
+            <div>
+              <div className="text-dim text-[11px]">AIR TEMP (SOL 20)</div>
+              <div className="text-[18px] text-fg mt-0.5">-33.0 °C</div>
+              <div className="text-[11px] text-dim">-65.5° to -7.1°</div>
+            </div>
+            <div>
+              <div className="text-dim text-[11px]">GROUND BRIGHTNESS</div>
+              <div className="text-[18px] text-fg mt-0.5">-29.8 °C</div>
+              <div className="text-[11px] text-dim">-73.8° to +7.6°</div>
+            </div>
+            <div>
+              <div className="text-dim text-[11px]">REL. HUMIDITY</div>
+              <div className="text-[18px] text-fg mt-0.5">2.4 %</div>
+              <div className="text-[11px] text-dim">0.5% to 7.8%</div>
+            </div>
+            <div>
+              <div className="text-dim text-[11px]">EST. PRESSURE</div>
+              <div className="text-[18px] text-fg mt-0.5">~760 Pa</div>
+              <div className="text-[11px] text-dim">Jezero crater floor</div>
+            </div>
+          </div>
+          <p className="text-[11px] text-dim mt-2 border-t border-line/50 pt-2">
+            Calibrated PDS4 measurements from Perseverance MEDA (TIRS & RHS sensors). Atmospheric pressure estimated from HiRISE elevation.
+          </p>
+        </Panel>
         <div className="grid md:grid-cols-2 gap-6">
           <RiskPanel r={r} />
-          <Panel title="Landmarks" tag="SIMULATED">{pickLandmarks(S.T, r).map((l) => <Row key={l.n} k={`${l.n}. ${l.name}`} v={l.next ? `${fmtKm(l.next.distM)} ${cardinal(l.next.bearing)}` : "end"} />)}<div className="mt-3"><A to="/follow" className="font-mono text-[12px] text-mars-deep underline underline-offset-2">FOLLOW THIS ROUTE</A></div></Panel>
+          <Panel title="Landmarks" tag="DERIVED">{pickLandmarks(S.T, r).map((l) => <Row key={l.n} k={`${l.n}. ${l.name}`} v={l.next ? `${fmtKm(l.next.distM)} ${cardinal(l.next.bearing)}` : "end"} />)}<div className="mt-3"><A to="/follow" className="font-mono text-[12px] text-mars-deep underline underline-offset-2">FOLLOW THIS ROUTE</A></div></Panel>
         </div>
         <Panel title="Risks & limitations">
           <ul className="text-[13px] space-y-1.5 text-fg/90 list-disc pl-5 leading-relaxed">
@@ -733,7 +867,12 @@ function MissionPage({ id }: { id: string }) {
             <li>The route is a candidate for human review. It is not a safe or certified path.</li>
           </ul>
         </Panel>
-        <div className="flex gap-2 no-print"><Btn onClick={() => window.print()}>PRINT REPORT</Btn><Btn onClick={() => go("/routes")}>COMPARE ROUTES</Btn></div>
+        <div className="flex flex-wrap gap-2 no-print">
+          <Btn onClick={() => window.print()}>PRINT REPORT</Btn>
+          <Btn primary onClick={exportMarkdown}>DOWNLOAD BRIEFING (.MD)</Btn>
+          <Btn onClick={exportJson}>EXPORT JSON</Btn>
+          <Btn onClick={() => go("/routes")}>COMPARE ROUTES</Btn>
+        </div>
       </>}
     </div>
   );

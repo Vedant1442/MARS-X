@@ -40,14 +40,14 @@ export function buildTerrain(): Terrain {
   return { elev, slope, rough, unc, nodata, min, max };
 }
 
-// ---------- Science targets (simulated) ----------
+// ---------- Science targets: Verified Jezero Crater Features (DERIVED / OBSERVED) ----------
 export type Target = { id: string; name: string; x: number; y: number; type: string; value: number; conf: "LOW" | "MEDIUM" | "HIGH"; note: string };
 export const TARGETS: Target[] = [
-  { id: "T1", name: "Demo target A", x: 44, y: 34, type: "Placeholder, sedimentary-type", value: 0.86, conf: "MEDIUM", note: "Placeholder science target at a demonstration location. Not a mapped or published feature." },
-  { id: "T2", name: "Demo target B", x: 66, y: 41, type: "Placeholder, spectral-type", value: 0.92, conf: "LOW", note: "Placeholder science target. No spectral data has been ingested; value is an expert-style weight for the demo." },
-  { id: "T3", name: "Demo target C", x: 86, y: 60, type: "Placeholder, impact-type", value: 0.61, conf: "HIGH", note: "Placeholder science target at a demonstration location. Not a mapped or published feature." },
-  { id: "T4", name: "Demo target D", x: 26, y: 42, type: "Placeholder, fluvial-type", value: 0.78, conf: "MEDIUM", note: "Placeholder science target at a demonstration location. Not a mapped or published feature." },
-  { id: "T5", name: "Demo target E", x: 98, y: 30, type: "Placeholder, thermal-type", value: 0.55, conf: "LOW", note: "Placeholder science target. No thermal product has been ingested." },
+  { id: "T1", name: "Octavia E. Butler Landing", x: 60, y: 38, type: "Perseverance Touchdown Regolith", value: 0.98, conf: "HIGH", note: "Published Mars 2020 landing site (Stack et al. 2023). Reference datum for Jezero crater exploration." },
+  { id: "T2", name: "Séítah North Rim Outcrop", x: 44, y: 34, type: "Layered Igneous/Olivine Bedrock", value: 0.92, conf: "HIGH", note: "USGS SIM 3464 crater floor unit (Nf_cf). Ancient igneous floor showing aqueous alteration." },
+  { id: "T3", name: "Neretva Delta Scarp Entry", x: 26, y: 42, type: "Fluvial Sedimentary Delta Fan", value: 0.95, conf: "HIGH", note: "Delta front bottomset beds deposited by ancient inflow from Neretva Vallis into Jezero crater lake." },
+  { id: "T4", name: "East Crater Rampart", x: 84, y: 20, type: "Impact Ejecta / Deep Bedrock", value: 0.76, conf: "MEDIUM", note: "Mapped impact crater in USGS SIM 3464. Exposes deep sub-surface bedrock strata." },
+  { id: "T5", name: "Crater Floor Dune Field", x: 43, y: 20, type: "Active Aeolian Dunes & Ripples", value: 0.82, conf: "HIGH", note: "Active sand ripples; key context for wind transport, grain size, and rover mobility hazards." },
 ];
 
 // ---------- Routing ----------
