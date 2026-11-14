@@ -363,7 +363,7 @@ function HeroGlobe({ fly, stage }: { fly: FlyTarget; stage: number | null }) {
     const io = new IntersectionObserver(([e]) => setActive(e.isIntersecting), { threshold: 0.05 });
     io.observe(el); return () => io.disconnect();
   }, []);
-  const still = <div role="img" aria-label="Mars, Viking color mosaic" className="w-[82%] aspect-square rounded-full bg-[url(/mars-color-1k.jpg)] bg-[length:300%_auto] bg-[position:30%_42%] shadow-float" />;
+  const still = <div role="img" aria-label="Mars, Viking color mosaic" className="w-[82%] aspect-square rounded-full bg-[url(/mars-color-1k.jpg)] bg-cover bg-center shadow-float ring-2 ring-[#c1440e]/30" />;
   const compact = typeof window !== "undefined" && window.innerWidth < 768;
   return (
     <figure className="relative w-full">
