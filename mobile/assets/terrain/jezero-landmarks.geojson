@@ -1,0 +1,35 @@
+{
+  "type": "FeatureCollection",
+  "name": "MARS-X verified Jezero landmarks",
+  "coordinateSystem": "Mars planetocentric latitude, east-positive longitude, degrees",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "perseverance-landing",
+      "geometry": { "type": "Point", "coordinates": [77.4509, 18.4446] },
+      "properties": {
+        "name": "Octavia E. Butler Landing",
+        "kind": "rover_landing_site",
+        "coordinateDigits": 4,
+        "coordinateStatus": "published_site_coordinate",
+        "sourceLabel": "Stack et al. 2023, Journal of Geophysical Research: Planets",
+        "source": "https://curis.ku.dk/ws/portalfiles/portal/334847713/Geological_multispectral_and_meteorological_imaging_results_from_the_Mars_2020_Perseverance_rover_in_Jezero_crater.htm",
+        "note": "Published Perseverance touchdown coordinate; point location, not a landing-ellipse boundary."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "jezero-crater-center",
+      "geometry": { "type": "Point", "coordinates": [77.69, 18.41] },
+      "properties": {
+        "name": "Jezero Crater center",
+        "kind": "gazetteer_reference_point",
+        "coordinateDigits": 2,
+        "coordinateStatus": "official_gazetteer_center",
+        "sourceLabel": "USGS Gazetteer of Planetary Nomenclature, Feature 14300",
+        "source": "https://planetarynames.wr.usgs.gov/Feature/14300",
+        "note": "Gazetteer center only; does not represent the crater rim geometry."
+      }
+    }
+  ]
+}
