@@ -1,1 +1,34 @@
-{"w": 120, "h": 76, "cellM": 35.99, "widthM": 4318.3, "heightM": 2732.5, "min": -2564.0, "max": -2399.4, "hiW": 480, "hiH": 304}
+{
+  "w": 120,
+  "h": 76,
+  "cellM": 34.576581950478904,
+  "cellWidthM": 34.24795742424162,
+  "cellHeightM": 34.90835977657308,
+  "widthM": 4109.754890908995,
+  "heightM": 2653.035343019554,
+  "hiW": 480,
+  "hiH": 304,
+  "min": -2641.6787588128614,
+  "max": -2460.0625145034032,
+  "encoding": "int16-decimetres-le",
+  "nodata": -32768,
+  "source": "HiRISE PDS3 DTM DTEEC_045994_1985_046060_1985_U01",
+  "sourceSha256": "b40739b4d32516ef9b3cd849f519a6a20df9720b5369a9c141047ced27c57654",
+  "sourceGsdM": 1.0096633268711,
+  "catalogueGsdM": 1.0165533020257713,
+  "verticalDatum": "Mars 2000 datum; elevations above the martian equipotential surface",
+  "projectionMapScaleM": 1.0096633268711,
+  "projectionCenterLatitudeDeg": 15.0,
+  "sourceItem": "data/catalogue/stac_DTEEC_045994_1985_046060_1985_U01.json",
+  "crs": "Mars 2015 sphere / planetocentric / equirectangular, east-positive longitude",
+  "radiusM": 3396190.0,
+  "gridCenterX": 4590879.082127622,
+  "gridCenterY": 1093297.7788891406,
+  "gridStepXM": 36.102544497360164,
+  "gridStepYM": 34.90835977657308,
+  "planningWindowCenter": {
+    "longitudeEastDeg": 77.4509,
+    "latitudePlanetocentricDeg": 18.4446
+  },
+  "gridNoDataCells": 406
+}

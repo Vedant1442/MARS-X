@@ -2,14 +2,15 @@
 
 ## Scope
 
-This report records the local inspection for a crater-scale, offline 3D map in the existing Flutter app. No terrain data was modified during inspection.
+This report records data inspection and the subsequent processing of the supplied HiRISE PDS image. For a reader-friendly current inventory with status and citations, see [`DATA_SOURCES.md`](DATA_SOURCES.md).
 
 ## Application and local data
 
-- The repository is a mixed React/Vite web app, FastAPI backend, and Flutter Android app. The supplied checkout has no `.git` metadata, so Git history and status could not be inspected.
+- The repository is a mixed React/Vite web app, FastAPI backend, and Flutter Android app.
 - Flutter's current Map tab loads `mobile/assets/terrain/jezero-dem.bin` as a 120 x 76 grid. The bundled view is a `CustomPainter` and supports a perspective tilt, but not orbiting 3D, geographic pan/zoom, or raster imagery.
-- The checked-in grid metadata describes a 4.318 x 2.733 km HiRISE-derived window. The source raster is absent locally. Its georeferencing was not carried into the bundled grid.
-- A separate React Three.js scene exists in `src/Terrain3D.tsx`. It uses the same small HiRISE elevation window and adds procedural visual elements; it is not a crater-wide, georeferenced CTX terrain map.
+- The Flutter grid metadata describes a roughly 4.1 x 2.65 km HiRISE-derived window and now carries its Mars projected transform.
+- The original PDS3 source image is present at `data/raw/D3/DTEEC_045994_1985_046060_1985_U01.IMG`. `data/build_dem.py` reads the embedded label and generated the current web and Flutter terrain assets from it.
+- A separate React Three.js scene exists in `src/Terrain3D.tsx`. It uses the same small HiRISE elevation window and adds procedural visual elements; it is not yet a crater-wide, georeferenced CTX terrain map.
 
 ## Murray Lab CTX mosaic
 
@@ -41,13 +42,13 @@ These statistics summarize the supplied tie-point records only. They are not a w
 
 ## Elevation coverage
 
-The local app bundle contains only a small HiRISE-derived window (4.318 x 2.733 km according to its metadata), not a crater-wide DTM. The catalogue item for source DTM `DTEEC_045994_1985_046060_1985_U01` lists a footprint of 77.3834 to 77.5008 degrees east and 18.3055 to 18.548 degrees north, with approximately 1.0166 m source spacing. The source TIFF itself is not present in the local `data/raw/D3` directory, and the current app grid does not retain its geographic transform.
+The local app bundle currently contains only a small HiRISE-derived window (about 4.1 x 2.65 km), not a crater-wide DTM. The PDS label for `DTEEC_045994_1985_046060_1985_U01` reports a map scale of about 1.0097 m/pixel and a footprint of about 77.3834–77.5011 degrees east and 18.3053–18.5484 degrees north. The application resamples that source to an approximately 8.6 m mesh spacing and an approximately 34.6 m planning grid.
 
-The official USGS Planetary Names Gazetteer gives Jezero's center as 18.41 degrees north, 77.69 degrees east. For a crater-scale 3D surface, use the MOLA MEGDR topography product as the broad elevation layer, then add HiRISE elevation only over its verified footprint if that source is restored. The official PDS MEGDR 128 pixels/degree topography tile `MEGT44N000HB.IMG` covers 0 to 90 degrees east and 0 to 44 degrees north. Its label specifies 11,520 samples by 5,632 lines, signed 16-bit big-endian values in metres, a spherical Mars radius of 3,396 km, and planetocentric coordinates. The full tile is about 129.8 MB; a crater-centered crop can be fetched as a small contiguous row range.
+The USGS catalogue identifies a separate full-crater CTX DEM at 20 m/pixel and a matching CTX orthomosaic at 5 m/pixel. These products are the planned Jezero-wide terrain and imagery base; they have not yet been downloaded or integrated. MOLA remains the planned broad-scale elevation source for global context, not the preferred crater-wide source. A 128 pixels/degree MOLA topography tile, `MEGT44N000HB.IMG`, covers 0 to 90 degrees east and 0 to 44 degrees north; it is about 463 m/pixel near the equator and is too coarse for local hazards.
 
 ## Tool limits and validation still needed
 
-GDAL, Rasterio, QGIS, and Flutter were not available in this environment. Metadata was inspected without decoding the full CTX raster. Before production processing, use GDAL/QGIS to validate the CRS, crop bounds, nodata behavior, seam geometry, and MOLA-to-CTX alignment. No screenshots or raster-to-raster accuracy claims have been produced yet.
+The original HiRISE image has been processed by the project builder. The CTX whole-crater rasters remain pending. Before production use, validate their CRS, crop bounds, NoData behavior, seams, image-to-elevation alignment, and MOLA relationship with a planetary-aware geospatial tool. No positional-accuracy claims should be made from tie-point residuals alone.
 
 ## Data references
 

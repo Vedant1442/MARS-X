@@ -1,0 +1,73 @@
+{
+  "manifestVersion": 1,
+  "region": "Jezero crater and surrounding context",
+  "recordedOn": "2026-11-14",
+  "coordinateNotes": "Mars planetary coordinates; east-positive longitude. Keep the source Mars projection and latitude convention from each product label. Do not reinterpret as an Earth CRS.",
+  "products": [
+    {
+      "id": "M20_JezeroCrater_CTXDEM_20m",
+      "role": "crater_wide_elevation",
+      "provider": "USGS Astrogeology Science Center / Planetary Data System",
+      "mission": "Mars Reconnaissance Orbiter",
+      "instrument": "Context Camera (CTX), stereo-derived DEM mosaic",
+      "productPage": "https://astrogeology.usgs.gov/search/map/mars_2020_science_investigation_ctx_dem_mosaic",
+      "sourceUrl": "https://planetarymaps.usgs.gov/mosaic/mars2020_trn/CTX/ScienceInvestigationMaps_JPL/M20_JezeroCrater_CTXDEM_20m.tif",
+      "metadataSourceUrl": "https://planetarymaps.usgs.gov/mosaic/mars2020_trn/CTX/ScienceInvestigationMaps_JPL/M20_JezeroCrater_CTXDEM_20m.xml",
+      "localFile": "data/raw/JezeroWide/M20_JezeroCrater_CTXDEM_20m.tif",
+      "localMetadataFile": "data/raw/JezeroWide/M20_JezeroCrater_CTXDEM_20m_metadata.xml",
+      "downloadStatus": "present_and_verified",
+      "verification": {
+        "fileBytes": 90345300,
+        "sha256": "ba7f706ea1b5d63a562f28a7dcf7a7f3c79bce7f048e6974b57e8a33c30d1ba2",
+        "driver": "GTiff/GeoTIFF",
+        "rasterSizePixels": [4456, 5067],
+        "pixelSizeMetres": [20, -20],
+        "sampleType": "Float32",
+        "bands": 1,
+        "noDataValue": -3.4028235e38,
+        "validPixelPercent": 99.94,
+        "validElevationRangeMetres": [-3504.6453, -475.8408],
+        "georeferencing": "GeoTIFF transform and Mars CRS read by GDAL 3.13.3",
+        "coordinateReferenceSystem": {
+          "name": "Jezero_Crater_Projection",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "projection": "Equidistant Cylindrical",
+          "standardParallelPlanetocentricDegrees": 18.4663,
+          "centralMeridianEastDegrees": 0,
+          "linearUnits": "metres"
+        },
+        "projectedOriginMetres": [4329000, 1143420],
+        "catalogueGeographicBoundsDegreesEastNorth": [76.99, 17.58, 78.58, 19.29]
+      },
+      "scientificNotes": [
+        "Elevations are derived by matching stereo orbital images; this is not a direct laser measurement at every pixel.",
+        "GDAL reports 99.94% valid pixels; retain the remaining NoData cells as unknown rather than filling them with guessed height.",
+        "The product description says the extended DEM areas were localized vertically to MOLA and some horizontal georeferencing was performed in ArcGIS Pro.",
+        "The stated 20 m/pixel spacing cannot resolve every small rock or astronaut-scale obstacle.",
+        "Check overlap, seams, NoData, and vertical-reference consistency before combining with the local HiRISE DTM."
+      ],
+      "credit": "Fred Calef; USGS Astrogeology Science Center; Planetary Data System. Cite the USGS product page and the source papers listed in the XML metadata."
+    },
+    {
+      "id": "M20_JezeroCrater_CTXortho_mosaic_5m",
+      "role": "crater_wide_image_texture",
+      "provider": "USGS Astrogeology Science Center / Planetary Data System",
+      "mission": "Mars Reconnaissance Orbiter",
+      "instrument": "Context Camera (CTX)",
+      "productPage": "https://astrogeology.usgs.gov/search/map/mars_2020_science_investigation_ctx_dem_mosaic",
+      "sourceUrl": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/mars2020_trn/CTX/ScienceInvestigationMaps_JPL/M20_JezeroCrater_CTXortho_mosaic_5m.tif",
+      "metadataSourceUrl": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/mars2020_trn/CTX/ScienceInvestigationMaps_JPL/M20_JezeroCrater_CTXortho_mosaic_5m.xml",
+      "localFile": "data/raw/JezeroWide/M20_JezeroCrater_CTXortho_mosaic_5m.tif",
+      "localMetadataFile": "data/raw/JezeroWide/M20_JezeroCrater_CTXortho_mosaic_5m_metadata.xml",
+      "downloadStatus": "download_in_progress_not_yet_verified",
+      "expectedPixelSizeMetres": 5,
+      "expectedFormat": "GeoTIFF",
+      "notes": [
+        "This is the matching grayscale image mosaic, not elevation data.",
+        "The local same-named .tif was an HTML 404 response at the last verification; the replacement transfer is in progress and this path must not be ingested until verified.",
+        "Verify the TIFF signature, dimensions, CRS, bounds, and checksum after the S3 transfer completes."
+      ]
+    }
+  ]
+}

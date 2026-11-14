@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <idinfo>
+    <citation>
+      <citeinfo>
+        <origin>USGS Astrogeology Science Center</origin>
+        <origin>Fred Calef (JPL)</origin>
+        <pubdate>2021-10-14</pubdate>
+        <title>Mars 2020 Science Investigation CTX Orthorectified Image Mosaic</title>
+        <geoform>Grey Scale, Image, Landing Site Map, Remote-sensing Data</geoform>
+        <pubinfo>
+          <pubplace>Flagstaff, AZ</pubplace>
+          <publish>USGS Astrogeology Science Center</publish>
+        </pubinfo>
+        <onlink>https://astrogeology.usgs.gov/search/map/mars_2020_science_investigation_ctx_dem_mosaic</onlink>
+        <onlink>https://astropedia.astrogeology.usgs.gov/download/Mars/Mars2020/ancillary/M20_JezeroCrater_CTXortho_mosaic_5m.tif</onlink>
+      </citeinfo>
+    </citation>
+    <descript>
+      <abstract>This is a visible image mosaic generated from the Context Camera (CTX) images from the Mars Reconnaissance Orbiter mission. This Science Investigation orthomosaic at 5 m/pixel is matched to the M20_JezeroCrater_CTXDEM_20m DEM and covers the entire Jezero crater. The images were orthorectified using digital terrain models (DTMs) created from CTX stereo images using the Ames Stereo Pipeline.
+
+This mosaic was created in support of the Mars 2020 rover science investigation, which explored Jezero crater to investigate an ancient delta for evidence of past microbial life and to better understand the geologic history of the region.
+
+References:
+Mangold et al., 2021, Perseverance rover reveals an ancient delta-lake system and flood deposits at Jezero crater, Mars, Science. https://doi.org/10.1126/science.abl4051
+
+Fergason, R. L., Hare, T. M., Mayer, D. P., Galuszka, D. M., Redding, B. L., Smith, E. D., Shinaman, J. R., Cheng, Y., Otero, R. E., 2020, Mars 2020 Terrain Relative Navigation Flight Product Generation: Digital Terrain Model and Orthorectified Image Mosaics, 51st Lunar and Planetary Science Conference.
+
+Malin, M.C. et al., 2007, Context Camera Investigation on board the Mars Reconnaissance Orbiter, J. Geophys. Res. 112, E05S04, doi:10.1029/2006JE002808
+      </abstract>
+      <purpose>This dataset was created to provide contextual imagery for science investigations in Jezero crater, matched to the whole-crater CTX DEM mosaic.</purpose>
+      <supplinf>https://doi.org/10.1126/science.abl4051</supplinf>
+    </descript>
+    <timeperd>
+      <timeinfo>
+        <rngdates>
+          <begdate>2006-01-01</begdate>
+          <enddate>2019-08-20</enddate>
+        </rngdates>
+      </timeinfo>
+      <current>Publication date</current>
+    </timeperd>
+    <status>
+      <progress>Complete</progress>
+      <update>As needed</update>
+    </status>
+    <spdom>
+      <bounding>
+        <westbc>76.99</westbc>
+        <eastbc>78.58</eastbc>
+        <northbc>19.29</northbc>
+        <southbc>17.58</southbc>
+      </bounding>
+    </spdom>
+    <keywords>
+      <theme>
+        <themekt>None</themekt>
+        <themekey>Exploration</themekey>
+        <themekey>Image Processing</themekey>
+        <themekey>Photogrammetry</themekey>
+        <themekey>Remote Sensing</themekey>
+      </theme>
+      <place>
+        <placekt>None</placekt>
+        <placekey>Mars</placekey>
+        <placekey>Jezero crater</placekey>
+      </place>
+    </keywords>
+    <accconst>Please cite authors</accconst>
+    <useconst>public domain</useconst>
+    <ptcontac>
+      <cntinfo>
+        <cntaddr>
+          <addrtype>mailing and physical</addrtype>
+          <address>2255 N. Gemini Drive</address>
+          <city>Flagstaff</city>
+          <state>AZ</state>
+          <postal>86001</postal>
+        </cntaddr>
+        <cntemail>[email protected]</cntemail>
+      </cntinfo>
+    </ptcontac>
+    <native>GDAL, ISIS v3, Ames Stereo Pipeline</native>
+  </idinfo>
+  <dataqual>
+    <attracc>
+      <attraccr>Accurate to Control Net</attraccr>
+    </attracc>
+    <complete>This mosaic covers the entire Jezero crater and matches the extent of the Science Investigation CTX DEM.</complete>
+    <lineage>
+      <srcinfo>
+        <srccite>
+          <citeinfo>
+            <origin>Malin Space Science Systems</origin>
+            <pubdate>2007</pubdate>
+            <title>Context Camera Investigation on board the Mars Reconnaissance Orbiter</title>
+            <onlink>https://pds-imaging.jpl.nasa.gov/volumes/mro.html</onlink>
+          </citeinfo>
+        </srccite>
+        <typesrc>PDS 3 Compatible</typesrc>
+        <srccontr>Mars Reconnaissance Orbiter</srccontr>
+      </srcinfo>
+      <procstep>
+        <procdesc>Images orthorectified using CTX DTMs produced with SOCET SET and Ames Stereo Pipeline. DTMs aligned to MOLA. Tone matching and seam blending applied using ASP dem_mosaic tool with 120-pixel linear seam blend.</procdesc>
+      </procstep>
+    </lineage>
+  </dataqual>
+  <spdoinfo>
+    <direct>Raster</direct>
+    <rastinfo>
+      <rasttype>Grid Cell</rasttype>
+      <rowcount>Approximately 20,268</rowcount>
+      <colcount>Approximately 17,824</colcount>
+    </rastinfo>
+  </spdoinfo>
+  <spref>
+    <horizsys>
+      <planar>
+        <mapproj>
+          <mapprojn>Equirectangular</mapprojn>
+        </mapproj>
+        <planci>
+          <plance>row and column</plance>
+          <coordrep>
+            <absres>5</absres>
+            <ordres>5</ordres>
+          </coordrep>
+          <plandu>Meters</plandu>
+        </planci>
+      </planar>
+      <geodetic>
+        <horizdn>MOLA</horizdn>
+        <ellips>Mars</ellips>
+        <semiaxis>3396190</semiaxis>
+        <denflat>0</denflat>
+      </geodetic>
+    </horizsys>
+  </spref>
+  <distinfo>
+    <distrib>
+      <cntinfo>
+        <cntaddr>
+          <addrtype>mailing and physical</addrtype>
+          <address>2255 N. Gemini Drive</address>
+          <city>Flagstaff</city>
+          <state>AZ</state>
+          <postal>86001</postal>
+        </cntaddr>
+        <cntemail>[email protected]</cntemail>
+      </cntinfo>
+    </distrib>
+    <resdesc>M20_JezeroCrater_CTXortho_mosaic_5m.tif</resdesc>
+    <distliab>Unless otherwise stated, all data, metadata and related materials are considered to satisfy the quality standards relative to the purpose for which the data were collected.</distliab>
+    <stdorder>
+      <digform>
+        <digtinfo>
+          <formname>GeoTIFF</formname>
+          <formspec>8-bit</formspec>
+          <filedec>none</filedec>
+          <transize>Approximately 350 MB</transize>
+        </digtinfo>
+        <digtopt>
+          <onlinopt>
+            <computer>
+              <networka>
+                <networkr>https://astropedia.astrogeology.usgs.gov/download/Mars/Mars2020/ancillary/M20_JezeroCrater_CTXortho_mosaic_5m.tif</networkr>
+              </networka>
+            </computer>
+          </onlinopt>
+        </digtopt>
+      </digform>
+    </stdorder>
+  </distinfo>
+  <metainfo>
+    <metd>2021-10-14</metd>
+    <metc>
+      <cntinfo>
+        <cntorgp>
+          <cntorg>USGS Astrogeology Science Center</cntorg>
+        </cntorgp>
+        <cntaddr>
+          <addrtype>mailing and physical</addrtype>
+          <address>2255 N. Gemini Drive</address>
+          <city>Flagstaff</city>
+          <state>AZ</state>
+          <postal>86001</postal>
+        </cntaddr>
+        <cntemail>[email protected]</cntemail>
+      </cntinfo>
+    </metc>
+    <metstdn>FGDC Content Standard for Digital Geospatial Metadata</metstdn>
+    <metstdv>FGDC-STD-001-1998</metstdv>
+  </metainfo>
+</metadata>
