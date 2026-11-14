@@ -85,7 +85,15 @@ function Row({ k, v, l }: { k: string; v: React.ReactNode; l?: Label }) {
   return <div className="flex items-center justify-between gap-3 py-1.5 border-b border-line/70 last:border-0 text-[13px]"><span className="text-dim">{k}</span><span className="flex items-center gap-2 font-mono text-[12px] text-fg text-right">{v}{l && <Tag l={l} />}</span></div>;
 }
 const fmtKm = (m: number) => (m / 1000).toFixed(2) + " km";
-const SynthBanner = () => <div role="note" className="font-mono text-[11px] tracking-[0.08em] text-mars-deep border-b border-dust/40 bg-mars/[0.07] px-3 py-1.5">TERRAIN: USGS HiRISE DTM (DERIVED) · MISSION, TARGETS, RISK AND TIME ARE SIMULATED · ROUTES ARE CANDIDATES, SAFETY NOT CERTIFIED</div>;
+const SynthBanner = () => (
+  <div role="note" className="font-mono text-[10px] sm:text-[11px] tracking-[0.06em] text-mars-deep border-b border-dust/30 bg-mars/[0.08] px-3 py-1.5 flex items-center justify-center text-center gap-1.5 flex-wrap">
+    <span className="font-semibold uppercase tracking-wider">HiRISE DTM (DERIVED)</span>
+    <span className="text-dim/60 hidden sm:inline">·</span>
+    <span className="text-dim">Simulated Mission Targets</span>
+    <span className="text-dim/60 hidden sm:inline">·</span>
+    <span className="text-dim">Candidate Routes</span>
+  </div>
+);
 
 function Swatch({ m, w = 28 }: { m: Mode; w?: number }) {
   return <svg width={w} height={8} aria-hidden="true" className="shrink-0"><line x1={1.5} x2={w - 1.5} y1={4} y2={4} stroke={ROUTE_C[m]} strokeWidth={3} strokeDasharray={SW_DASH[m]} strokeLinecap={m === "SCIENCE" ? "round" : "butt"} /></svg>;
@@ -1034,14 +1042,46 @@ function ImmersivePage() {
   const chip = (on: boolean) => `px-2.5 py-1.5 font-mono text-[11px] tracking-[0.08em] rounded-sm border ${on ? "bg-fg text-ink border-fg" : "border-line-strong text-fg bg-ink/80 hover:bg-panel"}`;
   return (
     <div className="relative flex-1 min-h-[560px] lg:h-[calc(100dvh-52px-29px)] bg-map overflow-hidden">
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 z-0">
         <Suspense fallback={<div role="status" className="absolute inset-0 flex items-center justify-center font-mono text-[12px] text-ink/85">Preparing 3D renderer…</div>}>
           <Terrain3D meta={JEZERO_META} T={S.T} view={view} exag={walk ? 1 : exag} sunEl={sunEl} sunAz={sunAz} cam={walk ? "walk" : "orbit"} playing={playing} speed={speed} route={route} landmarks={lms} step={step} onReach={(k) => setStep(k)} onProbe={setProbe} resetKey={resetKey} onReady={() => setReady(true)} />
         </Suspense>
       </div>
-      <div className="absolute top-0 inset-x-0"><SynthBanner /></div>
-      <button className="lg:hidden absolute top-10 left-2 z-20 font-mono text-[11px] tracking-[0.1em] bg-ink border border-line-strong rounded-sm px-2.5 py-1.5" aria-expanded={hud} onClick={() => setHud((v) => !v)}>{hud ? "HIDE CONTROLS" : "CONTROLS"}</button>
-      {hud && <div className="absolute top-14 lg:top-10 left-2 z-10 w-[min(92vw,300px)] max-h-[calc(100%-7rem)] overflow-y-auto bg-ink/92 backdrop-blur-sm border border-line-strong rounded-md shadow-float p-3 space-y-3">
+
+      {/* Non-overlapping Top HUD Header */}
+      <div className="relative z-20 pointer-events-none flex flex-col w-full">
+        <div className="pointer-events-auto bg-ink/95 border-b border-line shadow-xs">
+          <SynthBanner />
+        </div>
+        <div className="px-3 py-2 flex items-center justify-between gap-2 pointer-events-auto flex-wrap">
+          <button
+            className="font-mono text-[11px] sm:text-[12px] tracking-[0.08em] font-medium bg-ink/95 hover:bg-paper active:scale-95 border border-line-strong rounded-sm px-3 py-1.5 shadow-sm flex items-center gap-1.5 transition-all cursor-pointer text-mars-deep"
+            aria-expanded={hud}
+            onClick={() => setHud((v) => !v)}
+          >
+            <span>{hud ? "✕" : "⚙"}</span>
+            <span>{hud ? "HIDE CONTROLS" : "CONTROLS"}</span>
+          </button>
+
+          <div className="bg-ink/95 backdrop-blur-md border border-line-strong rounded-sm px-3 py-1.5 font-mono text-[11px] shadow-sm">
+            {probe && i >= 0 ? (
+              <div className="flex items-center gap-2.5 text-[10px] sm:text-[11px]">
+                <span>ELEV: <strong className="text-fg">{S.T.elev[i].toFixed(0)}m</strong></span>
+                <span>SLOPE: <strong className="text-fg">{S.T.slope[i].toFixed(1)}°</strong></span>
+                <span>ROUGH: <strong className="text-fg">{S.T.rough[i].toFixed(2)}</strong></span>
+              </div>
+            ) : (
+              <span className="text-dim flex items-center gap-1.5">
+                <span>📍</span>
+                <span>{ready ? "TAP TERRAIN TO INSPECT" : "LOADING…"}</span>
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Controls Drawer */}
+      {hud && <div className="absolute top-[86px] left-3 z-30 w-[min(94vw,320px)] max-h-[calc(100%-6.5rem)] overflow-y-auto overscroll-contain bg-ink/98 backdrop-blur-md border border-line-strong rounded-md shadow-float p-3.5 space-y-3.5 text-fg">
         <div><Eyebrow className="mb-1.5">Camera</Eyebrow><div className="flex gap-1.5"><button className={chip(!walk)} aria-pressed={!walk} onClick={() => { setCam("orbit"); setPlaying(false); }}>ORBIT</button><button className={chip(walk)} aria-pressed={walk} disabled={!route} onClick={() => { setCam("walk"); setResetKey((k) => k + 1); }}>SURFACE WALK</button><button className={chip(false)} onClick={() => setResetKey((k) => k + 1)}>RESET</button></div>
           <p className="text-[11px] text-dim mt-1.5">{walk ? "Drag to look around. Walk follows the candidate route at eye height." : "Drag to rotate, scroll to zoom, right-drag to pan, click terrain to inspect."}</p></div>
         <div><Eyebrow className="mb-1.5">Route</Eyebrow><div className="flex gap-1.5">{(["SAFEST", "FASTEST", "SCIENCE"] as Mode[]).map((m) => <button key={m} className={chip(S.mode === m)} aria-pressed={S.mode === m} onClick={() => S.setMode(m)}>{MODE_NAME[m].split(" ")[0].toUpperCase()}</button>)}</div>
@@ -1060,15 +1100,19 @@ function ImmersivePage() {
           <p className="text-[11px] text-dim">Playback is accelerated for viewing; the time model assumes about 1 m/s (SIMULATED).</p>
         </div>}
       </div>}
-      {cur && walk && <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 w-[min(94vw,560px)] bg-ink/94 border border-line-strong rounded-md shadow-float p-3.5">
+
+      {cur && walk && <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 w-[min(94vw,560px)] bg-ink/94 backdrop-blur-md border border-line-strong rounded-md shadow-float p-3.5">
         <div className="flex items-center justify-between gap-2"><div className="font-mono text-[12px] tracking-[0.08em]">LANDMARK {cur.n} OF {lms.length} · {cur.name.toUpperCase()}</div><Tag l={cur.kind === "science" ? "SIMULATED" : "DERIVED"} /></div>
         <p className="text-[13px] mt-1.5 leading-relaxed">{cur.desc}</p>
         {cur.next && <p className="font-mono text-[11px] text-dim mt-1.5">NEXT: {cur.next.bearing.toFixed(0)}° {cardinal(cur.next.bearing)} · {fmtKm(cur.next.distM)} · {cur.next.dElev >= 0 ? "+" : ""}{cur.next.dElev.toFixed(0)} m</p>}
       </div>}
-      <div className="absolute top-10 right-2 z-10 bg-ink/92 border border-line-strong rounded-sm px-3 py-2 font-mono text-[11px] min-w-48">
-        {probe && i >= 0 ? <div className="grid grid-cols-2 gap-x-3"><span className="text-dim">ELEVATION</span><span>{S.T.elev[i].toFixed(0)} m</span><span className="text-dim">SLOPE</span><span>{S.T.slope[i].toFixed(1)}°</span><span className="text-dim">ROUGHNESS</span><span>{S.T.rough[i].toFixed(2)}</span><span className="text-dim">REL. PRESSURE</span><span>{pressureRel(S.T, i).toFixed(3)}</span><span className="col-span-2 mt-1 text-dim">DERIVED · pressure SIMULATED</span></div> : <span className="text-dim">{ready ? "CLICK TERRAIN TO INSPECT" : "LOADING…"}</span>}
+
+      {/* Floating Bottom Disclaimer */}
+      <div className="absolute bottom-2 inset-x-0 z-10 pointer-events-none flex justify-center px-3">
+        <span className="font-mono text-[10px] text-ink/80 bg-black/50 backdrop-blur-md border border-white/10 rounded-full px-3 py-0.5 tracking-wide text-center">
+          Shape: USGS HiRISE DTM · Visual treatment
+        </span>
       </div>
-      <div className="absolute bottom-1.5 right-2 z-10 font-mono text-[10px] text-ink/80 pointer-events-none text-right max-w-xs">Shape: USGS HiRISE DTM. Colour, boulders, sky and dust are visual treatment, not measurements.</div>
     </div>
   );
 }
