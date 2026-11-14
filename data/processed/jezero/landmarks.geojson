@@ -1,0 +1,1158 @@
+{
+  "type": "FeatureCollection",
+  "title": "Jezero requested landmark register",
+  "version": 1,
+  "status": "evidence-triage; unresolved coordinates are intentionally null",
+  "coordinateSystem": {
+    "body": "Mars",
+    "datum": "Mars 2000 sphere",
+    "sphereRadiusMetres": 3396190,
+    "longitude": "east-positive degrees, 0 to 360",
+    "latitude": "planetocentric degrees",
+    "ordinateOrder": [
+      "longitudeEastDeg",
+      "latitudePlanetocentricDeg"
+    ],
+    "notEarthWGS84": true
+  },
+  "demBoundsEastLat": [
+    76.99743706146005,
+    17.58051991054471,
+    78.58256332408821,
+    19.290187006866102
+  ],
+  "layers": [
+    "geological_features",
+    "rover_exploration",
+    "scientific_interest",
+    "terrain_hazards",
+    "points_of_interest"
+  ],
+  "layerNotes": {
+    "geological_features": "Use companion SIM 3464 polygon/line layers; source map coverage does not span the full DEM.",
+    "rover_exploration": "Use PLACES observations/traverse separately; rover stops do not equal named-feature coordinates.",
+    "scientific_interest": "No invented score; scientific significance is descriptive and separate from route safety.",
+    "terrain_hazards": "No named hazards asserted. Derive slope/roughness hazards from validated DEM at runtime or offline preprocessing; not included in this named register.",
+    "points_of_interest": "Informal names need authoritative waypoint geometries before coordinate placement."
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "jezero-rim",
+      "geometry": null,
+      "properties": {
+        "id": "jezero-rim",
+        "name": "Jezero Crater rim",
+        "category": "geological_features",
+        "subcategory": "crater rim",
+        "geometryType": "LineString/Polygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "mapped_region",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Impact crater rim; use USGS crater-rim crest lines and rim-unit polygons, not a point.",
+        "scientificSignificance": "Defines basin boundary and relief; rim breaching records past hydrology.",
+        "perseveranceHistory": null,
+        "sourceName": "USGS SIM 3464",
+        "sourceUrl": "https://pubs.usgs.gov/publication/sim3464",
+        "coordinateSource": "Existing clipped SIM 3464 line and polygon layers; this register does not duplicate geometry.",
+        "imageryUrl": null,
+        "layerId": "geological_features"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "western-delta",
+      "geometry": null,
+      "properties": {
+        "id": "western-delta",
+        "name": "Western Delta",
+        "category": "geological_features",
+        "subcategory": "delta/fan deposit",
+        "geometryType": "Polygon/MultiPolygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "regional_feature_geometry_available",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Western fluvio-deltaic fan deposits at the mouth of Neretva Vallis.",
+        "scientificSignificance": "Preserves fluvial and lacustrine deposits and potential biosignature-bearing sediments.",
+        "perseveranceHistory": "Perseverance explored the western fan and sampled its sedimentary succession.",
+        "sourceName": "Mangold et al. 2021 Science",
+        "sourceUrl": "https://doi.org/10.1126/sciadv.abo4856",
+        "coordinateSource": "Mapped extent should be joined from a source geologic polygon; no centroid substituted.",
+        "imageryUrl": null,
+        "layerId": "geological_features"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "northern-delta",
+      "geometry": null,
+      "properties": {
+        "id": "northern-delta",
+        "name": "Northern Delta",
+        "category": "geological_features",
+        "subcategory": "fan/delta deposits",
+        "geometryType": "Polygon/MultiPolygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "medium",
+        "verificationStatus": "interpretation_uncertain",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Eroded fan deposits in the northern crater; literature notes their origin and relation to the western delta remain debated.",
+        "scientificSignificance": "Constrains northern-inlet sediment transport and basin history.",
+        "perseveranceHistory": null,
+        "sourceName": "Stratigraphic Relationships in Jezero Crater",
+        "sourceUrl": "https://doi.org/10.1029/2021JE006840",
+        "coordinateSource": "Use mapped deposits and preserve interpretation caveat; no point coordinate assigned.",
+        "imageryUrl": null,
+        "layerId": "geological_features"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "neretva-vallis",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2,
+          18.55
+        ]
+      },
+      "properties": {
+        "id": "neretva-vallis",
+        "name": "Neretva Vallis",
+        "category": "geological_features",
+        "subcategory": "inlet valley/channel",
+        "geometryType": "LineString region; point is official center",
+        "longitudeEastDeg": 77.2,
+        "latitudePlanetocentricDeg": 18.55,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "official_gazetteer_center_and_extent",
+        "insideDemExtent": true,
+        "geologicalDescription": "Inlet valley/channel entering Jezero from the west/northwest.",
+        "scientificSignificance": "Records fluvial transport into the paleolake; rover observations include fluvio-lacustrine strata.",
+        "perseveranceHistory": "Perseverance investigated the inlet channel including Tuff Cliff / Bright Angel region.",
+        "sourceName": "USGS Gazetteer of Planetary Nomenclature",
+        "sourceUrl": "https://planetarynames.wr.usgs.gov/Feature/15879",
+        "coordinateSource": "Representative point is the Gazetteer center (77.20°E, 18.55°N); source extent 77.00–77.30°E, 18.50–18.60°N. Full feature remains linear.",
+        "imageryUrl": null,
+        "layerId": "geological_features",
+        "sourceExtentEastLat": [
+          77.0,
+          18.5,
+          77.3,
+          18.6
+        ],
+        "geometryNote": "Geometry is the official gazetteer center point for catalog display; the named landform is linear and its source extent is recorded separately."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "sava-vallis",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.13,
+          19.09
+        ]
+      },
+      "properties": {
+        "id": "sava-vallis",
+        "name": "Sava Vallis",
+        "category": "geological_features",
+        "subcategory": "inlet valley/channel",
+        "geometryType": "LineString region; point is official center",
+        "longitudeEastDeg": 77.13,
+        "latitudePlanetocentricDeg": 19.09,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "official_gazetteer_center_and_extent",
+        "insideDemExtent": "partially_intersects",
+        "geologicalDescription": "Named western/northern inlet valley system in regional nomenclature.",
+        "scientificSignificance": "Evidence for fluvial inflow to Jezero basin.",
+        "perseveranceHistory": null,
+        "sourceName": "USGS Gazetteer of Planetary Nomenclature",
+        "sourceUrl": "https://planetarynames.wr.usgs.gov/Feature/15904",
+        "coordinateSource": "Representative point is the Gazetteer center (77.13°E, 19.09°N); source extent 76.69–77.56°E, 18.74–19.43°N, so the valley crosses the DEM boundary.",
+        "imageryUrl": null,
+        "layerId": "geological_features",
+        "sourceExtentEastLat": [
+          76.69,
+          18.74,
+          77.56,
+          19.43
+        ],
+        "geometryNote": "Geometry is the official gazetteer center point for catalog display; the named landform is linear and its source extent is recorded separately."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "eastern-outlet",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.35,
+          18.67
+        ]
+      },
+      "properties": {
+        "id": "eastern-outlet",
+        "name": "Eastern Outlet Valley (Pliva Vallis)",
+        "category": "geological_features",
+        "subcategory": "outlet valley/channel",
+        "geometryType": "LineString region; point is official center",
+        "longitudeEastDeg": 78.35,
+        "latitudePlanetocentricDeg": 18.67,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "name_normalized_to_official_gazetteer_center",
+        "insideDemExtent": "partially_intersects",
+        "geologicalDescription": "The eastern outlet channel is officially named Pliva Vallis; “Eastern Outlet Valley” is a descriptive synonym, not a separate feature.",
+        "scientificSignificance": "Records overflow/drainage and episodic fluvial activity.",
+        "perseveranceHistory": null,
+        "sourceName": "USGS Gazetteer of Planetary Nomenclature",
+        "sourceUrl": "https://planetarynames.wr.usgs.gov/Feature/15903",
+        "coordinateSource": "Representative point is the Gazetteer center (78.35°E, 18.67°N); source extent 78.09–78.60°E, 18.52–18.81°N, extending slightly beyond the DEM east edge.",
+        "imageryUrl": null,
+        "layerId": "geological_features",
+        "sourceExtentEastLat": [
+          78.09,
+          18.52,
+          78.6,
+          18.81
+        ],
+        "geometryNote": "Geometry is the official gazetteer center point for catalog display; the named landform is linear and its source extent is recorded separately."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ancient-lake-basin",
+      "geometry": null,
+      "properties": {
+        "id": "ancient-lake-basin",
+        "name": "Ancient lake basin",
+        "category": "geological_features",
+        "subcategory": "paleolake basin",
+        "geometryType": "Polygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "inferred_extent_not_single_boundary",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Jezero hosted an ancient lake; reconstructed lake extents vary with inferred water level and time.",
+        "scientificSignificance": "Habitability context and depositional setting for delta/lacustrine sediments.",
+        "perseveranceHistory": "Mission investigates rocks formed in and around the paleolake.",
+        "sourceName": "Mangold et al. 2021 Science",
+        "sourceUrl": "https://doi.org/10.1126/sciadv.abo4856",
+        "coordinateSource": "Represent individual published paleolake-level contours as separate dated/inferred lines; no single exact polygon asserted.",
+        "imageryUrl": null,
+        "layerId": "geological_features"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "crater-rim-breach",
+      "geometry": null,
+      "properties": {
+        "id": "crater-rim-breach",
+        "name": "Crater rim breach",
+        "category": "geological_features",
+        "subcategory": "outlet breach",
+        "geometryType": "LineString/Polygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "regional_geometry_available",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Eroded eastern rim breach/outlet associated with discharge through Pliva Vallis.",
+        "scientificSignificance": "Constrains open-basin phase and outflow-flood history.",
+        "perseveranceHistory": null,
+        "sourceName": "Fassett et al. outlet-forming flood study",
+        "sourceUrl": "https://ntrs.nasa.gov/citations/20170002566",
+        "coordinateSource": "Requires DEM-derived/local mapped breach outline; not a point.",
+        "imageryUrl": null,
+        "layerId": "geological_features"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "kodiak-butte",
+      "geometry": null,
+      "properties": {
+        "id": "kodiak-butte",
+        "name": "Kodiak Butte (Kodiak)",
+        "category": "geological_features",
+        "subcategory": "delta remnant/butte",
+        "geometryType": "Point plus mapped polygon if sourced",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "named_confirmed_coordinates_unjoined",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Eroded isolated western fan remnant with preserved bottomset, foreset, and topset strata.",
+        "scientificSignificance": "Key evidence for Jezero delta deposition and changing lake level.",
+        "perseveranceHistory": "Imaged by Perseverance from the landing region; not a rover stop named as the feature center.",
+        "sourceName": "Stack et al. 2022 Science Advances",
+        "sourceUrl": "https://doi.org/10.1126/sciadv.abo4856",
+        "coordinateSource": "Published orbital/rover mapping identifies it; this repo has no verified footprint/center coordinate. No screenshot estimate.",
+        "imageryUrl": null,
+        "layerId": "geological_features"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "landing",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.4509,
+          18.4446
+        ]
+      },
+      "properties": {
+        "id": "landing",
+        "name": "Octavia E. Butler Landing Site",
+        "category": "rover_exploration",
+        "subcategory": "landing site",
+        "geometryType": "Point",
+        "longitudeEastDeg": 77.4509,
+        "latitudePlanetocentricDeg": 18.4446,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "coordinate_available",
+        "insideDemExtent": true,
+        "geologicalDescription": "Perseverance touchdown location.",
+        "scientificSignificance": "Mission entry point for in-situ exploration.",
+        "perseveranceHistory": "Touchdown on Sol 0, 18 February 2021.",
+        "sourceName": "Stack et al. 2023 Science Advances",
+        "sourceUrl": "https://doi.org/10.1126/sciadv.abo4856",
+        "coordinateSource": "Published landing coordinate 77.4509°E, 18.4446°N; planetocentric, east-positive.",
+        "imageryUrl": null,
+        "layerId": "rover_exploration"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "seitah",
+      "geometry": null,
+      "properties": {
+        "id": "seitah",
+        "name": "Séítah",
+        "category": "rover_exploration",
+        "subcategory": "geologic formation / campaign region",
+        "geometryType": "Polygon/MultiPolygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "named_confirmed_geometry_unjoined",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Informal name for olivine-rich crater-floor unit and rover exploration area; consists of dispersed exposures among aeolian bedforms.",
+        "scientificSignificance": "Records ancient igneous/crater-floor geology, with possible aqueous alteration.",
+        "perseveranceHistory": "Explored during first science campaign; rover traversed exposures and collected samples.",
+        "sourceName": "Farley et al. 2022; USGS SIM 3464",
+        "sourceUrl": "https://doi.org/10.1029/2022JE007613",
+        "coordinateSource": "Use mapped unit/exposure geometry; avoid a single point for broad unit.",
+        "imageryUrl": null,
+        "layerId": "rover_exploration"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "maaz",
+      "geometry": null,
+      "properties": {
+        "id": "maaz",
+        "name": "Máaz Formation",
+        "category": "rover_exploration",
+        "subcategory": "geologic formation",
+        "geometryType": "Polygon/MultiPolygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "named_confirmed_geometry_unjoined",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Informal name for basaltic crater-floor rocks overlying Séítah.",
+        "scientificSignificance": "Constrains igneous history and the stratigraphy of Jezero floor.",
+        "perseveranceHistory": "Studied and sampled during first science campaign.",
+        "sourceName": "Farley et al. 2022",
+        "sourceUrl": "https://doi.org/10.1029/2022JE007613",
+        "coordinateSource": "Use published unit map/USGS correlations, not point coordinate.",
+        "imageryUrl": null,
+        "layerId": "rover_exploration"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "three-forks",
+      "geometry": null,
+      "properties": {
+        "id": "three-forks",
+        "name": "Three Forks",
+        "category": "rover_exploration",
+        "subcategory": "sample depot / waypoint",
+        "geometryType": "Point or depot-area polygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "named_confirmed_exact_tube_positions_unavailable",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Named location of Perseverance's sample depot. Depot event table identifies ten drops but does not provide individual tube coordinates.",
+        "scientificSignificance": "Preserves cached samples for possible future return.",
+        "perseveranceHistory": "Ten sample tubes deposited during December 2022–January 2023; individual positions must not be inferred from rover position.",
+        "sourceName": "NASA annotated panorama; PDS Three Forks depot bundle",
+        "sourceUrl": "https://science.nasa.gov/resource/perseverances-mid-climb-view-of-jezero-crater/",
+        "coordinateSource": "Exact depot coordinate / individual tube locations not joined in repository.",
+        "imageryUrl": "https://science.nasa.gov/resource/perseverances-mid-climb-view-of-jezero-crater/",
+        "layerId": "rover_exploration"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "hawksbill-gap",
+      "geometry": null,
+      "properties": {
+        "id": "hawksbill-gap",
+        "name": "Hawksbill Gap",
+        "category": "rover_exploration",
+        "subcategory": "delta-front waypoint / outcrop",
+        "geometryType": "Point or local outcrop polygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "named_confirmed_coordinates_unjoined",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Named passage/outcrop area in the western delta front, associated with the Shenandoah formation.",
+        "scientificSignificance": "Exposes delta-front sedimentary stratigraphy.",
+        "perseveranceHistory": "Perseverance traversed and sampled in the delta-front campaign.",
+        "sourceName": "NASA annotated panorama; AGU stratigraphy paper",
+        "sourceUrl": "https://science.nasa.gov/resource/perseverances-mid-climb-view-of-jezero-crater/",
+        "coordinateSource": "Use rover observation localizations or source map GIS; no point inferred from illustration.",
+        "imageryUrl": "https://science.nasa.gov/resource/perseverances-mid-climb-view-of-jezero-crater/",
+        "layerId": "rover_exploration"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "kodiak",
+      "geometry": null,
+      "properties": {
+        "id": "kodiak",
+        "name": "Kodiak",
+        "category": "rover_exploration",
+        "subcategory": "named butte / observation target",
+        "geometryType": "Point plus polygon if sourced",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "named_confirmed_coordinates_unjoined",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Same geological landmark as Kodiak Butte; not a second feature.",
+        "scientificSignificance": "Delta stratigraphy and paleolake-level evidence.",
+        "perseveranceHistory": "Perseverance observed remotely; distinguish rover observation positions from butte location.",
+        "sourceName": "Stack et al. 2022 Science Advances",
+        "sourceUrl": "https://doi.org/10.1126/sciadv.abo4856",
+        "coordinateSource": "Alias of Kodiak Butte; deduplicate geometry.",
+        "imageryUrl": null,
+        "layerId": "rover_exploration"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "belva-crater",
+      "geometry": null,
+      "properties": {
+        "id": "belva-crater",
+        "name": "Belva Crater",
+        "category": "rover_exploration",
+        "subcategory": "impact crater / rover stop",
+        "geometryType": "Point plus crater polygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "label_anchor_only",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Named impact crater and nearby rover observation area. Existing “Belva” coordinate is a USGS text-label anchor, not necessarily crater center.",
+        "scientificSignificance": "Provides exposure/context for crater-floor stratigraphy.",
+        "perseveranceHistory": "Visited/imaged by Perseverance during delta approach.",
+        "sourceName": "USGS SIM 3464; NASA mission map",
+        "sourceUrl": "https://pubs.usgs.gov/publication/sim3464",
+        "coordinateSource": "Existing anchor in jezero_landmarks.geojson must not be promoted to crater center.",
+        "imageryUrl": null,
+        "layerId": "rover_exploration"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "enchanted-lake",
+      "geometry": null,
+      "properties": {
+        "id": "enchanted-lake",
+        "name": "Enchanted Lake",
+        "category": "rover_exploration",
+        "subcategory": "informal waypoint / target",
+        "geometryType": "Point or local polygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "medium",
+        "verificationStatus": "name_requires_source_geometry",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Informal rover-era name; precise feature footprint and authoritative coordinate are not present in bundled sources.",
+        "scientificSignificance": "Not assigned beyond mission waypoint context until primary mission reference is linked.",
+        "perseveranceHistory": "Not independently verified in currently bundled primary sources.",
+        "sourceName": "ESA/FU Berlin Jezero map",
+        "sourceUrl": "https://maps.planet.fu-berlin.de/jezero/",
+        "coordinateSource": "Do not place until map waypoint feature data is obtained.",
+        "imageryUrl": null,
+        "layerId": "rover_exploration"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "cape-nukshak",
+      "geometry": null,
+      "properties": {
+        "id": "cape-nukshak",
+        "name": "Cape Nukshak",
+        "category": "rover_exploration",
+        "subcategory": "delta-front outcrop / waypoint",
+        "geometryType": "Point or local outcrop polygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "named_confirmed_coordinates_unjoined",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Named section/outcrop along eastern scarp of the western delta, in the Shenandoah formation.",
+        "scientificSignificance": "Exposes lower delta sequence and facies architecture.",
+        "perseveranceHistory": "Perseverance investigated the section during delta-front campaign.",
+        "sourceName": "NASA NTRS lower delta sequence study",
+        "sourceUrl": "https://ntrs.nasa.gov/citations/20230000582",
+        "coordinateSource": "Source confirms location context; exact geometry needs mission waypoint join.",
+        "imageryUrl": null,
+        "layerId": "rover_exploration"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "artuby-ridge",
+      "geometry": null,
+      "properties": {
+        "id": "artuby-ridge",
+        "name": "Artuby Ridge",
+        "category": "rover_exploration",
+        "subcategory": "ridge / campaign region",
+        "geometryType": "LineString/Polygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "named_confirmed_coordinates_unjoined",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Informal ridge/region south of landing area, associated with Máaz/Séítah exposures.",
+        "scientificSignificance": "Stratigraphic relationships and crater-floor geology.",
+        "perseveranceHistory": "Perseverance traversed and investigated Artuby Ridge; flight reconnaissance supported planning.",
+        "sourceName": "SuperCam Séítah traverse paper",
+        "sourceUrl": "https://doi.org/10.1029/2022JE007638",
+        "coordinateSource": "Use source map / PLACES localized stops to trace rover traverse; no representative point inferred.",
+        "imageryUrl": null,
+        "layerId": "rover_exploration"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "tuff-cliff",
+      "geometry": null,
+      "properties": {
+        "id": "tuff-cliff",
+        "name": "Tuff Cliff",
+        "category": "scientific_interest",
+        "subcategory": "inlet-channel outcrop / stratigraphic member",
+        "geometryType": "Point or outcrop polygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "named_confirmed_coordinates_unjoined",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Outcrop/member in Neretva Vallis inlet channel, stratigraphically associated with fluvio-lacustrine deposits.",
+        "scientificSignificance": "Records transition toward sustained lacustrine conditions.",
+        "perseveranceHistory": "Observed by Perseverance in the Bright Angel exploration region.",
+        "sourceName": "AGU 2025 Neretva Vallis study",
+        "sourceUrl": "https://doi.org/10.1029/2025JE009420",
+        "coordinateSource": "Precise feature geometry not bundled; NASA panorama says outcrop is ~480 m east of Cheyava Falls but that is not a coordinate.",
+        "imageryUrl": "https://science.nasa.gov/resource/perseverances-mid-climb-view-of-jezero-crater/",
+        "layerId": "scientific_interest"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "valinor-hills",
+      "geometry": null,
+      "properties": {
+        "id": "valinor-hills",
+        "name": "Valinor Hills",
+        "category": "points_of_interest",
+        "subcategory": "informal regional feature",
+        "geometryType": "Point/Polygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "medium",
+        "verificationStatus": "existence_confirmed_geometry_unjoined",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Informal named feature appearing on NASA Mars 2020 traverse map materials.",
+        "scientificSignificance": "No independent scientific interpretation assigned from available source.",
+        "perseveranceHistory": "Mission traverse-map label; exact footprint not joined.",
+        "sourceName": "NASA Mars 2020 traverse map",
+        "sourceUrl": "https://science.nasa.gov/wp-content/uploads/2024/08/4-mars-exploration-program-pac-july-2024.pdf",
+        "coordinateSource": "NASA figure label is not coordinate geometry.",
+        "imageryUrl": null,
+        "layerId": "points_of_interest"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "beehive-geyser",
+      "geometry": null,
+      "properties": {
+        "id": "beehive-geyser",
+        "name": "Beehive Geyser",
+        "category": "points_of_interest",
+        "subcategory": "informal waypoint / terrain region",
+        "geometryType": "Point/Polygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "name_and_approximate_relative_location_confirmed",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Informal area about 500 m west of the rover at Sol 1059; name does not establish a geological geyser process.",
+        "scientificSignificance": "NASA describes a margin-unit interval about 60 m above an earlier sampled section; scientific interest is stratigraphic comparison.",
+        "perseveranceHistory": "Perseverance planned an excursion there in February 2024.",
+        "sourceName": "NASA Science, Beehive Geyser Beckons",
+        "sourceUrl": "https://science.nasa.gov/blog/beehive-geyser-beckons/",
+        "coordinateSource": "Relative distance/direction only; do not turn into a coordinate.",
+        "imageryUrl": null,
+        "layerId": "points_of_interest"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "bunsen-peak",
+      "geometry": null,
+      "properties": {
+        "id": "bunsen-peak",
+        "name": "Bunsen Peak",
+        "category": "points_of_interest",
+        "subcategory": "informal waypoint / sampled rock",
+        "geometryType": "Point",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "name_and_rover_observation_confirmed_coordinate_unjoined",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Large rock on a ridge in the Margin unit; sample source for Comet Geyser.",
+        "scientificSignificance": "Sampled sedimentary rock helps characterize the carbonate-bearing Margin unit.",
+        "perseveranceHistory": "Perseverance performed proximity science and collected its 27th named sample at the Bunsen Peak target on Sol 1088.",
+        "sourceName": "NASA Science and NASA sample inventory",
+        "sourceUrl": "https://science.nasa.gov/blog/beehive-geyser-beckons/",
+        "coordinateSource": "Named target confirmed; exact location can be joined from rover localization and sample event metadata.",
+        "imageryUrl": null,
+        "layerId": "points_of_interest"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "jurabi-point",
+      "geometry": null,
+      "properties": {
+        "id": "jurabi-point",
+        "name": "Jurabi Point",
+        "category": "points_of_interest",
+        "subcategory": "informal waypoint / traverse area",
+        "geometryType": "Point/Polygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "name_and_traverse_context_confirmed_coordinate_unjoined",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Named waypoint in the Margin Unit campaign.",
+        "scientificSignificance": "Provides context for the rover's exploration of carbonate-bearing margin terrain.",
+        "perseveranceHistory": "Perseverance passed through Jurabi Point during the 2024 Margin Unit traverse.",
+        "sourceName": "NASA Science, New Year, New Images from Mars",
+        "sourceUrl": "https://science.nasa.gov/blog/new-year-new-images-from-mars/",
+        "coordinateSource": "Waypoint location needs rover localization join.",
+        "imageryUrl": null,
+        "layerId": "points_of_interest"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "gnaraloo-bay",
+      "geometry": null,
+      "properties": {
+        "id": "gnaraloo-bay",
+        "name": "Gnaraloo Bay",
+        "category": "points_of_interest",
+        "subcategory": "informal waypoint / erosional window",
+        "geometryType": "Polygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "named_region_confirmed_geometry_unjoined",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Erosional window through the western fan apex exposing underlying Margin Unit.",
+        "scientificSignificance": "Exposes the fan-Margin unconformity and stratigraphic relations.",
+        "perseveranceHistory": "Perseverance explored the region approximately Sols 952–999.",
+        "sourceName": "AGU 2025 Margin Unit stratigraphy paper",
+        "sourceUrl": "https://doi.org/10.1029/2025JE009111",
+        "coordinateSource": "Published regional description; exact boundary should be digitized from source map, not approximated.",
+        "imageryUrl": null,
+        "layerId": "points_of_interest"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mandu-wall",
+      "geometry": null,
+      "properties": {
+        "id": "mandu-wall",
+        "name": "Mandu Wall",
+        "category": "points_of_interest",
+        "subcategory": "informal escarpment / margin region",
+        "geometryType": "LineString/Polygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "name_confirmed_geometry_unjoined",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Named Margin Unit terrain region associated with the first sample, Pelican Point.",
+        "scientificSignificance": "Context for carbonate-bearing rocks and possible shoreline/volcanic/alteration interpretations.",
+        "perseveranceHistory": "Explored during the Margin campaign; Pelican Point collected from workspace within Mandu Wall.",
+        "sourceName": "PDS/PNAS sample context",
+        "sourceUrl": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11745317/",
+        "coordinateSource": "Use traverse/sample observations and regional mapping; no representative point asserted.",
+        "imageryUrl": null,
+        "layerId": "points_of_interest"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "pelican-point",
+      "geometry": null,
+      "properties": {
+        "id": "pelican-point",
+        "name": "Pelican Point",
+        "category": "scientific_interest",
+        "subcategory": "named sample / workspace",
+        "geometryType": "Point",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "sample_name_confirmed_location_join_required",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Perseverance sample name collected at Hans Amundsen Memorial Workspace within Mandu Wall.",
+        "scientificSignificance": "First sample from the carbonate-rich Margin Unit; helps assess its origin and habitability context.",
+        "perseveranceHistory": "Core/sample 22 collected on Sol 923.",
+        "sourceName": "NASA/JPL Meet the Mars Samples",
+        "sourceUrl": "https://www.jpl.nasa.gov/videos/meet-the-mars-samples-pelican-point-sample-22/",
+        "coordinateSource": "Sample/workspace coordinates should be joined from PDS PLACES or sample localization metadata.",
+        "imageryUrl": null,
+        "layerId": "scientific_interest"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "pinestand",
+      "geometry": null,
+      "properties": {
+        "id": "pinestand",
+        "name": "Pinestand",
+        "category": "points_of_interest",
+        "subcategory": "informal waypoint / rock feature",
+        "geometryType": "Point/Polygon",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "medium",
+        "verificationStatus": "name_requires_source_geometry",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Requested name not verified in available bundled authoritative sources; do not assume it is a distinct Jezero landmark.",
+        "scientificSignificance": "Unassigned pending verification.",
+        "perseveranceHistory": "No verified exploration record in sources reviewed.",
+        "sourceName": "ESA/FU Berlin Jezero map",
+        "sourceUrl": "https://maps.planet.fu-berlin.de/jezero/",
+        "coordinateSource": "Name and coordinate need primary source confirmation.",
+        "imageryUrl": null,
+        "layerId": "points_of_interest"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "faraway-rock",
+      "geometry": null,
+      "properties": {
+        "id": "faraway-rock",
+        "name": "Faraway Rock",
+        "category": "points_of_interest",
+        "subcategory": "informal waypoint / outcrop",
+        "geometryType": "Point",
+        "longitudeEastDeg": null,
+        "latitudePlanetocentricDeg": null,
+        "coordinateSystem": {
+          "body": "Mars",
+          "datum": "Mars 2000 sphere",
+          "sphereRadiusMetres": 3396190,
+          "longitude": "east-positive degrees, 0 to 360",
+          "latitude": "planetocentric degrees",
+          "ordinateOrder": [
+            "longitudeEastDeg",
+            "latitudePlanetocentricDeg"
+          ],
+          "notEarthWGS84": true
+        },
+        "locationConfidence": "high",
+        "verificationStatus": "name_confirmed_location_join_required",
+        "insideDemExtent": "unknown",
+        "geologicalDescription": "Named group of rocks near the inner crater rim, encountered at the start of the crater-rim campaign.",
+        "scientificSignificance": "Rim campaign explores older crustal materials and stratigraphy.",
+        "perseveranceHistory": "Perseverance reached the area around Sol 1282 and began the rim ascent campaign.",
+        "sourceName": "LPSC 2025 abstract",
+        "sourceUrl": "https://www.hou.usra.edu/meetings/lpsc2025/pdf/2189.pdf",
+        "coordinateSource": "Named regional location confirmed; rover stop/localization join required for coordinate.",
+        "imageryUrl": null,
+        "layerId": "points_of_interest"
+      }
+    }
+  ]
+}

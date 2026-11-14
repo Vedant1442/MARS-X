@@ -1,0 +1,333 @@
+{
+  "manifestVersion": 1,
+  "status": "DRAFT_FOR_INTEGRATION_REVIEW",
+  "createdOn": "2026-11-15",
+  "purpose": "Handoff inventory for the D6 and D8 folders under data/. It records file facts and embedded metadata. Processing provenance not supplied by the Atishay is explicitly left unverified.",
+  "coordinateConventions": {
+    "marsBody": "Mars",
+    "sphereRadiusM": 3396190,
+    "warning": "Mars projections and coordinates are not Earth WGS 84. Do not assume similarly named app products share the same origin or transform."
+  },
+  "datasets": [
+    {
+      "id": "D6",
+      "title": "THEMIS-derived Thermal Inertia of Jezero Crater, Mars",
+      "citation": "Edwards, C. S., & Buz, J. (2021). THEMIS-derived Thermal Inertia of Jezero Crater, Mars. Zenodo. Northern Arizona University.",
+      "doi": "https://doi.org/10.5281/zenodo.4931348",
+      "mission": "Mars Odyssey",
+      "instrument": "THEMIS",
+      "measurement": "Derived thermal inertia, J m-2 K-1 s-1/2; not surface temperature.",
+      "sourceGrid": {
+        "file": "data/MARSX_D6_THEMIS_CLEANED/themis_jezero_clean_source_grid.tif",
+        "width": 890,
+        "height": 890,
+        "resolutionM": 100,
+        "crs": "Mars Simple Cylindrical / equirectangular; central meridian 0°, standard parallel 0°, sphere radius 3,396,190 m.",
+        "boundsProjectedM": [
+          4564100,
+          1052100,
+          4653100,
+          1141100
+        ],
+        "noData": 0,
+        "validPixels": 493950,
+        "totalPixels": 792100,
+        "validFraction": 0.6235955056
+      },
+      "processingAsDocumentedInMetadata": [
+        "Mask source zero/null values as NoData.",
+        "Reproject to the Mars Transverse Mercator projection used by USGS SIM 3464.",
+        "Clip the cleaned Mars TM product to the USGS SIM 3464 MapBoundary.",
+        "Resample at 100 m using bilinear interpolation; this does not add detail.",
+        "A local app-oriented equirectangular copy is also included."
+      ],
+      "cleanedMarsTM": {
+        "file": "data/MARSX_D6_THEMIS_CLEANED/themis_jezero_clean_mars_tm_100m.tif",
+        "width": 566,
+        "height": 595,
+        "resolutionM": 100,
+        "crs": "Mars 2000 sphere, Transverse Mercator, central meridian 77.5°E, scale factor 1, false easting/northing 0, metres.",
+        "transform": [
+          100,
+          0,
+          -39600,
+          0,
+          -100,
+          1108600,
+          0,
+          0,
+          1
+        ],
+        "noData": 0,
+        "validPixels": 185304,
+        "totalPixels": 336770,
+        "validFraction": 0.5502390355,
+        "resampling": "bilinear",
+        "clip": "USGS SIM 3464 MapBoundary",
+        "valueRange": [
+          92.14591217,
+          460.07781982
+        ]
+      },
+      "appEqc": {
+        "file": "data/MARSX_D6_THEMIS_CLEANED/themis_jezero_clean_app_eqc_100m.tif",
+        "width": 563,
+        "height": 594,
+        "resolutionM": 100,
+        "crs": "Project-local Mars equirectangular, central meridian 77.5°E, standard parallel 18.4°, sphere radius 3,396,190 m.",
+        "transform": [
+          100,
+          0,
+          -39400,
+          0,
+          -100,
+          1108500,
+          0,
+          0,
+          1
+        ],
+        "noData": 0,
+        "validPixels": 185114,
+        "totalPixels": 334422,
+        "validFraction": 0.5535341574,
+        "validMaskCheck": "Counted from the GeoTIFF band using its declared NoData value 0.",
+        "note": "Its tagged grid size and affine transform match the D8 app-EQC categorical raster; confirm pixel alignment before production use."
+      },
+      "provenanceStatus": {
+        "sourceCitationKnown": true,
+        "sourceFilesPresent": "A source-grid TIFF is present, but the exact original Zenodo archive member name and download checksum were not supplied.",
+        "processingScript": "Not supplied; steps above are transcribed from embedded metadata, not independently reproduced.",
+        "temporalValidity": "Source metadata identifies the derived product and publication year but not a time-specific surface-temperature observation; this layer is a spatial thermal-inertia property."
+      },
+      "limitations": [
+        "Not a current temperature layer.",
+        "Only 55.0% of the cleaned Mars TM output grid is valid; NoData must remain visible.",
+        "Not spatially aligned to the app HiRISE grid by declaration."
+      ]
+    },
+    {
+      "id": "D8",
+      "title": "Geologic Map of Jezero Crater and the Nili Planum Region, Mars",
+      "citation": "Sun, V., & Stack, K. (2020). Geologic Map of Jezero Crater and the Nili Planum Region, Mars. U.S. Geological Survey Scientific Investigations Map 3464.",
+      "doi": "https://doi.org/10.3133/sim3464",
+      "sourceDatabase": "USGS SIM 3464; matching source archive is data/raw/JezeroLandmarks/sim3464_database.zip.",
+      "vectorLayers": [
+        {
+          "layer": "geounits",
+          "geometry": "MultiPolygon",
+          "features": 1304
+        },
+        {
+          "layer": "geocontacts",
+          "geometry": "MultiLineString",
+          "features": 2496
+        },
+        {
+          "layer": "surface_features",
+          "geometry": "MultiPolygon",
+          "features": 285
+        },
+        {
+          "layer": "location_features",
+          "geometry": "Point",
+          "features": 341
+        },
+        {
+          "layer": "linear_features",
+          "geometry": "MultiLineString",
+          "features": 382
+        },
+        {
+          "layer": "map_boundary",
+          "geometry": "Polygon",
+          "features": 1
+        }
+      ],
+      "marsTransverseMercator": {
+        "file": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geology_clean_mars_tm.gpkg",
+        "crs": "Mars 2000 sphere, Transverse Mercator, central meridian 77.5°E, scale factor 1, false easting/northing 0, metres.",
+        "boundsProjectedM": [
+          -39528.91,
+          1049162.15,
+          16940.68,
+          1108513.82
+        ]
+      },
+      "appEqc": {
+        "file": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geology_app_eqc.gpkg",
+        "crs": "Project-local Mars equirectangular, central meridian 77.5°E, standard parallel 18.4°, sphere radius 3,396,190 m.",
+        "note": "The CRS is recorded in the GeoPackage, but its names are generic/unknown. It uses the same declared local projection parameters as D6 app-EQC. Validate feature and raster alignment; separately transform and validate CTX or HiRISE before overlay."
+      },
+      "geojsonFiles": [
+        {
+          "file": "geounits_mars_lonlat.geojson",
+          "features": 1304,
+          "geometry": "MultiPolygon",
+          "bytes": 52019733
+        },
+        {
+          "file": "geocontacts_mars_lonlat.geojson",
+          "features": 2496,
+          "geometry": "MultiLineString",
+          "bytes": 26281104
+        },
+        {
+          "file": "surface_features_mars_lonlat.geojson",
+          "features": 285,
+          "geometry": "MultiPolygon",
+          "bytes": 8002137
+        },
+        {
+          "file": "linear_features_mars_lonlat.geojson",
+          "features": 382,
+          "geometry": "MultiLineString",
+          "bytes": 272805
+        },
+        {
+          "file": "location_features_mars_lonlat.geojson",
+          "features": 341,
+          "geometry": "Point",
+          "bytes": 57166
+        }
+      ],
+      "categoricalRasters": [
+        {
+          "file": "jezero_geologic_unit_id_100m.tif",
+          "width": 566,
+          "height": 595,
+          "resolutionM": 100,
+          "crs": "Mars SIM 3464 Transverse Mercator",
+          "noData": 0,
+          "valueMeaning": "unit_id lookup key, not science score."
+        },
+        {
+          "file": "jezero_geologic_unit_id_app_eqc_100m.tif",
+          "width": 563,
+          "height": 594,
+          "resolutionM": 100,
+          "crs": "Project-local Mars equirectangular; central meridian 77.5°E, standard parallel 18.4°",
+          "noData": 0,
+          "valueMeaning": "unit_id lookup key, not science score."
+        }
+      ],
+      "lookup": "data/MARSX_D8_GEOLOGY_CLEANED/geologic_unit_lookup.json; IDs map to USGS GeoUnits_v1 codes/names/symbols; value 0 reserved for NoData.",
+      "scienceWeightTemplate": "data/MARSX_D8_GEOLOGY_CLEANED/science_weight_template.csv; weights are blank and must not be used by routing until scientifically reviewed.",
+      "provenanceStatus": {
+        "sourceCitationKnown": true,
+        "sourceDatabasePresent": true,
+        "processingScript": "Not supplied. Reprojection, any geometry repair, rasterization, and output generation method need teammate confirmation.",
+        "geojsonCrs": "Files are named mars_lonlat but contain no explicit CRS member or Mars coordinate metadata; do not feed into an Earth-oriented GeoJSON renderer without an explicit verified transform."
+      },
+      "limitations": [
+        "SIM 3464 is a regional geology map, not an astronaut-scale obstacle survey.",
+        "The app_eqc layers are not the same CRS/origin as the crater-wide CTX DEM; verify alignment.",
+        "GeoJSON files are large; package/install as regional data rather than APK assets."
+      ]
+    }
+  ],
+  "fileInventory": [
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED/themis_jezero_clean_app_eqc_100m.tif",
+      "bytes": 759776,
+      "sha256": "0de5b54691c4a2accb4b96bcec704cb96c417bcd12f1a0c1a316d45ea6170d69"
+    },
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED/themis_jezero_clean_mars_tm_100m.tif",
+      "bytes": 760157,
+      "sha256": "bbb347eaff1c7b390854240efcbf161d2274080add7beaad49c69673d21662d8"
+    },
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED/themis_jezero_clean_source_grid.tif",
+      "bytes": 2002775,
+      "sha256": "b32e373fa84b308256c048a34a69cb612d5f486ade362bf0175bab56629a128d"
+    },
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED/themis_metadata.json",
+      "bytes": 3846,
+      "sha256": "e12f105de2bace0669324295f7e4ceedb550cc2ebb9bc491bf530d09adda1c54"
+    },
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED.zip",
+      "bytes": 3508154,
+      "sha256": "b4d37462a8a6a4c8af0a6b61b385aa506795973bcbb3b5d1a16271592e608e15"
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/geocontacts_mars_lonlat.geojson",
+      "bytes": 26281104,
+      "sha256": "0d2a132f56cf38db6986605f0afdf58a7e2be48716d2bb61cd95c971712009f2"
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/geologic_unit_lookup.json",
+      "bytes": 8710,
+      "sha256": "edd944a37396ceef22fe5875b6b45c7645bcb14d3014e30be2913b20024eb24a"
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/geounits_mars_lonlat.geojson",
+      "bytes": 52019733,
+      "sha256": "39b185fc2bcc50b2968af5e2074af0fdfa4ecc86a9a8c79af95b09ab48f49efe"
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geologic_unit_id_100m.tif",
+      "bytes": 82571,
+      "sha256": "9d66a58a37e91356debd1fbbaa97ddcf13d5ed24886c468de8ed9a50ee10f391"
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geologic_unit_id_app_eqc_100m.tif",
+      "bytes": 82383,
+      "sha256": "bcdd4c0c80bdf8805b72d33a12e9fdec2e7ca5a8ab7075dbc864ff5bc061bd4c"
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geology_app_eqc.gpkg",
+      "bytes": 39464960,
+      "sha256": "21fb7be0866b7a61d5733d4e425cc4f39e452f1403102b769b0a5e786f206c0d"
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geology_clean_mars_tm.gpkg",
+      "bytes": 39460864,
+      "sha256": "8dcb69f50f85f86a77d536f99fcf0538c9b6731521b88ab5043f21fe31897161"
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/linear_features_mars_lonlat.geojson",
+      "bytes": 272805,
+      "sha256": "8ce35b0a4c7693d27f2de49e56a5393b9f6b82fe0ef8eb8bd4208e2e3f5a1c2b"
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/location_features_mars_lonlat.geojson",
+      "bytes": 57166,
+      "sha256": "e0598d9181635bf2f66fb63fc517ec1ff35e6b13f33c2a3b471bcd2dc78aa416"
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/science_weight_template.csv",
+      "bytes": 548,
+      "sha256": "92a5fb8855975abfa8399f41901fb46c84fc2a7d82349149d2b3e08800b8d422"
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/surface_features_mars_lonlat.geojson",
+      "bytes": 8002137,
+      "sha256": "c88ed190e91d21b2c2e4f3ef37342cb243dadea0d7525319ccf349b29434dde4"
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED.zip",
+      "bytes": 93300127,
+      "sha256": "bef10eb02413889be54e718ecf4ea2cb9eb6b47c8429f5f03da7e017f754d105"
+    }
+  ],
+  "validationPerformed": {
+    "zipArchiveIntegrity": {
+      "D6": true,
+      "D8": true
+    },
+    "openedForInspection": [
+      "D8 GeoPackages and their layer metadata",
+      "D8 GeoJSON structure and feature counts",
+      "TIFF header/georeferencing tags for D6 and D8 outputs"
+    ],
+    "notPerformed": [
+      "Independent control-point/geometric alignment QA",
+      "Pixel-by-pixel validation of rasters",
+      "Reproduction from source using teammate processing scripts",
+      "Flutter build or device rendering"
+    ]
+  },
+  "integrationStatus": "These two folders are not yet consumed by Flutter. No app code or assets were changed for this manifest."
+}

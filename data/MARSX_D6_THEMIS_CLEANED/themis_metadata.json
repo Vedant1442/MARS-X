@@ -1,0 +1,84 @@
+{
+  "dataset_id": "D6",
+  "product": "THEMIS-derived Thermal Inertia of Jezero Crater, Mars",
+  "authors": [
+    "Christopher S. Edwards",
+    "Jennifer Buz"
+  ],
+  "year": 2021,
+  "doi": "10.5281/zenodo.4931348",
+  "mission": "Mars Odyssey",
+  "instrument": "THEMIS",
+  "measurement_type": "DERIVED spatial thermal-inertia mosaic",
+  "not_temperature": true,
+  "units": "J m-2 K-1 s-1/2",
+  "source_null_value": 0,
+  "source_raster": {
+    "width": 890,
+    "height": 890,
+    "resolution_m": [
+      100.0,
+      100.0
+    ],
+    "crs_wkt": "PROJCS[\"SimpleCylindrical Mars\",GEOGCS[\"GCS_Mars\",DATUM[\"D_Mars\",SPHEROID[\"Mars\",3396190,0]],PRIMEM[\"Reference_Meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Equirectangular\"],PARAMETER[\"standard_parallel_1\",0],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+    "bounds": [
+      4564100.0,
+      1052100.0,
+      4653100.0,
+      1141100.0
+    ],
+    "valid_pixels": 493950,
+    "total_pixels": 792100,
+    "valid_fraction": 0.6235955056179775,
+    "min": 42.42324447631836,
+    "max": 1655.32763671875,
+    "mean": 254.69354248046875,
+    "std": 76.14080810546875,
+    "percentiles": {
+      "1": 116.02763366699219,
+      "5": 150.28758239746094,
+      "25": 200.49264526367188,
+      "50": 243.60125732421875,
+      "75": 300.97705078125,
+      "95": 387.1267395019531,
+      "99": 446.4608459472656
+    }
+  },
+  "cleaned_output": {
+    "file": "themis_jezero_clean_mars_tm_100m.tif",
+    "crs_wkt": "PROJCRS[\"MTM_clon77.5E\",BASEGEOGCRS[\"Mars_2000_(Sphere)\",DATUM[\"Mars_2000_(Sphere)\",ELLIPSOID[\"Mars_2000_(Sphere)\",3396190,0,LENGTHUNIT[\"metre\",1]],ID[\"ESRI\",106971]],PRIMEM[\"Reference_Meridian\",0,ANGLEUNIT[\"Degree\",0.0174532925199433]]],CONVERSION[\"unnamed\",METHOD[\"Transverse Mercator\",ID[\"EPSG\",9807]],PARAMETER[\"Latitude of natural origin\",0,ANGLEUNIT[\"Degree\",0.0174532925199433],ID[\"EPSG\",8801]],PARAMETER[\"Longitude of natural origin\",77.5,ANGLEUNIT[\"Degree\",0.0174532925199433],ID[\"EPSG\",8802]],PARAMETER[\"Scale factor at natural origin\",1,SCALEUNIT[\"unity\",1],ID[\"EPSG\",8805]],PARAMETER[\"False easting\",0,LENGTHUNIT[\"Meter\",1],ID[\"EPSG\",8806]],PARAMETER[\"False northing\",0,LENGTHUNIT[\"Meter\",1],ID[\"EPSG\",8807]]],CS[Cartesian,2],AXIS[\"easting\",east,ORDER[1],LENGTHUNIT[\"Meter\",1]],AXIS[\"northing\",north,ORDER[2],LENGTHUNIT[\"Meter\",1]]]",
+    "width": 566,
+    "height": 595,
+    "resolution_m": 100,
+    "transform": [
+      100.0,
+      0.0,
+      -39600.0,
+      0.0,
+      -100.0,
+      1108600.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "valid_pixels": 185304,
+    "valid_fraction_of_grid": 0.550239035543546,
+    "min": 92.14591217041016,
+    "max": 460.07781982421875,
+    "mean": 227.07162475585938,
+    "resampling": "bilinear",
+    "clip": "USGS SIM 3464 MapBoundary"
+  },
+  "processing_notes": [
+    "Zero/null cells were masked as NoData; no zero values were treated as measurements.",
+    "Source data values were retained; no outlier clipping or artificial sharpening was applied.",
+    "Reprojected from source Mars simple-cylindrical CRS into USGS SIM 3464 MTM_clon77.5E Mars 2000 Sphere CRS.",
+    "Output remains 100 m; resampling does not add spatial detail.",
+    "Thermal inertia is a thermophysical property, not current surface temperature."
+  ],
+  "limitations": [
+    "The raster covers only part of the USGS map boundary; uncovered cells are NoData.",
+    "This is a derived thermal-inertia mosaic from nighttime THEMIS observations, not a live thermal map.",
+    "Grid alignment to the original HiRISE D3 raster is not claimed because the original D3 GeoTIFF/transform was not supplied."
+  ]
+}

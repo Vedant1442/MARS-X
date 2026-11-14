@@ -1,6 +1,14 @@
 # MARS-X data
 
+The requested 29-name Jezero landmark research register is in
+[`processed/jezero/landmarks.json`](processed/jezero/landmarks.json),
+[`landmarks.geojson`](processed/jezero/landmarks.geojson), and
+[`landmarks.csv`](processed/jezero/landmarks.csv). Its evidence policy and
+remaining coordinate joins are documented in [`docs/landmark_register.md`](../docs/landmark_register.md).
+
 See [`docs/DATA_SOURCES.md`](../docs/DATA_SOURCES.md) for the plain-language source register required for the hackathon. It distinguishes downloaded source files, processed data, and layers integrated into the app, and records coverage, resolution, limits, and citations.
+
+For the frontend/backend integration team, see the parallel-work plan and data contract in [`docs/integration_handoff.md`](../docs/integration_handoff.md) and the machine-readable inventory in [`data/metadata/integration_handoff_manifest.json`](metadata/integration_handoff_manifest.json). D6/D8 are ready for a coordinate-aware preview prototype; source-processing and cross-dataset spatial QA remain explicit gates before scientific sign-off.
 
 `python3 data/fetch_datasets.py` queries live USGS STAC / PDS endpoints and writes `catalogue/datasets.json`.
 

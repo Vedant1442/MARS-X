@@ -1,0 +1,358 @@
+{
+  "source": "USGS SIM 3464 GeoUnits_v1",
+  "unit_id_rule": "unit_id = integer(source unit field) + 1; 0 reserved for NoData",
+  "value_semantics": "categorical geological-unit ID; not a science priority score",
+  "units": [
+    {
+      "unit_id": 1,
+      "source_unit_code": 0,
+      "canonical_name": "Jezero fan 2 unit",
+      "canonical_symbol": "NHjf2",
+      "symbol_noSub": "NHjf",
+      "source_color_id": 603,
+      "feature_count": 15,
+      "attribute_conflict": false,
+      "source_name_variants": {
+        "Jezero fan 2 unit": 15
+      },
+      "source_symbol_variants": {
+        "NHjf2": 15
+      },
+      "attribute_variants": [
+        {
+          "name": "Jezero fan 2 unit",
+          "symbol": "NHjf2",
+          "color_id": 603,
+          "feature_count": 15
+        }
+      ]
+    },
+    {
+      "unit_id": 2,
+      "source_unit_code": 1,
+      "canonical_name": "Jezero fan 1 unit",
+      "canonical_symbol": "NHjf1",
+      "symbol_noSub": "NHjf",
+      "source_color_id": 600,
+      "feature_count": 9,
+      "attribute_conflict": false,
+      "source_name_variants": {
+        "Jezero fan 1 unit": 9
+      },
+      "source_symbol_variants": {
+        "NHjf1": 9
+      },
+      "attribute_variants": [
+        {
+          "name": "Jezero fan 1 unit",
+          "symbol": "NHjf1",
+          "color_id": 600,
+          "feature_count": 9
+        }
+      ]
+    },
+    {
+      "unit_id": 11,
+      "source_unit_code": 10,
+      "canonical_name": "Upper etched unit",
+      "canonical_symbol": "Nue",
+      "symbol_noSub": "Nue",
+      "source_color_id": 74,
+      "feature_count": 268,
+      "attribute_conflict": false,
+      "source_name_variants": {
+        "Upper etched unit": 268
+      },
+      "source_symbol_variants": {
+        "Nue": 268
+      },
+      "attribute_variants": [
+        {
+          "name": "Upper etched unit",
+          "symbol": "Nue",
+          "color_id": 74,
+          "feature_count": 268
+        }
+      ]
+    },
+    {
+      "unit_id": 12,
+      "source_unit_code": 11,
+      "canonical_name": "Crater rim unit",
+      "canonical_symbol": "cr",
+      "symbol_noSub": "cr",
+      "source_color_id": 355,
+      "feature_count": 64,
+      "attribute_conflict": true,
+      "source_name_variants": {
+        "Crater rim unit": 63,
+        "Crater riim unit": 1
+      },
+      "source_symbol_variants": {
+        "cr": 64
+      },
+      "attribute_variants": [
+        {
+          "name": "Crater riim unit",
+          "symbol": "cr",
+          "color_id": 355,
+          "feature_count": 1
+        },
+        {
+          "name": "Crater rim unit",
+          "symbol": "cr",
+          "color_id": 355,
+          "feature_count": 63
+        }
+      ]
+    },
+    {
+      "unit_id": 13,
+      "source_unit_code": 12,
+      "canonical_name": "Crater ejecta unit",
+      "canonical_symbol": "ce",
+      "symbol_noSub": "ce",
+      "source_color_id": 480,
+      "feature_count": 15,
+      "attribute_conflict": false,
+      "source_name_variants": {
+        "Crater ejecta unit": 15
+      },
+      "source_symbol_variants": {
+        "ce": 15
+      },
+      "attribute_variants": [
+        {
+          "name": "Crater ejecta unit",
+          "symbol": "ce",
+          "color_id": 480,
+          "feature_count": 15
+        }
+      ]
+    },
+    {
+      "unit_id": 14,
+      "source_unit_code": 13,
+      "canonical_name": "Crater interior unit",
+      "canonical_symbol": "ci",
+      "symbol_noSub": "ci",
+      "source_color_id": 90,
+      "feature_count": 9,
+      "attribute_conflict": false,
+      "source_name_variants": {
+        "Crater interior unit": 9
+      },
+      "source_symbol_variants": {
+        "ci": 9
+      },
+      "attribute_variants": [
+        {
+          "name": "Crater interior unit",
+          "symbol": "ci",
+          "color_id": 90,
+          "feature_count": 9
+        }
+      ]
+    },
+    {
+      "unit_id": 3,
+      "source_unit_code": 2,
+      "canonical_name": "Jezero floor unit",
+      "canonical_symbol": "Njf",
+      "symbol_noSub": "Njf",
+      "source_color_id": 13,
+      "feature_count": 13,
+      "attribute_conflict": false,
+      "source_name_variants": {
+        "Jezero floor unit": 13
+      },
+      "source_symbol_variants": {
+        "Njf": 13
+      },
+      "attribute_variants": [
+        {
+          "name": "Jezero floor unit",
+          "symbol": "Njf",
+          "color_id": 13,
+          "feature_count": 13
+        }
+      ]
+    },
+    {
+      "unit_id": 4,
+      "source_unit_code": 3,
+      "canonical_name": "Lower etched unit",
+      "canonical_symbol": "Nle",
+      "symbol_noSub": "Nle",
+      "source_color_id": 55,
+      "feature_count": 20,
+      "attribute_conflict": false,
+      "source_name_variants": {
+        "Lower etched unit": 20
+      },
+      "source_symbol_variants": {
+        "Nle": 20
+      },
+      "attribute_variants": [
+        {
+          "name": "Lower etched unit",
+          "symbol": "Nle",
+          "color_id": 55,
+          "feature_count": 20
+        }
+      ]
+    },
+    {
+      "unit_id": 5,
+      "source_unit_code": 4,
+      "canonical_name": "Nili Planum fan unit",
+      "canonical_symbol": "Hnpf",
+      "symbol_noSub": "Hnpf",
+      "source_color_id": 504,
+      "feature_count": 8,
+      "attribute_conflict": false,
+      "source_name_variants": {
+        "Nili Planum fan unit": 8
+      },
+      "source_symbol_variants": {
+        "Hnpf": 8
+      },
+      "attribute_variants": [
+        {
+          "name": "Nili Planum fan unit",
+          "symbol": "Hnpf",
+          "color_id": 504,
+          "feature_count": 8
+        }
+      ]
+    },
+    {
+      "unit_id": 6,
+      "source_unit_code": 5,
+      "canonical_name": "Nili Planum 2 unit",
+      "canonical_symbol": "Nnp2",
+      "symbol_noSub": "Nnp",
+      "source_color_id": 206,
+      "feature_count": 129,
+      "attribute_conflict": true,
+      "source_name_variants": {
+        "Nili Planum 2 unit": 128,
+        "Upper etched unit": 1
+      },
+      "source_symbol_variants": {
+        "Nnp2": 128,
+        "Nue": 1
+      },
+      "attribute_variants": [
+        {
+          "name": "Nili Planum 2 unit",
+          "symbol": "Nnp2",
+          "color_id": 206,
+          "feature_count": 128
+        },
+        {
+          "name": "Upper etched unit",
+          "symbol": "Nue",
+          "color_id": 74,
+          "feature_count": 1
+        }
+      ]
+    },
+    {
+      "unit_id": 7,
+      "source_unit_code": 6,
+      "canonical_name": "Nili Planum 1 unit",
+      "canonical_symbol": "Nnp1",
+      "symbol_noSub": "Nnp",
+      "source_color_id": 21,
+      "feature_count": 156,
+      "attribute_conflict": false,
+      "source_name_variants": {
+        "Nili Planum 1 unit": 156
+      },
+      "source_symbol_variants": {
+        "Nnp1": 156
+      },
+      "attribute_variants": [
+        {
+          "name": "Nili Planum 1 unit",
+          "symbol": "Nnp1",
+          "color_id": 21,
+          "feature_count": 156
+        }
+      ]
+    },
+    {
+      "unit_id": 8,
+      "source_unit_code": 7,
+      "canonical_name": "Eolian bedform unit",
+      "canonical_symbol": "Aeb",
+      "symbol_noSub": "Aeb",
+      "source_color_id": 51,
+      "feature_count": 475,
+      "attribute_conflict": false,
+      "source_name_variants": {
+        "Eolian bedform unit": 475
+      },
+      "source_symbol_variants": {
+        "Aeb": 475
+      },
+      "attribute_variants": [
+        {
+          "name": "Eolian bedform unit",
+          "symbol": "Aeb",
+          "color_id": 51,
+          "feature_count": 475
+        }
+      ]
+    },
+    {
+      "unit_id": 9,
+      "source_unit_code": 8,
+      "canonical_name": "Smooth unit, undivided",
+      "canonical_symbol": "su",
+      "symbol_noSub": "su",
+      "source_color_id": 250,
+      "feature_count": 53,
+      "attribute_conflict": false,
+      "source_name_variants": {
+        "Smooth unit, undivided": 53
+      },
+      "source_symbol_variants": {
+        "su": 53
+      },
+      "attribute_variants": [
+        {
+          "name": "Smooth unit, undivided",
+          "symbol": "su",
+          "color_id": 250,
+          "feature_count": 53
+        }
+      ]
+    },
+    {
+      "unit_id": 10,
+      "source_unit_code": 9,
+      "canonical_name": "Rugged bright unit",
+      "canonical_symbol": "Nrb",
+      "symbol_noSub": "Nrb",
+      "source_color_id": 203,
+      "feature_count": 70,
+      "attribute_conflict": false,
+      "source_name_variants": {
+        "Rugged bright unit": 70
+      },
+      "source_symbol_variants": {
+        "Nrb": 70
+      },
+      "attribute_variants": [
+        {
+          "name": "Rugged bright unit",
+          "symbol": "Nrb",
+          "color_id": 203,
+          "feature_count": 70
+        }
+      ]
+    }
+  ]
+}
