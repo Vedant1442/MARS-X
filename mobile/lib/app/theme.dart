@@ -36,7 +36,7 @@ class MarsTheme {
         surfaceTintColor: Colors.transparent,
       ),
       dividerColor: line,
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: paper,
         elevation: 0,
         shape: RoundedRectangleBorder(
