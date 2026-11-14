@@ -44,15 +44,17 @@ These statistics summarize the supplied tie-point records only. They are not a w
 
 The local app bundle currently contains only a small HiRISE-derived window (about 4.1 x 2.65 km), not a crater-wide DTM. The PDS label for `DTEEC_045994_1985_046060_1985_U01` reports a map scale of about 1.0097 m/pixel and a footprint of about 77.3834–77.5011 degrees east and 18.3053–18.5484 degrees north. The application resamples that source to an approximately 8.6 m mesh spacing and an approximately 34.6 m planning grid.
 
-The USGS catalogue identifies a separate full-crater CTX DEM at 20 m/pixel and a matching CTX orthomosaic at 5 m/pixel. These products are the planned Jezero-wide terrain and imagery base; they have not yet been downloaded or integrated. MOLA remains the planned broad-scale elevation source for global context, not the preferred crater-wide source. A 128 pixels/degree MOLA topography tile, `MEGT44N000HB.IMG`, covers 0 to 90 degrees east and 0 to 44 degrees north; it is about 463 m/pixel near the equator and is too coarse for local hazards.
+The USGS full-crater CTX DEM at 20 m/pixel and matching CTX orthomosaic at 5 m/pixel have since been downloaded and verified. The source files are in `data/raw/JezeroWide/`; the detailed checksums and transforms are in `data/metadata/jezero_wide_manifest.json`. They are not yet integrated into the app. MOLA remains the planned broad-scale elevation source for global context, not the preferred crater-wide source. A 128 pixels/degree MOLA topography tile, `MEGT44N000HB.IMG`, covers 0 to 90 degrees east and 0 to 44 degrees north; it is about 463 m/pixel near the equator and is too coarse for local hazards.
 
 ## Tool limits and validation still needed
 
-The original HiRISE image has been processed by the project builder. The CTX whole-crater rasters remain pending. Before production use, validate their CRS, crop bounds, NoData behavior, seams, image-to-elevation alignment, and MOLA relationship with a planetary-aware geospatial tool. No positional-accuracy claims should be made from tie-point residuals alone.
+The original HiRISE image has been processed by the project builder. The CTX crater-wide rasters are downloaded and verified but remain separate from the current app terrain grid. The SIM 3464 geologic map and PDS PLACES rover localization table have been converted into source-linked GeoJSON under `data/processed/jezero/`; the Flutter APK now bundles the point index and per-sol rover localizations. SIM 3464 covers a smaller area than the crater-wide CTX rasters; the export includes its map boundary. Before raster app integration, validate CTX CRS, crop bounds, NoData behavior, seams, image-to-elevation alignment, map coverage, and MOLA relationships with a planetary-aware geospatial tool. No positional-accuracy claims should be made from tie-point residuals alone.
 
 ## Data references
 
 - Murray Lab CTX ReadMe and DataSheet are stored alongside the original mosaic.
 - [USGS Planetary Names Gazetteer: Jezero](https://planetarynames.wr.usgs.gov/Feature/14300)
+- [USGS SIM 3464 geologic map and GIS database](https://pubs.usgs.gov/publication/sim3464)
+- [PDS Mars 2020 Rover PLACES archive](https://pds-geosciences.wustl.edu/missions/mars2020/)
 - [PDS Geosciences Node: MOLA MEGDR products](https://pds-geosciences.wustl.edu/missions/mgs/megdr.html)
 - [MEGDR 128 pixels/degree archive index](https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg128/)

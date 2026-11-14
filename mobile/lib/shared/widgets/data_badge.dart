@@ -50,7 +50,7 @@ class HonestyBanner extends StatelessWidget {
         border: const Border(bottom: BorderSide(color: MarsTheme.line)),
       ),
       child: const Text(
-        'OFFLINE · HIRISE DTM (DERIVED) · ROUTE SCORES & TIME ARE MODEL ESTIMATES · NO SCIENCE TARGETS · SAFETY NOT CERTIFIED',
+        'OFFLINE · LOCAL HIRISE DTM ONLY · ROUTES ARE MODEL ESTIMATES · NO SCIENCE STOPS · NOT SAFETY CERTIFIED',
         style: TextStyle(
           fontFamily: 'monospace',
           fontSize: 10,

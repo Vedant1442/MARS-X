@@ -28,3 +28,4 @@ flutter:
     - assets/terrain/jezero-dem.bin
     - assets/terrain/jezero-dem.json
     - assets/terrain/jezero-landmarks.geojson
+    - assets/terrain/perseverance-rover-stops.geojson

@@ -42,3 +42,39 @@ class JezeroLandmark {
     );
   }
 }
+
+/// Archived rover localizations from PDS PLACES. These are not camera poses.
+class RoverStop {
+  final String id;
+  final int sol;
+  final double longitudeEastDeg;
+  final double latitudePlanetocentricDeg;
+  final String source;
+  final String note;
+
+  const RoverStop({
+    required this.id,
+    required this.sol,
+    required this.longitudeEastDeg,
+    required this.latitudePlanetocentricDeg,
+    required this.source,
+    required this.note,
+  });
+
+  factory RoverStop.fromGeoJsonFeature(Map<String, dynamic> feature) {
+    final properties = feature['properties'] as Map<String, dynamic>;
+    final geometry = feature['geometry'] as Map<String, dynamic>;
+    if (geometry['type'] != 'Point') {
+      throw const FormatException('Rover localizations must be point features.');
+    }
+    final coordinates = geometry['coordinates'] as List<dynamic>;
+    return RoverStop(
+      id: feature['id'] as String,
+      sol: (properties['sol'] as num).toInt(),
+      longitudeEastDeg: (coordinates[0] as num).toDouble(),
+      latitudePlanetocentricDeg: (coordinates[1] as num).toDouble(),
+      source: properties['sourceLabel'] as String,
+      note: properties['note'] as String,
+    );
+  }
+}

@@ -30,6 +30,15 @@ final jezeroLandmarksProvider = FutureProvider<List<JezeroLandmark>>((ref) async
       .toList(growable: false);
 });
 
+final roverStopsProvider = FutureProvider<List<RoverStop>>((ref) async {
+  final text = await rootBundle.loadString('assets/terrain/perseverance-rover-stops.geojson');
+  final collection = jsonDecode(text) as Map<String, dynamic>;
+  final features = collection['features'] as List<dynamic>;
+  return features
+      .map((feature) => RoverStop.fromGeoJsonFeature(feature as Map<String, dynamic>))
+      .toList(growable: false);
+});
+
 class PlannerState {
   final GridPoint? start;
   final GridPoint? end;

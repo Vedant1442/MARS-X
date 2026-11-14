@@ -1,25 +1,42 @@
 # Jezero map data first pass
 
-## What is in the Flutter app now
+## What is available locally
 
-- The offline terrain binary is derived from a USGS HiRISE DTM, but the checked-in binary has no map transform. The currently bundled map therefore cannot place geographic points responsibly.
-- The planner routes over the local elevation grid only. Its cost functions are prototype heuristics, not astronaut safety criteria.
-- The old target pins were pixel placeholders. They have been removed from routing and map rendering.
-- The current repository has no rover panorama assets or panorama viewer implementation.
+- The app still displays a small, real HiRISE DTM window around Perseverance's landing area. It is not yet the whole-crater view.
+- The crater-wide USGS CTX DEM (20 m/pixel) and matching CTX orthomosaic (5 m/pixel) are downloaded and verified under `data/raw/JezeroWide/`. They are not yet integrated into the app.
+- The USGS SIM 3464 geodatabase and Mars 2020 PLACES rover-localization table are now downloaded. A repeatable converter writes their map features and rover positions to `data/processed/jezero/`.
+- The Flutter APK now bundles the expanded 10-point reference/label-anchor index and 531 PDS PLACES per-sol rover localizations. The map shows the subset that falls inside its local HiRISE DTM. Full-crater CTX rasters and mapped geology remain prepared on disk, not yet rendered in the app.
+- The app's route planner currently plans on the local HiRISE grid and uses heuristic costs. These are candidate educational routes, not astronaut safety guidance.
+- There are no real rover panorama assets in the app yet. Rover images and camera poses still need to be joined from mission archives before creating panoramas.
 
-## Offline landmark layer
+## Geologic and landform layers
 
-`mobile/assets/terrain/jezero-landmarks.geojson` contains the first two verified point references:
+`data/processed/jezero/` contains derived GeoJSON from Sun and Stack's USGS SIM 3464 geodatabase:
 
-1. Perseverance / Octavia E. Butler Landing, from the published Jezero rover investigation coordinate (18.4446 N, 77.4509 E).
-2. Jezero crater center from the USGS Gazetteer (18.41 N, 77.69 E). It is a reference point, not a crater-boundary geometry.
+- 1,021 geologic-unit polygon fragments after clipping to the downloaded CTX DEM footprint.
+- 1,999 mapped geologic contacts.
+- 306 mapped lines, including fluvial channels, delta-lobe fronts, ridge crests, crater-rim crests, and lineaments.
+- 187 surface-feature polygons, 258 small-crater points, and the landing ellipse.
+- Eight named USGS map-label anchor points in the shared landmark index. These place map text; they do not represent the named feature's center or boundary.
 
-The map lists these points offline, but only draws or routes to a point when the installed terrain has a Mars grid transform and the point falls inside its footprint. The downloaded raster source is not present in this checkout, and network DNS is unavailable in the current environment, so the terrain package could not be rebuilt here.
+SIM 3464 is a 1:75,000 regional geologic map. Its published map boundary is about 76.8–77.8° east and 17.7–18.7° north. The CTX terrain mosaic is wider, about 76.9974–78.5826° east and 17.5805–19.2902° north. The map-coverage polygon is provided separately so areas outside the geological map remain visibly unmapped rather than appearing feature-free.
 
-## Georeferenced terrain build
+The geodatabase uses Mars Transverse Mercator on the Mars 2000 sphere. The export transforms its geometries into Mars longitude east-positive and planetocentric latitude, clips them to the verified CTX DEM bounds, and simplifies display geometry by 8 m. This scale supports regional geology and landforms, not small-rock detection.
 
-`data/build_dem.py` now uses the STAC item's Mars equirectangular transform to center a deterministic crop on Perseverance's published landing location. It writes the projected coordinate of the planning-grid cell centers and preserves NoData with the Int16 sentinel `-32768`. Once the source COG is restored at `data/raw/D3/DTEEC_045994_1985_046060_1985_U01.tif`, run the documented build pipeline to regenerate both web and Flutter terrain assets. This rebuild is necessary before the landing pin appears on the map.
+## Perseverance localizations
 
-## Next data work
+`data/processed/jezero/perseverance_rover_stops.geojson` contains 531 per-sol rover localization points inside the CTX DEM footprint from PDS PLACES Release 16. The companion `perseverance_rover_traverse.geojson` connects these points into 120 display segments and leaves gaps longer than two sols disconnected. The raw `best_interp.csv`, its PDS XML label, and release notes are retained under `data/raw/JezeroLandmarks/`.
 
-The delta, inlet channels, Máaz and Séítah formation boundaries, Artuby Ridge, Kodiak remnant, Three Forks depot, and rover traverse need source geometries or verified coordinates before adding them to the map. Geological-unit polygons should come from a georeferenced mission map or GIS dataset; traverse points should come from the mission localization archive. Panorama work should begin from PDS original images and calibrated camera poses, generating 360 views only for compatible image sets with adequate angular coverage.
+PLACES `best_interp` is a localized/interpolated archive product, not a complete record of wheel motion. Its Release 16 notes say `ROVER,n,0` rows were omitted. A displayed line between positions is therefore not an exact driven path, and the archive does not provide a numeric position-error value in this table. Sol, site, drive, and source identifiers remain attached to the output points.
+
+The PDS Three Forks sample-drop table contains the names and times of the ten depot events, but no geographic coordinates. It is retained as a source for later matching. The app must not place the individual tubes from a screenshot or by copying the rover's nearby position as if it were an exact tube coordinate.
+
+## Next work before app integration
+
+1. Finish a named-landmark register that combines map labels, geologic polygon names, mission campaign features, and rover/sample observations without confusing display anchors with feature boundaries.
+2. Join requested landmark observations to their authoritative coordinates or source geometries. Kodiak, Artuby Ridge, Máaz, Séítah, Three Forks, and sample locations need distinct location evidence; the source layers above do not define every one of those names.
+3. Decide which offline vector layers to bundle and how the Flutter map will render their different geometry types and coverage boundaries.
+4. Integrate the crater-wide elevation and imagery after the geospatial database is reviewed. The current route grid is still the landing-site HiRISE patch and cannot plan across all of Jezero.
+5. Acquire real rover images with their product labels and use archived camera geometry only where the image set supports a valid panorama.
+
+Source details and plain-language explanations for the hackathon are in [`DATA_SOURCES.md`](DATA_SOURCES.md). The vector export can be regenerated with `python data/build_jezero_vectors.py` after installing `data/requirements-geodata.txt` and obtaining the raw source files.

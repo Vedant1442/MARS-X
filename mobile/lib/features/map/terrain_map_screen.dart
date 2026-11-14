@@ -17,6 +17,7 @@ class TerrainMapScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final gridAsync = ref.watch(terrainGridProvider);
     final landmarksAsync = ref.watch(jezeroLandmarksProvider);
+    final roverStopsAsync = ref.watch(roverStopsProvider);
     final st = ref.watch(plannerProvider);
     final notifier = ref.read(plannerProvider.notifier);
 
@@ -37,12 +38,17 @@ class TerrainMapScreen extends ConsumerWidget {
                   st: st,
                   notifier: notifier,
                   landmarks: landmarksAsync.valueOrNull ?? const [],
+                  roverStops: roverStopsAsync.valueOrNull ?? const [],
                 ),
                 const SizedBox(height: 8),
                 _LandmarksInfoCard(
                   grid: grid,
                   landmarks: landmarksAsync.valueOrNull ?? const [],
                   notifier: notifier,
+                ),
+                _RoverDataCard(
+                  grid: grid,
+                  roverStops: roverStopsAsync.valueOrNull ?? const [],
                 ),
                 if (st.statusMessage != null) ...[
                   const SizedBox(height: 8),
@@ -116,8 +122,9 @@ class _InteractiveMapCard extends StatelessWidget {
   final PlannerState st;
   final PlannerNotifier notifier;
   final List<JezeroLandmark> landmarks;
+  final List<RoverStop> roverStops;
 
-  const _InteractiveMapCard({required this.grid, required this.st, required this.notifier, required this.landmarks});
+  const _InteractiveMapCard({required this.grid, required this.st, required this.notifier, required this.landmarks, required this.roverStops});
 
   @override
   Widget build(BuildContext context) {
@@ -138,7 +145,7 @@ class _InteractiveMapCard extends StatelessWidget {
                     notifier.tapCell(grid, GridPoint(x, y));
                   },
                   child: CustomPaint(
-                    painter: _TerrainPainter(grid: grid, st: st, landmarks: landmarks),
+                    painter: _TerrainPainter(grid: grid, st: st, landmarks: landmarks, roverStops: roverStops),
                     size: Size(constraints.maxWidth, constraints.maxHeight),
                   ),
                 );
@@ -174,12 +181,19 @@ class _InteractiveMapCard extends StatelessWidget {
               ),
             ),
           Padding(
-            padding: const EdgeInsets.all(8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Flexible(child: Text('Tap map or a mapped landmark: Start → Destination', style: TextStyle(fontSize: 12, color: MarsTheme.dim))),
-                DataBadge(st.layer == TerrainLayer.pressure ? DataType.simulated : DataType.derived),
+                const Text('Terrain colors come from the real HiRISE DTM. CTX image texture is not displayed yet.', style: TextStyle(fontSize: 11, color: MarsTheme.dim)),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Flexible(child: Text('Tap map: Start → Destination · gold dots: archived rover positions', style: TextStyle(fontSize: 12, color: MarsTheme.dim))),
+                    DataBadge(st.layer == TerrainLayer.pressure ? DataType.simulated : DataType.derived),
+                  ],
+                ),
               ],
             ),
           ),
@@ -204,12 +218,12 @@ class _LandmarksInfoCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('VERIFIED JEZERO LANDMARKS', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600)),
+            const Text('PUBLISHED POINTS & MAP LABELS', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
             Text(
               grid.georeference == null
                   ? 'Landmark coordinates are installed offline. This DEM has no geographic transform, so pins are withheld until the georeferenced terrain package is installed.'
-                  : 'Positions use the installed Mars projection and published coordinates.',
+                  : 'Coordinates follow the installed HiRISE grid reference. Label anchors place printed map text; they are not feature centers.',
               style: const TextStyle(fontSize: 12, color: MarsTheme.dim),
             ),
             const Divider(),
@@ -239,6 +253,59 @@ class _LandmarksInfoCard extends StatelessWidget {
                   onTap: cell == null ? null : () => notifier.tapCell(grid, GridPoint(cell.x, cell.y)),
                 );
               }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RoverDataCard extends StatelessWidget {
+  final TerrainGrid grid;
+  final List<RoverStop> roverStops;
+
+  const _RoverDataCard({required this.grid, required this.roverStops});
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = roverStops.where((stop) {
+      final cell = grid.georeference?.cellFor(
+        stop.longitudeEastDeg,
+        stop.latitudePlanetocentricDeg,
+        grid.w,
+        grid.h,
+      );
+      return cell != null;
+    }).length;
+    final latest = roverStops.isEmpty ? null : roverStops.last;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('PERSEVERANCE ARCHIVE POSITIONS', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600)),
+            const SizedBox(height: 5),
+            Text(
+              '${roverStops.length} offline per-sol positions from PDS PLACES Release 16; $visible fall inside this small HiRISE map window.',
+              style: const TextStyle(fontSize: 12, color: MarsTheme.dim),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'This view covers about ${(grid.cellWidthM * grid.w / 1000).toStringAsFixed(1)} × ${(grid.cellHeightM * grid.h / 1000).toStringAsFixed(1)} km around the landing site. Route planning is limited to this HiRISE patch; the crater-wide CTX raster is not yet rendered or used for routes.',
+              style: const TextStyle(fontSize: 11, color: MarsTheme.dim),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Positions may be interpolated localizations. They are not camera poses, panorama locations, or a complete wheel track. This archive ends at sol 1897 (2026-06-21).',
+              style: TextStyle(fontSize: 11, color: MarsTheme.dim),
+            ),
+            if (latest != null) ...[
+              const Divider(),
+              Text('Latest bundled location: sol ${latest.sol} · ${latest.latitudePlanetocentricDeg.toStringAsFixed(4)}° N, ${latest.longitudeEastDeg.toStringAsFixed(4)}° E', style: const TextStyle(fontSize: 11)),
+            ],
+            const SizedBox(height: 4),
+            const Text('Source: PDS Geosciences Node, Mars 2020 Rover PLACES, best_interp.csv. See DATA SOURCES in the project documentation.', style: TextStyle(fontSize: 10, color: MarsTheme.dim)),
           ],
         ),
       ),
@@ -438,8 +505,9 @@ class _TerrainPainter extends CustomPainter {
   final TerrainGrid grid;
   final PlannerState st;
   final List<JezeroLandmark> landmarks;
+  final List<RoverStop> roverStops;
 
-  _TerrainPainter({required this.grid, required this.st, required this.landmarks});
+  _TerrainPainter({required this.grid, required this.st, required this.landmarks, required this.roverStops});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -511,6 +579,14 @@ class _TerrainPainter extends CustomPainter {
 
     final georef = grid.georeference;
     if (georef != null) {
+      for (final stop in roverStops) {
+        final cell = georef.cellFor(stop.longitudeEastDeg, stop.latitudePlanetocentricDeg, grid.w, grid.h);
+        if (cell == null) continue;
+        final position = Offset((cell.x + 0.5) * cw, (cell.y + 0.5) * ch);
+        canvas.drawCircle(position, 4.3, Paint()..color = const Color(0xFFF3C969));
+        canvas.drawCircle(position, 2.8, Paint()..color = const Color(0xFF1C2A31));
+      }
+
       for (final landmark in landmarks) {
         final cell = georef.cellFor(landmark.longitudeEastDeg, landmark.latitudePlanetocentricDeg, grid.w, grid.h);
         if (cell == null) continue;

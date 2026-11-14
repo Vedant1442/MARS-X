@@ -1,2 +1,6 @@
 *.tif
+JezeroLandmarks/*.zip
+JezeroLandmarks/*.csv
+JezeroLandmarks/release_notes.txt
+JezeroLandmarks/usgs/
 __pycache__/

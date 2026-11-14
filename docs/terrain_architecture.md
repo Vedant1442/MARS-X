@@ -6,11 +6,11 @@ Add an offline, orbitable 3D map of Jezero to the existing Flutter Map tab. Keep
 
 ## Data layers
 
-1. **Whole-crater terrain:** use the USGS Mars 2020 Science Investigation CTX DEM mosaic at 20 m/pixel as the Jezero crater elevation foundation. The source is identified but still needs downloading and processing. Its documentation says added stereo DEM areas were tied vertically to MOLA and some horizontal georeferencing was performed in ArcGIS Pro; validate overlaps and display source/uncertainty.
+1. **Whole-crater terrain:** use the downloaded USGS Mars 2020 Science Investigation CTX DEM mosaic at 20 m/pixel as the Jezero crater elevation foundation. Its documentation says added stereo DEM areas were tied vertically to MOLA and some horizontal georeferencing was performed in ArcGIS Pro; validate overlaps and display source/uncertainty before app integration.
 2. **Whole-crater imagery:** use the matching CTX orthomosaic at 5 m/pixel as a grayscale surface texture, separate from the DEM. Build a multiresolution offline image pyramid.
 3. **Global shape:** use MOLA MEGDR topography for the planet-wide overview and where no higher-resolution terrain is available. Its roughly 463 m/pixel 128-pixels-per-degree product is useful for broad topography, not rover-scale hazards.
 4. **HiRISE detail:** use each verified HiRISE DTM only inside its published footprint. The original `DTEEC_045994_1985_046060_1985_U01.IMG` has been restored and used to generate a georeferenced local patch; it covers only a small area around the landing site. Keep source resolution distinct from the resampled app mesh and planning grid.
-5. **Overlays:** keep rover observations, traverse, landing ellipse, channels, and landmarks as separate georeferenced vector layers. Do not bake them into CTX imagery. Only the landing point and Gazetteer crater-center point are currently in the checked-in landmark GeoJSON.
+5. **Overlays:** keep rover observations, traverse, landing ellipse, channels, and landmarks as separate georeferenced vector layers. Do not bake them into CTX imagery. The Flutter APK now includes the landing and Gazetteer reference points, eight USGS map-label anchors, and PDS per-sol rover localizations; full polygon and line layers remain outside the app.
 
 ## Processing and storage
 
