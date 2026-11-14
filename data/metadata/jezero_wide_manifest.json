@@ -60,13 +60,35 @@
       "metadataSourceUrl": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/mars2020_trn/CTX/ScienceInvestigationMaps_JPL/M20_JezeroCrater_CTXortho_mosaic_5m.xml",
       "localFile": "data/raw/JezeroWide/M20_JezeroCrater_CTXortho_mosaic_5m.tif",
       "localMetadataFile": "data/raw/JezeroWide/M20_JezeroCrater_CTXortho_mosaic_5m_metadata.xml",
-      "downloadStatus": "download_in_progress_not_yet_verified",
+      "downloadStatus": "present_and_verified",
       "expectedPixelSizeMetres": 5,
       "expectedFormat": "GeoTIFF",
+      "verification": {
+        "fileBytes": 359599280,
+        "sha256": "cd9f4b2154fdd43e8c17abfbae63210b72507db2209d1d7db63f6f855b18d2df",
+        "driver": "GTiff/GeoTIFF",
+        "rasterSizePixels": [17766, 20234],
+        "pixelSizeMetres": [5.0020646811, -5.0022629716],
+        "sampleType": "Byte",
+        "bands": 1,
+        "georeferencing": "GeoTIFF transform and Mars CRS read by GDAL 3.13.3",
+        "coordinateReferenceSystem": {
+          "name": "Equirectangular",
+          "datum": "D_MARS",
+          "sphereRadiusMetres": 3396190,
+          "projection": "Equidistant Cylindrical",
+          "standardParallelPlanetocentricDegrees": 18.4663,
+          "centralMeridianEastDegrees": 0,
+          "linearUnits": "metres"
+        },
+        "projectedOriginMetres": [4329192.10812596, 1143347.424175],
+        "projectedBoundsMetres": [4329192.1081, 1042131.635, 4418058.789, 1143347.4242],
+        "geographicBoundsDegreesEastNorth": [77.0008528, 17.5813917, 78.581475, 19.2889639]
+      },
       "notes": [
         "This is the matching grayscale image mosaic, not elevation data.",
-        "The local same-named .tif was an HTML 404 response at the last verification; the replacement transfer is in progress and this path must not be ingested until verified.",
-        "Verify the TIFF signature, dimensions, CRS, bounds, and checksum after the S3 transfer completes."
+        "The local file has been verified as a GeoTIFF. It uses the same Mars sphere and standard parallel as the DEM, but covers a slightly smaller projected footprint.",
+        "When aligning it to DEM bounds, preserve the uncovered margins as transparent/unknown instead of stretching or inventing image pixels."
       ]
     }
   ]

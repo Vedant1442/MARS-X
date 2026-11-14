@@ -10,4 +10,4 @@ An offline-capable Mars exploration prototype for Jezero crater. The project is 
 
 ## Coverage status
 
-The original HiRISE DTM is being used for a small, high-detail patch around Perseverance's landing site. The whole-crater CTX elevation mosaic and matching image mosaic have been identified, but still need to be downloaded and integrated. Read the source register before describing the current map as whole-crater coverage.
+The original HiRISE DTM is being used for a small, high-detail patch around Perseverance's landing site. The whole-crater CTX elevation and image mosaics are downloaded and verified, but still need to be aligned and integrated. Read the source register before describing the current app map as whole-crater coverage.
