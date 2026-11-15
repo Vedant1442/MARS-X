@@ -2,11 +2,13 @@
 
 ## What is available locally
 
-- The app still displays a small, real HiRISE DTM window around Perseverance's landing area. It is not yet the whole-crater view.
-- The crater-wide USGS CTX DEM (20 m/pixel) and matching CTX orthomosaic (5 m/pixel) are downloaded and verified under `data/raw/JezeroWide/`. They are not yet integrated into the app.
+- The Flutter map now opens on the full USGS CTX mosaic footprint around Jezero, not only the landing-site patch.
+- The 20 m CTX DEM is aggregated conservatively to a 100 m route grid; the 5 m CTX image is resampled and geospatially aligned to that grid for the offline overview.
+- The original crater-wide source rasters remain unchanged and verified under `data/raw/JezeroWide/`. Run `python data/build_crater_wide_app_assets.py` to regenerate the compact app assets.
 - The USGS SIM 3464 geodatabase and Mars 2020 PLACES rover-localization table are now downloaded. A repeatable converter writes their map features and rover positions to `data/processed/jezero/`.
-- The Flutter APK now bundles the expanded 10-point reference/label-anchor index and 531 PDS PLACES per-sol rover localizations. The map shows the subset that falls inside its local HiRISE DTM. Full-crater CTX rasters and mapped geology remain prepared on disk, not yet rendered in the app.
-- The app's route planner currently plans on the local HiRISE grid and uses heuristic costs. These are candidate educational routes, not astronaut safety guidance.
+- The Flutter app bundles the expanded 10-point reference/label-anchor index, 531 PDS PLACES per-sol rover localizations, CTX overview, 100 m CTX elevation grid, and partial USGS mapped rim-crest lines.
+- Tapping the map now sets endpoints anywhere in the crater-wide CTX grid. The three candidate routes are computed on the 100 m grid and are educational models, not astronaut safety guidance.
+- The local HiRISE DTM files are retained as a landing-area detail source and for reopening old saved missions; they do not increase crater-wide route resolution.
 - There are no real rover panorama assets in the app yet. Rover images and camera poses still need to be joined from mission archives before creating panoramas.
 
 ## Geologic and landform layers
@@ -36,7 +38,8 @@ The PDS Three Forks sample-drop table contains the names and times of the ten de
 1. Finish a named-landmark register that combines map labels, geologic polygon names, mission campaign features, and rover/sample observations without confusing display anchors with feature boundaries.
 2. Join requested landmark observations to their authoritative coordinates or source geometries. Kodiak, Artuby Ridge, Máaz, Séítah, Three Forks, and sample locations need distinct location evidence; the source layers above do not define every one of those names.
 3. Decide which offline vector layers to bundle and how the Flutter map will render their different geometry types and coverage boundaries.
-4. Integrate the crater-wide elevation and imagery after the geospatial database is reviewed. The current route grid is still the landing-site HiRISE patch and cannot plan across all of Jezero.
-5. Acquire real rover images with their product labels and use archived camera geometry only where the image set supports a valid panorama.
+4. Validate the generated CTX-to-overview image warp against independent control locations and inspect NoData and seams before scientific sign-off.
+5. Integrate the remaining geology and environmental overlays only after their individual CRS and coverage are validated; keep the app's unknown regions visible.
+6. Acquire real rover images with their product labels and use archived camera geometry only where the image set supports a valid panorama.
 
 Source details and plain-language explanations for the hackathon are in [`DATA_SOURCES.md`](DATA_SOURCES.md). The vector export can be regenerated with `python data/build_jezero_vectors.py` after installing `data/requirements-geodata.txt` and obtaining the raw source files.

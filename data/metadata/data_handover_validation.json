@@ -1,0 +1,1301 @@
+{
+  "reportVersion": 1,
+  "createdUtc": "2026-11-15T04:53:19.729785+00:00",
+  "repositoryRoot": "F:\\MARS-X-main\\MARS-X-main",
+  "demBoundsEastLat": [
+    76.99743706146005,
+    17.58051991054471,
+    78.58256332408821,
+    19.290187006866102
+  ],
+  "toolAvailability": {
+    "Pillow": true,
+    "Shapely": true,
+    "Pyogrio": true,
+    "GDALCLI": false,
+    "rasterPixelScan": false
+  },
+  "summary": {
+    "rasterFiles": 7,
+    "geojsonFiles": 19,
+    "geojsonFeatures": 9820,
+    "geopackageFiles": 2,
+    "manifestPaths": 49,
+    "manifestPathsMissing": 0,
+    "manifestChecksumComparisons": 19,
+    "checksumMismatches": 0,
+    "landmarkRegisterRows": 29,
+    "landmarkRegisterMissingCoordinates": 18,
+    "geojsonParseFailures": 0,
+    "invalidGeometries": 0,
+    "duplicateFeatureIds": 0,
+    "missingGeoJsonCoordinates": 14
+  },
+  "rasters": [
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED/themis_jezero_clean_app_eqc_100m.tif",
+      "exists": true,
+      "bytes": 759776,
+      "sha256": "0de5b54691c4a2accb4b96bcec704cb96c417bcd12f1a0c1a316d45ea6170d69",
+      "headerReadable": true,
+      "metadataSource": "GeoTIFF tags read by Pillow; no pixel decode",
+      "width": 563,
+      "height": 594,
+      "pillowMode": "F",
+      "bitsPerSample": [
+        32
+      ],
+      "sampleFormat": [
+        3
+      ],
+      "samplesPerPixel": 1,
+      "pixelScaleTag33550": [
+        100.0,
+        100.0,
+        0.0
+      ],
+      "tiepointTag33922": [
+        0.0,
+        0.0,
+        0.0,
+        -39400.0,
+        1108500.0,
+        0.0
+      ],
+      "nodataTag42113": "0",
+      "geoAsciiTag34737": "unknown|GCS Name = unknown|Datum = unknown|Ellipsoid = unknown|Primem = Reference meridian||"
+    },
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED/themis_jezero_clean_mars_tm_100m.tif",
+      "exists": true,
+      "bytes": 760157,
+      "sha256": "bbb347eaff1c7b390854240efcbf161d2274080add7beaad49c69673d21662d8",
+      "headerReadable": true,
+      "metadataSource": "GeoTIFF tags read by Pillow; no pixel decode",
+      "width": 566,
+      "height": 595,
+      "pillowMode": "F",
+      "bitsPerSample": [
+        32
+      ],
+      "sampleFormat": [
+        3
+      ],
+      "samplesPerPixel": 1,
+      "pixelScaleTag33550": [
+        100.0,
+        100.0,
+        0.0
+      ],
+      "tiepointTag33922": [
+        0.0,
+        0.0,
+        0.0,
+        -39600.0,
+        1108600.0,
+        0.0
+      ],
+      "nodataTag42113": "0",
+      "geoAsciiTag34737": "MTM_clon77.5E|GCS Name = Mars_2000_(Sphere)|Datum = Mars_2000_(Sphere)|Ellipsoid = Mars_2000_(Sphere)|Primem = Reference_Meridian||"
+    },
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED/themis_jezero_clean_source_grid.tif",
+      "exists": true,
+      "bytes": 2002775,
+      "sha256": "b32e373fa84b308256c048a34a69cb612d5f486ade362bf0175bab56629a128d",
+      "headerReadable": true,
+      "metadataSource": "GeoTIFF tags read by Pillow; no pixel decode",
+      "width": 890,
+      "height": 890,
+      "pillowMode": "F",
+      "bitsPerSample": [
+        32
+      ],
+      "sampleFormat": [
+        3
+      ],
+      "samplesPerPixel": 1,
+      "pixelScaleTag33550": [
+        100.0,
+        100.0,
+        0.0
+      ],
+      "tiepointTag33922": [
+        0.0,
+        0.0,
+        0.0,
+        4564100.0,
+        1141100.0,
+        0.0
+      ],
+      "nodataTag42113": "0",
+      "geoAsciiTag34737": "SimpleCylindrical Mars|GCS Name = GCS_Mars|Datum = D_Mars|Ellipsoid = Mars|Primem = Reference_Meridian||"
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geologic_unit_id_100m.tif",
+      "exists": true,
+      "bytes": 82571,
+      "sha256": "9d66a58a37e91356debd1fbbaa97ddcf13d5ed24886c468de8ed9a50ee10f391",
+      "headerReadable": true,
+      "metadataSource": "GeoTIFF tags read by Pillow; no pixel decode",
+      "width": 566,
+      "height": 595,
+      "pillowMode": "I",
+      "bitsPerSample": [
+        16
+      ],
+      "sampleFormat": [
+        2
+      ],
+      "samplesPerPixel": 1,
+      "pixelScaleTag33550": [
+        100.0,
+        100.0,
+        0.0
+      ],
+      "tiepointTag33922": [
+        0.0,
+        0.0,
+        0.0,
+        -39600.0,
+        1108600.0,
+        0.0
+      ],
+      "nodataTag42113": "0",
+      "geoAsciiTag34737": "MTM_clon77.5E|GCS Name = Mars_2000_(Sphere)|Datum = Mars_2000_(Sphere)|Ellipsoid = Mars_2000_(Sphere)|Primem = Reference_Meridian||"
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geologic_unit_id_app_eqc_100m.tif",
+      "exists": true,
+      "bytes": 82383,
+      "sha256": "bcdd4c0c80bdf8805b72d33a12e9fdec2e7ca5a8ab7075dbc864ff5bc061bd4c",
+      "headerReadable": true,
+      "metadataSource": "GeoTIFF tags read by Pillow; no pixel decode",
+      "width": 563,
+      "height": 594,
+      "pillowMode": "I",
+      "bitsPerSample": [
+        16
+      ],
+      "sampleFormat": [
+        2
+      ],
+      "samplesPerPixel": 1,
+      "pixelScaleTag33550": [
+        100.0,
+        100.0,
+        0.0
+      ],
+      "tiepointTag33922": [
+        0.0,
+        0.0,
+        0.0,
+        -39400.0,
+        1108500.0,
+        0.0
+      ],
+      "nodataTag42113": "0",
+      "geoAsciiTag34737": "unknown|GCS Name = unknown|Datum = unknown|Ellipsoid = unknown|Primem = Reference meridian||"
+    },
+    {
+      "path": "data/raw/JezeroWide/M20_JezeroCrater_CTXDEM_20m.tif",
+      "exists": true,
+      "bytes": 90345300,
+      "sha256": "ba7f706ea1b5d63a562f28a7dcf7a7f3c79bce7f048e6974b57e8a33c30d1ba2",
+      "headerReadable": true,
+      "metadataSource": "GeoTIFF tags read by Pillow; no pixel decode",
+      "width": 4456,
+      "height": 5067,
+      "pillowMode": "F",
+      "bitsPerSample": [
+        32
+      ],
+      "sampleFormat": [
+        3
+      ],
+      "samplesPerPixel": 1,
+      "pixelScaleTag33550": [
+        20.0,
+        20.0,
+        0.0
+      ],
+      "tiepointTag33922": [
+        0.0,
+        0.0,
+        0.0,
+        4328999.999999998,
+        1143420.0000000028,
+        0.0
+      ],
+      "nodataTag42113": "-3.4028234663852886e+38",
+      "geoAsciiTag34737": "Jezero_Crater_Projection|GCS Name = GCS_Mars_2000_Sphere|Datum = Mars_2000_(Sphere)|Ellipsoid = Mars_2000_Sphere|Primem = Reference_Meridian||"
+    },
+    {
+      "path": "data/raw/JezeroWide/M20_JezeroCrater_CTXortho_mosaic_5m.tif",
+      "exists": true,
+      "bytes": 359599280,
+      "sha256": "cd9f4b2154fdd43e8c17abfbae63210b72507db2209d1d7db63f6f855b18d2df",
+      "headerReadable": true,
+      "metadataSource": "GeoTIFF tags read by Pillow; no pixel decode",
+      "width": 17766,
+      "height": 20234,
+      "pillowMode": "L",
+      "bitsPerSample": [
+        8
+      ],
+      "sampleFormat": [
+        1
+      ],
+      "samplesPerPixel": 1,
+      "pixelScaleTag33550": [
+        5.002064681102627,
+        5.002262971613293,
+        0.0
+      ],
+      "tiepointTag33922": [
+        0.0,
+        0.0,
+        0.0,
+        4329192.10812596,
+        1143347.424174998,
+        0.0
+      ],
+      "nodataTag42113": null,
+      "geoAsciiTag34737": "Equirectangular|GCS Name = GCS_Geographic_Coordinate_System|Datum = D_MARS|Ellipsoid = MARS|Primem = Reference Meridian||"
+    }
+  ],
+  "geojson": [
+    {
+      "path": "data/processed/jezero/jezero_landmarks.geojson",
+      "bytes": 7181,
+      "jsonValid": true,
+      "featureCount": 10,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "Point": 10
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": true,
+      "errors": [],
+      "declaredBoundsEastLat": [
+        76.99743706146005,
+        17.58051991054471,
+        78.58256332408821,
+        19.290187006866102
+      ]
+    },
+    {
+      "path": "data/processed/jezero/landmarks.geojson",
+      "bytes": 2465310,
+      "jsonValid": true,
+      "featureCount": 29,
+      "duplicateIds": [],
+      "missingCoordinates": 14,
+      "geometryCounts": {
+        "GeometryCollection": 2,
+        "MultiLineString": 3,
+        "Polygon": 1,
+        "Point": 8,
+        "MultiPoint": 1
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": true,
+      "errors": []
+    },
+    {
+      "path": "data/processed/jezero/perseverance_rover_stops.geojson",
+      "bytes": 425226,
+      "jsonValid": true,
+      "featureCount": 531,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "Point": 531
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": true,
+      "errors": [],
+      "declaredBoundsEastLat": [
+        76.99743706146005,
+        17.58051991054471,
+        78.58256332408821,
+        19.290187006866102
+      ]
+    },
+    {
+      "path": "data/processed/jezero/perseverance_rover_traverse.geojson",
+      "bytes": 93155,
+      "jsonValid": true,
+      "featureCount": 120,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "LineString": 120
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": true,
+      "errors": [],
+      "declaredBoundsEastLat": [
+        76.99743706146005,
+        17.58051991054471,
+        78.58256332408821,
+        19.290187006866102
+      ]
+    },
+    {
+      "path": "data/processed/jezero/sim3464_geologic_contacts.geojson",
+      "bytes": 2334703,
+      "jsonValid": true,
+      "featureCount": 1999,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "LineString": 1989,
+        "MultiLineString": 10
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": true,
+      "errors": [],
+      "declaredBoundsEastLat": [
+        76.99743706146005,
+        17.58051991054471,
+        78.58256332408821,
+        19.290187006866102
+      ]
+    },
+    {
+      "path": "data/processed/jezero/sim3464_geologic_units.geojson",
+      "bytes": 2608546,
+      "jsonValid": true,
+      "featureCount": 1021,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "Polygon": 1015,
+        "MultiPolygon": 6
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": true,
+      "errors": [],
+      "declaredBoundsEastLat": [
+        76.99743706146005,
+        17.58051991054471,
+        78.58256332408821,
+        19.290187006866102
+      ]
+    },
+    {
+      "path": "data/processed/jezero/sim3464_landing_ellipse.geojson",
+      "bytes": 2797,
+      "jsonValid": true,
+      "featureCount": 1,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "Polygon": 1
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": true,
+      "errors": [],
+      "declaredBoundsEastLat": [
+        76.99743706146005,
+        17.58051991054471,
+        78.58256332408821,
+        19.290187006866102
+      ]
+    },
+    {
+      "path": "data/processed/jezero/sim3464_linear_landforms.geojson",
+      "bytes": 273870,
+      "jsonValid": true,
+      "featureCount": 306,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "LineString": 305,
+        "MultiLineString": 1
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": true,
+      "errors": [],
+      "declaredBoundsEastLat": [
+        76.99743706146005,
+        17.58051991054471,
+        78.58256332408821,
+        19.290187006866102
+      ]
+    },
+    {
+      "path": "data/processed/jezero/sim3464_location_features.geojson",
+      "bytes": 184451,
+      "jsonValid": true,
+      "featureCount": 258,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "Point": 258
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": true,
+      "errors": [],
+      "declaredBoundsEastLat": [
+        76.99743706146005,
+        17.58051991054471,
+        78.58256332408821,
+        19.290187006866102
+      ]
+    },
+    {
+      "path": "data/processed/jezero/sim3464_map_coverage.geojson",
+      "bytes": 1638,
+      "jsonValid": true,
+      "featureCount": 1,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "Polygon": 1
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": true,
+      "errors": [],
+      "declaredBoundsEastLat": [
+        76.99743706146005,
+        17.58051991054471,
+        78.58256332408821,
+        19.290187006866102
+      ]
+    },
+    {
+      "path": "data/processed/jezero/sim3464_named_label_anchors.geojson",
+      "bytes": 5939,
+      "jsonValid": true,
+      "featureCount": 8,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "Point": 8
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": true,
+      "errors": [],
+      "declaredBoundsEastLat": [
+        76.99743706146005,
+        17.58051991054471,
+        78.58256332408821,
+        19.290187006866102
+      ]
+    },
+    {
+      "path": "data/processed/jezero/sim3464_surface_features.geojson",
+      "bytes": 534794,
+      "jsonValid": true,
+      "featureCount": 187,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "Polygon": 186,
+        "MultiPolygon": 1
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": true,
+      "errors": [],
+      "declaredBoundsEastLat": [
+        76.99743706146005,
+        17.58051991054471,
+        78.58256332408821,
+        19.290187006866102
+      ]
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/geocontacts_mars_lonlat.geojson",
+      "bytes": 26281104,
+      "jsonValid": true,
+      "featureCount": 2496,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "MultiLineString": 2496
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": false,
+      "errors": []
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/geounits_mars_lonlat.geojson",
+      "bytes": 52019733,
+      "jsonValid": true,
+      "featureCount": 1304,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "MultiPolygon": 1304
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": false,
+      "errors": []
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/linear_features_mars_lonlat.geojson",
+      "bytes": 272805,
+      "jsonValid": true,
+      "featureCount": 382,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "MultiLineString": 382
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": false,
+      "errors": []
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/location_features_mars_lonlat.geojson",
+      "bytes": 57166,
+      "jsonValid": true,
+      "featureCount": 341,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "Point": 341
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": false,
+      "errors": []
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/surface_features_mars_lonlat.geojson",
+      "bytes": 8002137,
+      "jsonValid": true,
+      "featureCount": 285,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "MultiPolygon": 285
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": false,
+      "errors": []
+    },
+    {
+      "path": "mobile/assets/terrain/jezero-landmarks.geojson",
+      "bytes": 7181,
+      "jsonValid": true,
+      "featureCount": 10,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "Point": 10
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": true,
+      "errors": [],
+      "declaredBoundsEastLat": [
+        76.99743706146005,
+        17.58051991054471,
+        78.58256332408821,
+        19.290187006866102
+      ]
+    },
+    {
+      "path": "mobile/assets/terrain/perseverance-rover-stops.geojson",
+      "bytes": 425226,
+      "jsonValid": true,
+      "featureCount": 531,
+      "duplicateIds": [],
+      "missingCoordinates": 0,
+      "geometryCounts": {
+        "Point": 531
+      },
+      "invalidGeometryCount": 0,
+      "outOfMarsCoordinateRange": 0,
+      "outsideDeclaredBounds": 0,
+      "marsCrsDeclared": true,
+      "errors": [],
+      "declaredBoundsEastLat": [
+        76.99743706146005,
+        17.58051991054471,
+        78.58256332408821,
+        19.290187006866102
+      ]
+    }
+  ],
+  "geopackages": [
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geology_app_eqc.gpkg",
+      "bytes": 39464960,
+      "layers": [
+        {
+          "name": "geounits",
+          "geometryType": "MultiPolygon",
+          "featureCount": 1304,
+          "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",3396190,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Equirectangular\"],PARAMETER[\"standard_parallel_1\",18.4],PARAMETER[\"central_meridian\",77.5],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+          "fields": [
+            "unit",
+            "name",
+            "symbol_noSub",
+            "subscript",
+            "symbol",
+            "ORIG_FID",
+            "SHAPE_Length",
+            "SHAPE_Area",
+            "Color_ID",
+            "src_layer",
+            "unit_id"
+          ],
+          "extent": [
+            -39371.03700414166,
+            1049162.146162511,
+            16873.30157321859,
+            1108436.847610569
+          ]
+        },
+        {
+          "name": "geocontacts",
+          "geometryType": "MultiLineString",
+          "featureCount": 2496,
+          "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",3396190,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Equirectangular\"],PARAMETER[\"standard_parallel_1\",18.4],PARAMETER[\"central_meridian\",77.5],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+          "fields": [
+            "TYPE",
+            "SHAPE_Length",
+            "src_layer"
+          ],
+          "extent": [
+            -39371.03700414166,
+            1049162.146162513,
+            16873.30157321573,
+            1108436.847610569
+          ]
+        },
+        {
+          "name": "surface_features",
+          "geometryType": "MultiPolygon",
+          "featureCount": 285,
+          "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",3396190,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Equirectangular\"],PARAMETER[\"standard_parallel_1\",18.4],PARAMETER[\"central_meridian\",77.5],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+          "fields": [
+            "TYPE",
+            "SHAPE_Length",
+            "SHAPE_Area",
+            "src_layer"
+          ],
+          "extent": [
+            -39371.03694483879,
+            1049162.146162513,
+            16873.30157321287,
+            1108436.847607428
+          ]
+        },
+        {
+          "name": "location_features",
+          "geometryType": "Point",
+          "featureCount": 341,
+          "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",3396190,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Equirectangular\"],PARAMETER[\"standard_parallel_1\",18.4],PARAMETER[\"central_meridian\",77.5],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+          "fields": [
+            "TYPE",
+            "src_layer"
+          ],
+          "extent": [
+            -39267.34287050977,
+            1049482.905165541,
+            16676.88975033607,
+            1108267.326680192
+          ]
+        },
+        {
+          "name": "linear_features",
+          "geometryType": "MultiLineString",
+          "featureCount": 382,
+          "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",3396190,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Equirectangular\"],PARAMETER[\"standard_parallel_1\",18.4],PARAMETER[\"central_meridian\",77.5],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+          "fields": [
+            "TYPE",
+            "SHAPE_Length",
+            "src_layer"
+          ],
+          "extent": [
+            -39371.03603220989,
+            1049186.420903907,
+            16873.30151362951,
+            1108436.846666074
+          ]
+        },
+        {
+          "name": "map_boundary",
+          "geometryType": "Polygon",
+          "featureCount": 1,
+          "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",3396190,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Equirectangular\"],PARAMETER[\"standard_parallel_1\",18.4],PARAMETER[\"central_meridian\",77.5],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+          "fields": [
+            "source"
+          ],
+          "extent": [
+            -39371.0370041438,
+            1049162.146162509,
+            16873.30157323004,
+            1108436.843685841
+          ]
+        }
+      ]
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geology_clean_mars_tm.gpkg",
+      "bytes": 39460864,
+      "layers": [
+        {
+          "name": "geounits",
+          "geometryType": "MultiPolygon",
+          "featureCount": 1304,
+          "crs": "PROJCS[\"MTM_clon77.5E\",GEOGCS[\"Mars_2000_(Sphere)\",DATUM[\"Mars_2000_(Sphere)\",SPHEROID[\"Mars_2000_(Sphere)\",3396190,0],AUTHORITY[\"ESRI\",\"106971\"]],PRIMEM[\"Reference_Meridian\",0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"central_meridian\",77.5],PARAMETER[\"scale_factor\",1],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"Meter\",1],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+          "fields": [
+            "unit",
+            "name",
+            "symbol_noSub",
+            "subscript",
+            "symbol",
+            "ORIG_FID",
+            "SHAPE_Length",
+            "SHAPE_Area",
+            "Color_ID",
+            "src_layer",
+            "unit_id"
+          ],
+          "extent": [
+            -39528.84843381288,
+            1049162.146411082,
+            16940.65466746324,
+            1108513.821199996
+          ]
+        },
+        {
+          "name": "geocontacts",
+          "geometryType": "MultiLineString",
+          "featureCount": 2496,
+          "crs": "PROJCS[\"MTM_clon77.5E\",GEOGCS[\"Mars_2000_(Sphere)\",DATUM[\"Mars_2000_(Sphere)\",SPHEROID[\"Mars_2000_(Sphere)\",3396190,0],AUTHORITY[\"ESRI\",\"106971\"]],PRIMEM[\"Reference_Meridian\",0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"central_meridian\",77.5],PARAMETER[\"scale_factor\",1],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"Meter\",1],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+          "fields": [
+            "TYPE",
+            "SHAPE_Length",
+            "src_layer"
+          ],
+          "extent": [
+            -39528.84843381292,
+            1049162.146411082,
+            16940.65466746324,
+            1108513.821199996
+          ]
+        },
+        {
+          "name": "surface_features",
+          "geometryType": "MultiPolygon",
+          "featureCount": 285,
+          "crs": "PROJCS[\"MTM_clon77.5E\",GEOGCS[\"Mars_2000_(Sphere)\",DATUM[\"Mars_2000_(Sphere)\",SPHEROID[\"Mars_2000_(Sphere)\",3396190,0],AUTHORITY[\"ESRI\",\"106971\"]],PRIMEM[\"Reference_Meridian\",0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"central_meridian\",77.5],PARAMETER[\"scale_factor\",1],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"Meter\",1],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+          "fields": [
+            "TYPE",
+            "SHAPE_Length",
+            "SHAPE_Area",
+            "src_layer"
+          ],
+          "extent": [
+            -39523.56318557262,
+            1049162.158033226,
+            16850.62620009482,
+            1108511.138094724
+          ]
+        },
+        {
+          "name": "location_features",
+          "geometryType": "Point",
+          "featureCount": 341,
+          "crs": "PROJCS[\"MTM_clon77.5E\",GEOGCS[\"Mars_2000_(Sphere)\",DATUM[\"Mars_2000_(Sphere)\",SPHEROID[\"Mars_2000_(Sphere)\",3396190,0],AUTHORITY[\"ESRI\",\"106971\"]],PRIMEM[\"Reference_Meridian\",0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"central_meridian\",77.5],PARAMETER[\"scale_factor\",1],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"Meter\",1],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+          "fields": [
+            "TYPE",
+            "src_layer"
+          ],
+          "extent": [
+            -39310.44534223527,
+            1049488.383482348,
+            16709.90111872554,
+            1108326.590900388
+          ]
+        },
+        {
+          "name": "linear_features",
+          "geometryType": "MultiLineString",
+          "featureCount": 382,
+          "crs": "PROJCS[\"MTM_clon77.5E\",GEOGCS[\"Mars_2000_(Sphere)\",DATUM[\"Mars_2000_(Sphere)\",SPHEROID[\"Mars_2000_(Sphere)\",3396190,0],AUTHORITY[\"ESRI\",\"106971\"]],PRIMEM[\"Reference_Meridian\",0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"central_meridian\",77.5],PARAMETER[\"scale_factor\",1],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"Meter\",1],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+          "fields": [
+            "TYPE",
+            "SHAPE_Length",
+            "src_layer"
+          ],
+          "extent": [
+            -39490.29734950513,
+            1049238.392184393,
+            16911.10917471585,
+            1108437.673382215
+          ]
+        },
+        {
+          "name": "map_boundary",
+          "geometryType": "Polygon",
+          "featureCount": 1,
+          "crs": "PROJCS[\"MTM_clon77.5E\",GEOGCS[\"Mars_2000_(Sphere)\",DATUM[\"Mars_2000_(Sphere)\",SPHEROID[\"Mars_2000_(Sphere)\",3396190,0],AUTHORITY[\"ESRI\",\"106971\"]],PRIMEM[\"Reference_Meridian\",0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"central_meridian\",77.5],PARAMETER[\"scale_factor\",1],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"Meter\",1],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+          "fields": [
+            "source"
+          ],
+          "extent": [
+            -39528.90637077391,
+            1049162.14616251,
+            16940.67943917215,
+            1108513.821219794
+          ]
+        }
+      ]
+    }
+  ],
+  "duplicatesAcrossTrackedCopies": [
+    {
+      "left": "public/jezero-dem.bin",
+      "right": "mobile/assets/terrain/jezero-dem.bin",
+      "bothExist": true,
+      "sameSize": true,
+      "sameSha256": true
+    }
+  ],
+  "manifestPathChecks": [
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED/themis_jezero_clean_app_eqc_100m.tif",
+      "exists": true,
+      "bytes": 759776
+    },
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED/themis_jezero_clean_mars_tm_100m.tif",
+      "exists": true,
+      "bytes": 760157
+    },
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED/themis_jezero_clean_source_grid.tif",
+      "exists": true,
+      "bytes": 2002775
+    },
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED/themis_metadata.json",
+      "exists": true,
+      "bytes": 3846
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/geocontacts_mars_lonlat.geojson",
+      "exists": true,
+      "bytes": 26281104
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/geologic_unit_lookup.json",
+      "exists": true,
+      "bytes": 8710
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/geounits_mars_lonlat.geojson",
+      "exists": true,
+      "bytes": 52019733
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geologic_unit_id_100m.tif",
+      "exists": true,
+      "bytes": 82571
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geologic_unit_id_app_eqc_100m.tif",
+      "exists": true,
+      "bytes": 82383
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geology_app_eqc.gpkg",
+      "exists": true,
+      "bytes": 39464960
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geology_clean_mars_tm.gpkg",
+      "exists": true,
+      "bytes": 39460864
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/linear_features_mars_lonlat.geojson",
+      "exists": true,
+      "bytes": 272805
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/location_features_mars_lonlat.geojson",
+      "exists": true,
+      "bytes": 57166
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/surface_features_mars_lonlat.geojson",
+      "exists": true,
+      "bytes": 8002137
+    },
+    {
+      "path": "data/processed/jezero/jezero_landmarks.geojson",
+      "exists": true,
+      "bytes": 7181
+    },
+    {
+      "path": "data/processed/jezero/landmarks.csv",
+      "exists": true,
+      "bytes": 871198
+    },
+    {
+      "path": "data/processed/jezero/landmarks.geojson",
+      "exists": true,
+      "bytes": 2465310
+    },
+    {
+      "path": "data/processed/jezero/landmarks.json",
+      "exists": true,
+      "bytes": 2465278
+    },
+    {
+      "path": "data/processed/jezero/perseverance_rover_stops.geojson",
+      "exists": true,
+      "bytes": 425226
+    },
+    {
+      "path": "data/processed/jezero/perseverance_rover_traverse.geojson",
+      "exists": true,
+      "bytes": 93155
+    },
+    {
+      "path": "data/processed/jezero/sim3464_geologic_contacts.geojson",
+      "exists": true,
+      "bytes": 2334703
+    },
+    {
+      "path": "data/processed/jezero/sim3464_geologic_units.geojson",
+      "exists": true,
+      "bytes": 2608546
+    },
+    {
+      "path": "data/processed/jezero/sim3464_landing_ellipse.geojson",
+      "exists": true,
+      "bytes": 2797
+    },
+    {
+      "path": "data/processed/jezero/sim3464_linear_landforms.geojson",
+      "exists": true,
+      "bytes": 273870
+    },
+    {
+      "path": "data/processed/jezero/sim3464_location_features.geojson",
+      "exists": true,
+      "bytes": 184451
+    },
+    {
+      "path": "data/processed/jezero/sim3464_map_coverage.geojson",
+      "exists": true,
+      "bytes": 1638
+    },
+    {
+      "path": "data/processed/jezero/sim3464_named_label_anchors.geojson",
+      "exists": true,
+      "bytes": 5939
+    },
+    {
+      "path": "data/processed/jezero/sim3464_surface_features.geojson",
+      "exists": true,
+      "bytes": 534794
+    },
+    {
+      "path": "data/raw/D3/DTEEC_045994_1985_046060_1985_U01.IMG",
+      "exists": true,
+      "bytes": 380814764
+    },
+    {
+      "path": "data/raw/JezeroLandmarks/FUBerlin/channel-labels.geojson",
+      "exists": true,
+      "bytes": 9002
+    },
+    {
+      "path": "data/raw/JezeroLandmarks/FUBerlin/channel-lines.geojson",
+      "exists": true,
+      "bytes": 966490
+    },
+    {
+      "path": "data/raw/JezeroLandmarks/FUBerlin/lake.geojson",
+      "exists": true,
+      "bytes": 219719
+    },
+    {
+      "path": "data/raw/JezeroLandmarks/FUBerlin/landingellipse.geojson",
+      "exists": true,
+      "bytes": 2192
+    },
+    {
+      "path": "data/raw/JezeroLandmarks/FUBerlin/panoramas.geojson",
+      "exists": true,
+      "bytes": 45505
+    },
+    {
+      "path": "data/raw/JezeroLandmarks/FUBerlin/poi.geojson",
+      "exists": true,
+      "bytes": 1863
+    },
+    {
+      "path": "data/raw/JezeroLandmarks/ThreeForks/sample_drop_timestamps.csv",
+      "exists": true,
+      "bytes": 539
+    },
+    {
+      "path": "data/raw/JezeroLandmarks/best_interp.csv",
+      "exists": true,
+      "bytes": 8684070
+    },
+    {
+      "path": "data/raw/JezeroWide/M20_JezeroCrater_CTXDEM_20m.tif",
+      "exists": true,
+      "bytes": 90345300
+    },
+    {
+      "path": "data/raw/JezeroWide/M20_JezeroCrater_CTXDEM_20m_metadata.xml",
+      "exists": true,
+      "bytes": 7319
+    },
+    {
+      "path": "data/raw/JezeroWide/M20_JezeroCrater_CTXortho_mosaic_5m.tif",
+      "exists": true,
+      "bytes": 359599280
+    },
+    {
+      "path": "data/raw/JezeroWide/M20_JezeroCrater_CTXortho_mosaic_5m_metadata.xml",
+      "exists": true,
+      "bytes": 7450
+    },
+    {
+      "path": "mobile/assets/terrain/jezero-dem.bin",
+      "exists": true,
+      "bytes": 291840
+    },
+    {
+      "path": "mobile/assets/terrain/jezero-dem.json",
+      "exists": true,
+      "bytes": 1230
+    },
+    {
+      "path": "mobile/assets/terrain/jezero-grid.bin",
+      "exists": true,
+      "bytes": 18240
+    },
+    {
+      "path": "mobile/assets/terrain/jezero-landmarks.geojson",
+      "exists": true,
+      "bytes": 7181
+    },
+    {
+      "path": "mobile/assets/terrain/perseverance-rover-stops.geojson",
+      "exists": true,
+      "bytes": 425226
+    },
+    {
+      "path": "public/jezero-dem.bin",
+      "exists": true,
+      "bytes": 291840
+    },
+    {
+      "path": "public/jezero-dem.json",
+      "exists": true,
+      "bytes": 1230
+    },
+    {
+      "path": "src/jezeroGrid.ts",
+      "exists": true,
+      "bytes": 25600
+    }
+  ],
+  "checksumComparisons": [
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED.zip",
+      "exists": true,
+      "expectedSha256": "b4d37462a8a6a4c8af0a6b61b385aa506795973bcbb3b5d1a16271592e608e15",
+      "actualSha256": "b4d37462a8a6a4c8af0a6b61b385aa506795973bcbb3b5d1a16271592e608e15",
+      "matches": true
+    },
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED/themis_jezero_clean_app_eqc_100m.tif",
+      "exists": true,
+      "expectedSha256": "0de5b54691c4a2accb4b96bcec704cb96c417bcd12f1a0c1a316d45ea6170d69",
+      "actualSha256": "0de5b54691c4a2accb4b96bcec704cb96c417bcd12f1a0c1a316d45ea6170d69",
+      "matches": true
+    },
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED/themis_jezero_clean_mars_tm_100m.tif",
+      "exists": true,
+      "expectedSha256": "bbb347eaff1c7b390854240efcbf161d2274080add7beaad49c69673d21662d8",
+      "actualSha256": "bbb347eaff1c7b390854240efcbf161d2274080add7beaad49c69673d21662d8",
+      "matches": true
+    },
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED/themis_jezero_clean_source_grid.tif",
+      "exists": true,
+      "expectedSha256": "b32e373fa84b308256c048a34a69cb612d5f486ade362bf0175bab56629a128d",
+      "actualSha256": "b32e373fa84b308256c048a34a69cb612d5f486ade362bf0175bab56629a128d",
+      "matches": true
+    },
+    {
+      "path": "data/MARSX_D6_THEMIS_CLEANED/themis_metadata.json",
+      "exists": true,
+      "expectedSha256": "e12f105de2bace0669324295f7e4ceedb550cc2ebb9bc491bf530d09adda1c54",
+      "actualSha256": "e12f105de2bace0669324295f7e4ceedb550cc2ebb9bc491bf530d09adda1c54",
+      "matches": true
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED.zip",
+      "exists": true,
+      "expectedSha256": "bef10eb02413889be54e718ecf4ea2cb9eb6b47c8429f5f03da7e017f754d105",
+      "actualSha256": "bef10eb02413889be54e718ecf4ea2cb9eb6b47c8429f5f03da7e017f754d105",
+      "matches": true
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/geocontacts_mars_lonlat.geojson",
+      "exists": true,
+      "expectedSha256": "0d2a132f56cf38db6986605f0afdf58a7e2be48716d2bb61cd95c971712009f2",
+      "actualSha256": "0d2a132f56cf38db6986605f0afdf58a7e2be48716d2bb61cd95c971712009f2",
+      "matches": true
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/geologic_unit_lookup.json",
+      "exists": true,
+      "expectedSha256": "edd944a37396ceef22fe5875b6b45c7645bcb14d3014e30be2913b20024eb24a",
+      "actualSha256": "edd944a37396ceef22fe5875b6b45c7645bcb14d3014e30be2913b20024eb24a",
+      "matches": true
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/geounits_mars_lonlat.geojson",
+      "exists": true,
+      "expectedSha256": "39b185fc2bcc50b2968af5e2074af0fdfa4ecc86a9a8c79af95b09ab48f49efe",
+      "actualSha256": "39b185fc2bcc50b2968af5e2074af0fdfa4ecc86a9a8c79af95b09ab48f49efe",
+      "matches": true
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geologic_unit_id_100m.tif",
+      "exists": true,
+      "expectedSha256": "9d66a58a37e91356debd1fbbaa97ddcf13d5ed24886c468de8ed9a50ee10f391",
+      "actualSha256": "9d66a58a37e91356debd1fbbaa97ddcf13d5ed24886c468de8ed9a50ee10f391",
+      "matches": true
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geologic_unit_id_app_eqc_100m.tif",
+      "exists": true,
+      "expectedSha256": "bcdd4c0c80bdf8805b72d33a12e9fdec2e7ca5a8ab7075dbc864ff5bc061bd4c",
+      "actualSha256": "bcdd4c0c80bdf8805b72d33a12e9fdec2e7ca5a8ab7075dbc864ff5bc061bd4c",
+      "matches": true
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geology_app_eqc.gpkg",
+      "exists": true,
+      "expectedSha256": "21fb7be0866b7a61d5733d4e425cc4f39e452f1403102b769b0a5e786f206c0d",
+      "actualSha256": "21fb7be0866b7a61d5733d4e425cc4f39e452f1403102b769b0a5e786f206c0d",
+      "matches": true
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/jezero_geology_clean_mars_tm.gpkg",
+      "exists": true,
+      "expectedSha256": "8dcb69f50f85f86a77d536f99fcf0538c9b6731521b88ab5043f21fe31897161",
+      "actualSha256": "8dcb69f50f85f86a77d536f99fcf0538c9b6731521b88ab5043f21fe31897161",
+      "matches": true
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/linear_features_mars_lonlat.geojson",
+      "exists": true,
+      "expectedSha256": "8ce35b0a4c7693d27f2de49e56a5393b9f6b82fe0ef8eb8bd4208e2e3f5a1c2b",
+      "actualSha256": "8ce35b0a4c7693d27f2de49e56a5393b9f6b82fe0ef8eb8bd4208e2e3f5a1c2b",
+      "matches": true
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/location_features_mars_lonlat.geojson",
+      "exists": true,
+      "expectedSha256": "e0598d9181635bf2f66fb63fc517ec1ff35e6b13f33c2a3b471bcd2dc78aa416",
+      "actualSha256": "e0598d9181635bf2f66fb63fc517ec1ff35e6b13f33c2a3b471bcd2dc78aa416",
+      "matches": true
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/science_weight_template.csv",
+      "exists": true,
+      "expectedSha256": "92a5fb8855975abfa8399f41901fb46c84fc2a7d82349149d2b3e08800b8d422",
+      "actualSha256": "92a5fb8855975abfa8399f41901fb46c84fc2a7d82349149d2b3e08800b8d422",
+      "matches": true
+    },
+    {
+      "path": "data/MARSX_D8_GEOLOGY_CLEANED/surface_features_mars_lonlat.geojson",
+      "exists": true,
+      "expectedSha256": "c88ed190e91d21b2c2e4f3ef37342cb243dadea0d7525319ccf349b29434dde4",
+      "actualSha256": "c88ed190e91d21b2c2e4f3ef37342cb243dadea0d7525319ccf349b29434dde4",
+      "matches": true
+    },
+    {
+      "path": "data/raw/JezeroWide/M20_JezeroCrater_CTXDEM_20m.tif",
+      "exists": true,
+      "expectedSha256": "ba7f706ea1b5d63a562f28a7dcf7a7f3c79bce7f048e6974b57e8a33c30d1ba2",
+      "actualSha256": "ba7f706ea1b5d63a562f28a7dcf7a7f3c79bce7f048e6974b57e8a33c30d1ba2",
+      "matches": true
+    },
+    {
+      "path": "data/raw/JezeroWide/M20_JezeroCrater_CTXortho_mosaic_5m.tif",
+      "exists": true,
+      "expectedSha256": "cd9f4b2154fdd43e8c17abfbae63210b72507db2209d1d7db63f6f855b18d2df",
+      "actualSha256": "cd9f4b2154fdd43e8c17abfbae63210b72507db2209d1d7db63f6f855b18d2df",
+      "matches": true
+    }
+  ],
+  "landmarkRegisterCrossFormat": {
+    "jsonCount": 29,
+    "geojsonCount": 29,
+    "csvCount": 29,
+    "idSetsMatch": true,
+    "duplicatesByFormat": {
+      "json": [],
+      "geojson": [],
+      "csv": []
+    },
+    "missingCoordinatesInGeojson": 18,
+    "csvMissingCoordinates": 18
+  },
+  "checksAndLimits": [
+    "GeoJSON syntax and geometry structure checked; Shapely validity checked where geometries were present.",
+    "Coordinates checked against Mars lon/lat numeric domain. Declared GeoJSON coverageBounds checked where present; source extents may legitimately exceed a project clip.",
+    "GeoTIFF dimensions, sample tags, pixel scale, tiepoints, NoData tag and file hashes inspected from headers; pixels were not scanned.",
+    "CRS declarations compared from GeoJSON metadata, GeoTIFF GeoKeys/GeoASCII and existing source manifests; no raster reprojection or cross-product alignment test was performed.",
+    "Null geometry in the research landmark register is intentional for unlocated names. It is counted as missing coordinates, not treated as a geometry error.",
+    "File existence is limited to the current checkout. Raw PDS/USGS archives absent from the checkout are not inferred from manifests."
+  ]
+}
