@@ -10,6 +10,9 @@ import type { Cam, Probe, Telemetry3D, View3D } from "./Terrain3D";
 import { ROVER_TRAVERSE_SEGMENTS } from "./roverTraverse";
 import { SIM3464_CONTACTS, SIM3464_UNITS } from "./geologyLayers";
 import { AVAILABLE_SOLS, getMedaWeather, MEDA_SOLS, solHourToSun } from "./medaData";
+import { API_BASE } from "./api";
+
+const LATEST_APK_URL = "https://github.com/Vedant1442/MARS-X/releases/download/latest/app-arm64-v8a-release.apk";
 
 // ---------- Perseverance Sample Caching & Petrology Types (Phase 5) ----------
 export type SampleTube = {
@@ -435,20 +438,30 @@ function Shell({ path, children }: { path: string; children: React.ReactNode }) 
         <A to="/" className="flex items-center gap-2.5"><BrandMark /><span className="font-mono font-medium tracking-[0.18em] text-[14px] text-mars-deep">MARS-X · JEZERO</span></A>
         <div className="hidden md:flex gap-0.5">{NAV.map(([p, n]) => <A key={p} to={p} className={`font-mono text-[12px] tracking-[0.1em] uppercase px-2.5 py-1.5 border-b-2 ${isOn(p) ? "border-mars-deep text-mars-deep font-semibold" : "border-transparent text-dim hover:text-fg"}`}>{n}</A>)}</div>
         <a
-          href="/mars-x-release.apk"
+          href={LATEST_APK_URL}
           download="mars-x-release.apk"
           className="ml-auto hidden sm:flex items-center gap-1.5 font-mono text-[11px] tracking-[0.08em] border border-mars-deep/40 bg-mars/[0.08] text-mars-deep hover:bg-mars-deep hover:text-ink px-2.5 py-1 rounded-sm transition-colors"
-          title="Download Android APK (arm64-v8a)"
+          title="Download Latest Android APK (arm64-v8a)"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span>DOWNLOAD APK</span>
         </a>
-        <div className="hidden lg:block font-mono text-[11px] tracking-[0.06em] text-mars-deep">HiRISE DTM · OFFLINE</div>
+        <a
+          href={`${API_BASE}/api/health`}
+          target="_blank"
+          rel="noreferrer"
+          className="hidden lg:flex items-center gap-1.5 font-mono text-[10px] tracking-[0.06em] px-2 py-0.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+          title={`Connected to Railway Backend: ${API_BASE}`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span>RAILWAY LIVE</span>
+        </a>
+        <div className="hidden xl:block font-mono text-[11px] tracking-[0.06em] text-mars-deep">HiRISE DTM</div>
         <button className="md:hidden ml-auto font-mono text-[12px] tracking-[0.12em] border border-line-strong rounded-sm px-3 py-1.5" aria-expanded={menu} aria-controls="mobile-menu" onClick={() => setMenu((m) => !m)}>{menu ? "CLOSE" : "MENU"}</button>
       </nav>
       {menu && <div id="mobile-menu" className="md:hidden fixed inset-x-0 top-[52px] z-30 bg-ink border-b border-line-strong shadow-float grid grid-cols-2">
         {NAV.map(([p, n]) => <A key={p} to={p} className={`font-mono text-[13px] tracking-[0.1em] uppercase px-4 py-3.5 border-b border-line ${isOn(p) ? "text-mars-deep font-semibold bg-panel" : "text-fg"}`}>{n}</A>)}
-        <a href="/mars-x-release.apk" download="mars-x-release.apk" className="font-mono text-[13px] tracking-[0.1em] uppercase px-4 py-3.5 border-b border-line text-mars-deep font-semibold col-span-2 bg-mars/[0.08] flex items-center justify-center gap-2">
+        <a href={LATEST_APK_URL} download="mars-x-release.apk" className="font-mono text-[13px] tracking-[0.1em] uppercase px-4 py-3.5 border-b border-line text-mars-deep font-semibold col-span-2 bg-mars/[0.08] flex items-center justify-center gap-2">
           <span>DOWNLOAD ANDROID APK</span>
         </a>
       </div>}
@@ -1519,7 +1532,7 @@ function MissionPage({ id }: { id: string }) {
             <Btn onClick={exportJson}>EXPORT JSON</Btn>
             <Btn onClick={() => go("/routes")}>COMPARE ROUTES</Btn>
             <a
-              href="/mars-x-release.apk"
+              href={LATEST_APK_URL}
               download="mars-x-release.apk"
               className="ml-auto font-mono text-[12px] tracking-[0.08em] px-3 py-2 border border-mars-deep text-mars-deep hover:bg-mars-deep hover:text-ink rounded-sm flex items-center gap-1.5 transition-colors"
             >
@@ -2246,7 +2259,7 @@ function DataPage() {
           </div>
         </div>
         <a
-          href="/mars-x-release.apk"
+          href={LATEST_APK_URL}
           download="mars-x-release.apk"
           className="shrink-0 font-mono text-[13px] tracking-[0.08em] px-5 py-3 rounded-sm bg-mars-deep text-ink font-semibold hover:opacity-90 transition-opacity flex items-center gap-2.5 shadow-sm"
         >
@@ -2524,7 +2537,7 @@ function About() {
       <section className="mt-10 border-t border-fg pt-5 text-[14px] space-y-2 leading-relaxed"><Eyebrow>Disclaimer</Eyebrow><p>This project is not affiliated with, endorsed by, or sponsored by NASA. NASA data, when used, is credited to its original sources.</p><p>All routes are candidate routes for research and education. Safety is NOT CERTIFIED. The demo terrain and science targets are simulated.</p></section>
       <section className="mt-8 border-t border-line pt-5 text-[14px] space-y-2 leading-relaxed"><Eyebrow>Attribution</Eyebrow><p>Globe texture: Viking MDIM 2.1 colorized global mosaic, NASA / USGS Astrogeology Science Center, public domain, downsampled for the web. Landing-site coordinates are published mission values; region outlines and the globe trajectory are approximate or illustrative.</p></section>
       <section className="mt-8 border-t border-line pt-5 text-[14px] space-y-2 leading-relaxed"><Eyebrow>Privacy</Eyebrow><p>This build has no accounts, cookies, trackers or analytics. Routing runs entirely in your browser. Fonts are loaded from Google Fonts, which can see your IP address and user agent.</p></section>
-      <dl className="mt-8 grid grid-cols-2 border-t border-line text-[14px]">{[["Frontend", "React · Tailwind · React Three Fiber · client-side A*"], ["Planned backend", "FastAPI · PostGIS (credentials via .env)"], ["Planned pipeline", "GDAL raster fusion"], ["License", "Open source (TBD)"]].map(([a, b]) => <div key={a} className="py-3 pr-4 border-b border-line"><dt className="text-dim text-[11px] font-mono tracking-[0.08em] uppercase">{a}</dt><dd className="mt-1">{b}</dd></div>)}</dl>
+      <dl className="mt-8 grid grid-cols-2 border-t border-line text-[14px]">{[["Frontend", "React · Tailwind · React Three Fiber · client-side A*"], ["Cloud API", "FastAPI on Railway · https://api-production-14018b03.up.railway.app"], ["Planned pipeline", "GDAL raster fusion"], ["License", "Open source (NASA Space Apps 2026)"]].map(([a, b]) => <div key={a} className="py-3 pr-4 border-b border-line"><dt className="text-dim text-[11px] font-mono tracking-[0.08em] uppercase">{a}</dt><dd className="mt-1">{b}</dd></div>)}</dl>
     </div>
   );
 }

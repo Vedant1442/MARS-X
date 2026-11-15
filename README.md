@@ -4,6 +4,7 @@ An offline-capable Mars exploration prototype for Jezero crater. The project is 
 
 ## Start here
 
+- [Frontend Landing Page Developer Guide](docs/LANDING_PAGE_DEV_GUIDE.md) — quickstart, styling tokens, and landing page tasks for frontend contributors.
 - [Data sources and plain-language explanations](docs/DATA_SOURCES.md) — source, coverage, resolution, current status, limitations, and credit for each layer.
 - [Data processing notes](data/README.md) — how the original HiRISE PDS elevation product becomes offline terrain assets.
 - [Jezero map architecture](docs/terrain_architecture.md) — current rendering and offline-data design.
