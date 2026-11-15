@@ -8,8 +8,10 @@
 This handover describes files present in this checkout and confirms integration
 only where runtime code or Flutter asset declarations load them. CTX and D6/D8
 files are available for development, but none are currently rendered by the
-Flutter map or consumed by its route planner. Whole-crater CTX routing remains
-pending.
+Flutter map or consumed by its current route data path. Per project context,
+pathfinding algorithm work is on a teammate branch; this document covers the
+data inputs and integration state in this checkout, not verification of that
+branch. Whole-crater CTX terrain data integration remains pending.
 
 ## Coordinate contract
 
@@ -56,7 +58,7 @@ pending.
 | **Processed rover localizations:** `data/processed/jezero/perseverance_rover_stops.geojson`; Flutter copy `mobile/assets/terrain/perseverance-rover-stops.geojson`; source `data/raw/JezeroLandmarks/best_interp.csv` | 531 per-sol Point positions inside CTX footprint, sols 0–1897, PDS PLACES Release 16. Mars east longitude/planetocentric latitude. Source has 33,458 rows total. | **Flutter asset integrated**; provider loads points and the map draws those falling inside the small HiRISE view. The web app and backend do not load this source layer. | Interpolated/localized archive positions; numeric positional uncertainty absent. Not camera poses or a complete wheel track. Gaps and omitted PDS rows remain. |
 | **Traverse display lines:** `data/processed/jezero/perseverance_rover_traverse.geojson` | 120 display segments derived from available PLACES positions; disconnected for gaps longer than two sols. Mars coordinate extension. | **Processed only; not included in Flutter assets**. | Connections are not exact wheel tracks and must not be used for safety or traversability claims. |
 | **Reference/label point index:** `data/processed/jezero/jezero_landmarks.geojson`; Flutter copy `mobile/assets/terrain/jezero-landmarks.geojson` | 10 Point features: landing site, Jezero gazetteer center, and eight SIM 3464 text-label anchors; Mars-aware GeoJSON. | **Flutter asset integrated**; loaded by provider and map screen, with only points inside current local georeference visible. No web/backend loading of this file. | Not the full requested register. Label anchors are not feature centers. |
-| **Requested landmark register:** `data/processed/jezero/landmarks.json`, `landmarks.geojson`, `landmarks.csv`; generator `data/build_landmark_register.py` | 29 requested names; four records currently have coordinates, 25 are intentionally null. GeoJSON contains null geometries for unresolved locations. | **Not integrated.** Backend can use as a metadata/catalogue source; frontend must filter null geometry and show status/source. | Not a complete georeferenced layer; no hazards. Read `docs/landmark_register.md` before displaying coordinates. |
+| **Requested landmark register:** `data/processed/jezero/landmarks.json`, `landmarks.geojson`, `landmarks.csv`; generator `data/build_landmark_register.py` | 29 requested names; 7 sourced points (four published/gazetteer points and three PDS-backed rover visit localizations) plus 2 source-derived GeometryCollections (USGS crater-rim unit/crest segments and Jezero fan units 1–2, western delta); 20 records have null geometry. Mars longitude east-positive, latitude planetocentric, Mars 2000 sphere. | **Not integrated.** Backend can parse it now as a catalogue and spatial source with a Mars-aware reader. Frontend can prototype display of the nine non-null geometries after Mars CRS handling; filter null geometry and show verification/source metadata. | Map-derived polygons/lines are clipped to DEM and smaller SIM 3464 map coverage. Gazetteer valley points are representative centers; rover visit localizations are not feature centers or boundaries. Twenty locations remain without geometry; no terrain hazards are included. Read `docs/landmark_register.md` before display/use. |
 | **Three Forks sample events:** `data/raw/JezeroLandmarks/ThreeForks/sample_drop_timestamps.csv` | CSV with 10 depot events; no coordinates and no geometry. PDS sample depot source. | **Not integrated; event context only.** | Cannot be mapped without an authoritative sample-localization join. Do not infer tube coordinates from imagery or nearby rover positions. |
 | **Lookup/weight and source metadata:** `data/MARSX_D8_GEOLOGY_CLEANED/geologic_unit_lookup.json`, `science_weight_template.csv`, `data/MARSX_D6_THEMIS_CLEANED/themis_metadata.json`, `data/processed/jezero/source_manifest.json`, `data/metadata/jezero_wide_manifest.json` | JSON/CSV metadata, attribute lookup and provenance. | Available to both teams for source labels, unit names and product inspection. | `science_weight_template.csv` weights are blank; do not use for route costs. D6/D8 handoff records contain provenance gaps. |
 
@@ -64,7 +66,7 @@ Catalogue/support files include `data/catalogue/datasets.json` and six `data/cat
 
 ## Current landmarks and rover coverage
 
-The 29-row register is a vetted **name/evidence inventory**, not a complete GIS layer: four explicit sourced coordinate records; 25 missing coordinates/geometries. The separate 10-point index is what Flutter currently loads. Do not merge the two by assuming label-anchor points are feature centers. Current layer gaps include exact polygons/lines for informal campaign targets, Three Forks tube coordinates, and a validated hazard layer.
+The 29-row register is a vetted **name/evidence inventory**, not a complete GIS layer: seven sourced point records, two mapped geometry collections, and 20 null geometries. Twenty-two rows have no point coordinate fields because the two mapped regions are intentionally not represented by a point. The separate 10-point index is what Flutter currently loads. Do not merge the two by assuming label-anchor points are feature centers. Current layer gaps include exact polygons/lines for informal campaign targets, Three Forks tube coordinates, and a validated hazard layer.
 
 Rover data available: 531 per-sol PLACES points, 120 processed line segments, and a 10-event Three Forks table without coordinates. Flutter bundles and draws only the rover point asset, filtered to its local HiRISE grid; the traverse lines are not bundled.
 
@@ -97,12 +99,12 @@ Rover data available: 531 per-sol PLACES points, 120 processed line segments, an
 |---|---|---|
 | Rebuild HiRISE binaries | `python data/build_dem.py` | Reads `data/raw/D3/...U01.IMG`; writes `public/jezero-dem.*`, `src/jezeroGrid.ts`, and Flutter terrain assets. Keep existing implementation intact. |
 | Acquire source layers | `python data/fetch_landmark_sources.py` | Network download for SIM 3464 and PDS PLACES/sample data; do not rerun unless intentionally refreshing source inputs. |
-| Rebuild SIM 3464/PLACES vectors | `python data/build_jezero_vectors.py` | Requires `pyogrio`, `pyproj`, `shapely`; writes `data/processed/jezero/`; raw USGS GDB and PDS files must exist. The original source archive/GDB is not present in the current file listing even though processed outputs are. |
+| Rebuild SIM 3464/PLACES vectors | `python data/build_jezero_vectors.py` | Requires `pyogrio`, `pyproj`, `shapely`; writes `data/processed/jezero/`. Raw USGS SIM 3464 GDB is present under `data/raw/JezeroLandmarks/usgs/sim3464_JezeroNili_FINAL/Geodatabase/Nili.gdb`; PDS PLACES CSV is `data/raw/JezeroLandmarks/best_interp.csv`. |
 | Rebuild requested landmark register | `python data/build_landmark_register.py` | Rewrites only the three named landmark exports. |
 | Fetch dataset catalogues | `python data/fetch_datasets.py` | Live network requests; writes catalogue metadata and optional sources. It is not a local build step. |
 | Validate handover | `python data/validate_data_handover.py` | Read-only inspection; writes `data/metadata/data_handover_validation.json`. Uses Pillow and project-local Shapely/Pyogrio when present; no raster pixel scan. |
 
-No CTX tile/pyramid builder or whole-crater route-grid builder is present. `scripts/fetch_mola_jezero_crop.py` and `scripts/download_hirise.py` are acquisition helpers, not evidence of those products being installed.
+No CTX tile/pyramid builder or whole-crater terrain-grid builder is present in this checkout. The pathfinding algorithm work is understood to be on a teammate branch and is not treated as a data-team task here; after it is merged, validate that it consumes the project DEM georeference, NoData mask, and future hazard inputs. `scripts/fetch_mola_jezero_crop.py` and `scripts/download_hirise.py` are acquisition helpers, not evidence of those products being installed.
 
 ## Validation report summary
 
@@ -110,7 +112,7 @@ The latest run is recorded in `data/metadata/data_handover_validation.json`:
 
 - 7 GeoTIFFs, 19 GeoJSON files, 2 GeoPackages inspected; all 43 paths listed in the handover manifest exist.
 - 19 manifest/source checksums compared against the files on disk; 0 mismatches. The three landmark exports each have 29 rows, matching ID sets, and no duplicate IDs.
-- 19 GeoJSON files parsed; 9,820 features; 0 parse failures, 0 invalid geometries (Shapely), 0 duplicate feature IDs; 25 features have null geometry, all from the deliberately incomplete landmark register.
+- 19 GeoJSON files parsed; 9,820 features; 0 parse failures, 0 invalid geometries (Shapely), 0 duplicate feature IDs. The landmark register has 20 null geometries; 22 rows have null point-coordinate fields because its two mapped regions have geometry but no representative point.
 - GeoJSON coordinates fit Mars numeric longitude/latitude domains; coordinates in collections with declared bounds fit those bounds. Five cleaned D8 GeoJSON collections do not embed Mars CRS metadata; interpret only using the project manifest/GeoPackage, never Earth defaults.
 - GeoTIFF headers were readable for all 7 rasters; dimensions, pixel tags, tie points, NoData tags and checksums were inspected. CTX orthomosaic has no GeoTIFF NoData tag. Pixel values/masks were not scanned.
 - Pixel-level raster validation, full GDAL metadata inspection, coordinate control-point tests, reprojection, CTX/HiRISE alignment and cross-raster pixel alignment were **not** performed. No scientific alignment pass is implied.
@@ -120,7 +122,7 @@ The latest run is recorded in `data/metadata/data_handover_validation.json`:
 1. **Coordinate correctness and CRS:** establish canonical Mars CRS transforms between CTX, HiRISE, D6, D8 and app-EQC; test known control points and correct backend AOI/grid mapping.
 2. **CTX package and runtime:** build a windowed/multiresolution DEM plus image reader/package; add frontend layer rendering and backend sampling without loading a giant raster into memory.
 3. **NoData and alignment:** correct backend HiRISE NoData handling; validate CTX seams, overlap, ortho alignment and vertical reference; verify D6/D8 raster alignment.
-4. **Landmark evidence:** join named feature geometries and rover sample/waypoint positions from authoritative GIS/mission localization sources; current name register has 25 unresolved coordinates.
-5. **Hazards and route model:** derive a supported slope/roughness/hazard layer and replace simulated route science/risk inputs; keep safety limits clearly out of operational claims.
+4. **Landmark evidence:** add authoritative geometry or named observation/sample positions for the 20 null-geometry register entries. Keep geological feature extents separate from rover observation points; use the per-sol rover localizations only for the three named visits specifically linked by mission sources. Join official individual tube deployment positions for Three Forks.
+5. **Hazard and route inputs:** derive a supported slope/roughness/hazard layer and provide a documented data contract for the teammate pathfinding branch to consume; keep scientific value separate from route safety.
 
 **Estimate:** about 2–4 engineering weeks for a usable first CTX offline viewer/backend window-sampling prototype with CRS and NoData QA; add roughly 1–3 weeks for authoritative named-waypoint joins, map coverage-aware rendering, and a reviewed hazard/planning layer. Scientific sign-off could take longer if source alignments or positions cannot be independently reproduced. This is a planning estimate, not a verified schedule.

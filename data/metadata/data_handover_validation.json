@@ -1,6 +1,6 @@
 {
   "reportVersion": 1,
-  "createdUtc": "2026-11-14T21:25:15.997678+00:00",
+  "createdUtc": "2026-11-15T04:13:35.522639+00:00",
   "repositoryRoot": "F:\\MARS-X-main\\MARS-X-main",
   "demBoundsEastLat": [
     76.99743706146005,
@@ -25,11 +25,11 @@
     "manifestChecksumComparisons": 19,
     "checksumMismatches": 0,
     "landmarkRegisterRows": 29,
-    "landmarkRegisterMissingCoordinates": 25,
+    "landmarkRegisterMissingCoordinates": 22,
     "geojsonParseFailures": 0,
     "invalidGeometries": 0,
     "duplicateFeatureIds": 0,
-    "missingGeoJsonCoordinates": 25
+    "missingGeoJsonCoordinates": 20
   },
   "rasters": [
     {
@@ -289,19 +289,23 @@
     },
     {
       "path": "data/processed/jezero/landmarks.geojson",
-      "bytes": 50491,
+      "bytes": 675914,
       "jsonValid": true,
       "featureCount": 29,
       "duplicateIds": [],
-      "missingCoordinates": 25,
+      "missingCoordinates": 20,
       "geometryCounts": {
-        "Point": 4
+        "GeometryCollection": 2,
+        "Point": 7
       },
       "invalidGeometryCount": 0,
       "outOfMarsCoordinateRange": 0,
       "outsideDeclaredBounds": 0,
       "marsCrsDeclared": true,
-      "errors": []
+      "errors": [
+        "feature[0] geometry has no coordinates",
+        "feature[1] geometry has no coordinates"
+      ]
     },
     {
       "path": "data/processed/jezero/perseverance_rover_stops.geojson",
@@ -970,17 +974,17 @@
     {
       "path": "data/processed/jezero/landmarks.csv",
       "exists": true,
-      "bytes": 25327
+      "bytes": 170708
     },
     {
       "path": "data/processed/jezero/landmarks.geojson",
       "exists": true,
-      "bytes": 50491
+      "bytes": 675914
     },
     {
       "path": "data/processed/jezero/landmarks.json",
       "exists": true,
-      "bytes": 50459
+      "bytes": 675882
     },
     {
       "path": "data/processed/jezero/perseverance_rover_stops.geojson",
@@ -1253,8 +1257,8 @@
       "geojson": [],
       "csv": []
     },
-    "missingCoordinatesInGeojson": 25,
-    "csvMissingCoordinates": 25
+    "missingCoordinatesInGeojson": 22,
+    "csvMissingCoordinates": 22
   },
   "checksAndLimits": [
     "GeoJSON syntax and geometry structure checked; Shapely validity checked where geometries were present.",

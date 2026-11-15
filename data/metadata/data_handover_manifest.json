@@ -174,10 +174,10 @@
       "coverage": "Jezero requested names within or potentially near DEM; null coordinates mean location is unresolved",
       "resolution": "Not applicable",
       "units": "Degrees when coordinates available; scientific significance textual, separate from route safety",
-      "nodata": "Null coordinates/geometries deliberately indicate unlocated feature; current 29-row register has only 4 coordinate records",
+      "nodata": "Null coordinates/geometries deliberately indicate unresolved location; 7 point records (including three PDS rover visit localizations) and 2 mapped geometry collections are present, while 20 records have null geometry",
       "integration": {"flutter": "not_integrated", "web": "not_integrated", "backend": "not_integrated"},
-      "consumerReady": "catalogue/display of names and evidence only; only non-null geometry rows may be drawn",
-      "limitations": ["25 of 29 named records have missing coordinates", "Some informal names remain incompletely verified", "No terrain-hazard features are supplied"]
+      "consumerReady": "Backend can parse as a Mars-aware catalogue now; frontend can prototype the 9 non-null geometries after CRS handling and null filtering",
+      "limitations": ["20 of 29 names have null geometry", "Two mapped regions have no representative point", "Geology geometry is clipped to SIM 3464/DEM coverage", "Some informal names remain incompletely verified", "No terrain-hazard features are supplied"]
     },
     {
       "id": "landmark_point_index",
