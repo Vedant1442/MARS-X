@@ -560,51 +560,61 @@ function Provenance({ d, tag }: { d: Dataset; tag?: Label }) {
 }
 
 // ---------- Shell ----------
-const NAV: [string, string][] = [["/map", "Map"], ["/explorer", "Explorer"], ["/follow", "Follow"], ["/science", "Science"], ["/report", "Report"], ["/data", "Data & Saved"], ["/globe", "Globe"], ["/immersive", "3D Walk"], ["/methodology", "Methodology"]];
-function Shell({ path, children }: { path: string; children: React.ReactNode }) {
-  const [menu, setMenu] = useState(false);
-  useEffect(() => setMenu(false), [path]);
-  const isOn = (p: string) => {
-    if (p === "/map" && (path.startsWith("/map") || path.startsWith("/planner") || path.startsWith("/routes"))) return true;
-    if (p === "/report" && (path.startsWith("/report") || path.startsWith("/mission"))) return true;
-    if (p === "/globe" && (path === "/" || path.startsWith("/globe"))) return true;
-    return path.startsWith(p.split("/").slice(0, 2).join("/"));
-  };
+function scrollToSection(hash: string) {
+  const targetId = hash.replace("#", "");
+  const el = document.getElementById(targetId);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth" });
+  }
+}
 
+function Shell({ children }: { children: React.ReactNode; path?: string }) {
   return (
-    <div className="min-h-full flex flex-col">
-      <nav aria-label="Primary" className="h-[52px] shrink-0 border-b border-line flex items-center px-3 sm:px-4 gap-3 xl:gap-5 bg-ink/95 backdrop-blur-sm sticky top-0 z-30">
-        <A to="/" className="flex items-center gap-2 shrink-0"><BrandMark /><span className="font-mono font-medium tracking-[0.16em] text-[13px] sm:text-[14px] text-mars-deep whitespace-nowrap">MARS-X · JEZERO</span></A>
-        <div className="hidden lg:flex items-center gap-0.5 overflow-x-auto no-scrollbar">{NAV.map(([p, n]) => <A key={p} to={p} className={`font-mono text-[11px] xl:text-[12px] tracking-[0.08em] uppercase px-2 xl:px-2.5 py-1.5 border-b-2 whitespace-nowrap ${isOn(p) ? "border-mars-deep text-mars-deep font-semibold" : "border-transparent text-dim hover:text-fg"}`}>{n}</A>)}</div>
+    <div className="min-h-full flex flex-col bg-ink text-fg">
+      <nav aria-label="Primary" className="h-[52px] shrink-0 border-b border-line flex items-center px-4 sm:px-6 bg-ink/95 backdrop-blur-sm sticky top-0 z-30 justify-between">
         <a
-          href={LATEST_APK_URL}
-          download="mars-x-release.apk"
-          className="ml-auto hidden sm:flex items-center gap-1.5 font-mono text-[11px] tracking-[0.06em] border border-mars-deep/40 bg-mars/[0.08] text-mars-deep hover:bg-mars-deep hover:text-ink px-2.5 py-1 rounded-sm transition-colors shrink-0"
-          title="Download Latest Android APK (arm64-v8a)"
+          href="#overview"
+          onClick={(e) => {
+            e.preventDefault();
+            scrollToSection("#overview");
+          }}
+          className="flex items-center gap-2.5 cursor-pointer shrink-0"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span>APK</span>
+          <BrandMark />
+          <span className="font-mono font-medium tracking-[0.18em] text-[14px] text-mars-deep">MARS-X · JEZERO</span>
         </a>
-        <a
-          href={`${API_BASE}/api/health`}
-          target="_blank"
-          rel="noreferrer"
-          className="hidden xl:flex items-center gap-1.5 font-mono text-[10px] tracking-[0.06em] px-2 py-0.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors shrink-0"
-          title={`Connected to Railway Backend: ${API_BASE}`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span>LIVE</span>
-        </a>
-        <button className="lg:hidden ml-auto sm:ml-0 font-mono text-[12px] tracking-[0.12em] border border-line-strong rounded-sm px-3 py-1.5 shrink-0 cursor-pointer" aria-expanded={menu} aria-controls="mobile-menu" onClick={() => setMenu((m) => !m)}>{menu ? "CLOSE" : "MENU"}</button>
+
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <a
+            href={LATEST_APK_URL}
+            download="mars-x-release.apk"
+            className="flex items-center gap-1.5 font-mono text-[11px] sm:text-[12px] tracking-[0.08em] border border-mars-deep/40 bg-mars/[0.08] text-mars-deep hover:bg-mars-deep hover:text-ink px-3 py-1.5 rounded-sm transition-colors shadow-2xs font-semibold"
+            title="Download Latest Android APK (arm64-v8a · 17.3 MB)"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span>DOWNLOAD APK</span>
+            <span className="text-[10px] opacity-75">(17.3 MB)</span>
+          </a>
+
+          <a
+            href={`${API_BASE}/api/health`}
+            target="_blank"
+            rel="noreferrer"
+            className="hidden sm:flex items-center gap-1.5 font-mono text-[10px] tracking-[0.06em] px-2.5 py-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+            title={`Connected to Railway Backend: ${API_BASE}`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>RAILWAY LIVE</span>
+          </a>
+        </div>
       </nav>
-      {menu && <div id="mobile-menu" className="lg:hidden fixed inset-x-0 top-[52px] z-40 bg-ink border-b border-line-strong shadow-float grid grid-cols-2 sm:grid-cols-3">
-        {NAV.map(([p, n]) => <A key={p} to={p} className={`font-mono text-[12px] sm:text-[13px] tracking-[0.1em] uppercase px-4 py-3 border-b border-r border-line ${isOn(p) ? "text-mars-deep font-semibold bg-panel" : "text-fg"}`}>{n}</A>)}
-        <a href={LATEST_APK_URL} download="mars-x-release.apk" className="font-mono text-[12px] sm:text-[13px] tracking-[0.1em] uppercase px-4 py-3 border-b border-line text-mars-deep font-semibold col-span-2 sm:col-span-3 bg-mars/[0.08] flex items-center justify-center gap-2">
-          <span>DOWNLOAD ANDROID APK (17.3 MB)</span>
-        </a>
-      </div>}
-      <div className="flex-1 flex flex-col">{children}</div>
-      {full ? <div className="hidden lg:flex no-print border-t border-line px-4 py-1.5 font-mono text-[10px] text-dim gap-4"><span>Terrain: USGS HiRISE DTM (DERIVED), mission layers simulated</span><A to="/data" className="underline underline-offset-2 hover:text-fg">Data provenance</A><span className="ml-auto">Candidate routes only. Safety not certified.</span></div> : <Footer />}
+
+      <main className="flex-1 flex flex-col">{children}</main>
+      <Footer />
     </div>
   );
 }
@@ -3141,21 +3151,28 @@ export default function App() {
   const [weights, setWeights] = useState<Weights>(DEFAULT_W);
   const [routes, setRoutes] = useState<Partial<Record<Mode, Route | null>>>({});
   const [mission, setMission] = useState<Target[]>([]);
-  const store: Store = { T: T as Terrain, start, end, setStart, setEnd, mode, setMode, weights, setWeights, routes, setRoutes, mission, toggleTarget: (t) => setMission((m) => m.some((x) => x.id === t.id) ? m.filter((x) => x.id !== t.id) : [...m, t]) };
-  const needsTerrain = ["/map", "/planner", "/explorer", "/routes", "/follow", "/immersive", "/report", "/mission"].some((p) => path.startsWith(p));
-  let page: React.ReactNode;
-  if (needsTerrain && !T) page = <TerrainLoading />;
-  else if (path === "/" || path.startsWith("/globe")) page = <Landing />;
-  else if (path.startsWith("/map") || path.startsWith("/planner")) page = <Planner />;
-  else if (path.startsWith("/explorer")) page = <Explorer />;
-  else if (path.startsWith("/routes")) page = <RoutesPage />;
-  else if (path.startsWith("/follow")) page = <FollowPage />;
-  else if (path.startsWith("/immersive")) page = <ImmersivePage />;
-  else if (path.startsWith("/science")) page = <SciencePage />;
-  else if (path.startsWith("/report") || path.startsWith("/mission")) page = <MissionPage id={decodeURIComponent(path.split("/")[2] || "ARES-01")} />;
-  else if (path.startsWith("/data")) page = <DataPage />;
-  else if (path.startsWith("/methodology")) page = <Methodology />;
-  else if (path.startsWith("/about")) page = <About />;
-  else page = <div className="p-10 font-mono text-dim">404 · Unknown route. <A to="/" className="text-mars-deep underline">Return</A></div>;
-  return <Ctx.Provider value={store}><Shell path={path}><PageErrorBoundary routeKey={path}>{page}</PageErrorBoundary></Shell></Ctx.Provider>;
+  const store: Store = {
+    T: T as Terrain,
+    start,
+    end,
+    setStart,
+    setEnd,
+    mode,
+    setMode,
+    weights,
+    setWeights,
+    routes,
+    setRoutes,
+    mission,
+    toggleTarget: (t) =>
+      setMission((m) => (m.some((x) => x.id === t.id) ? m.filter((x) => x.id !== t.id) : [...m, t])),
+  };
+
+  return (
+    <Ctx.Provider value={store}>
+      <Shell>
+        <Landing />
+      </Shell>
+    </Ctx.Provider>
+  );
 }
