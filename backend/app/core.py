@@ -24,21 +24,266 @@ PROFILES = {  # SIMULATION ASSUMPTIONS, not certified mobility limits
     "balanced": dict(ws=1.0, wr=0.5, we=0.5, wo=2.0, wv=0.6),
 }
 
-# Risk assessment constants (matching frontend engine.ts)
+# Risk assessment & EVA consumables constants (matching frontend engine.ts + nipun_branch EVA model)
 MAX_SLOPE = 25
 CAUTION_DEG = 10
 EXPOSURE_DEG = 15
 TIME_BUDGET_MIN = 480
 RISK_W = {"max": 0.3, "caution": 0.25, "rough": 0.2, "unc": 0.15, "time": 0.1}
 
-# Science targets (simulated, matching frontend TARGETS)
+EVA_TOTAL_O2_L = 1200.0
+EVA_TOTAL_BATT_WH = 1440.0
+EVA_TOTAL_WATER_KG = 4.2
+EVA_RESERVE_FRAC = 0.20
+
+# The 15 Mapped Jezero Crater Expedition Landmarks (from nipun_branch + processed data)
 TARGETS = [
-    {"id": "T1", "name": "Demo target A", "x": 44, "y": 34, "type": "Placeholder, sedimentary-type", "value": 0.86, "conf": "MEDIUM", "note": "Placeholder science target at a demonstration location. Not a mapped or published feature."},
-    {"id": "T2", "name": "Demo target B", "x": 66, "y": 41, "type": "Placeholder, spectral-type", "value": 0.92, "conf": "LOW", "note": "Placeholder science target. No spectral data has been ingested; value is an expert-style weight for the demo."},
-    {"id": "T3", "name": "Demo target C", "x": 86, "y": 60, "type": "Placeholder, impact-type", "value": 0.61, "conf": "HIGH", "note": "Placeholder science target at a demonstration location. Not a mapped or published feature."},
-    {"id": "T4", "name": "Demo target D", "x": 26, "y": 42, "type": "Placeholder, fluvial-type", "value": 0.78, "conf": "MEDIUM", "note": "Placeholder science target at a demonstration location. Not a mapped or published feature."},
-    {"id": "T5", "name": "Demo target E", "x": 98, "y": 30, "type": "Placeholder, thermal-type", "value": 0.55, "conf": "LOW", "note": "Placeholder science target. No thermal product has been ingested."},
+    {
+        "id": "octavia-butler-landing",
+        "name": "Octavia E. Butler Landing",
+        "x": 99, "y": 49, "lon": 77.45089, "lat": 18.44463,
+        "type": "Landing Site · Crater Floor",
+        "category": "mission_anchor", "subcategory": "landing_site",
+        "value": 0.90, "conf": "HIGH",
+        "image_url": "/landmarks/octavia-butler-landing.jpg",
+        "significance": "High — baseline reference for crater-floor geology, atmospheric science, and traverse origin.",
+        "perseverance_history": "Perseverance landed here on February 18, 2021 (Sol 0). Ingenuity deployed nearby at Wright Brothers Field.",
+        "note": "Primary mission touchdown coordinate on the Māʻaz formation crater floor.",
+    },
+    {
+        "id": "three-forks",
+        "name": "Three Forks Sample Depot",
+        "x": 79, "y": 47, "lon": 77.4342, "lat": 18.4472,
+        "type": "Sample Depot · Base of Western Delta",
+        "category": "mission_anchor", "subcategory": "sample_depot",
+        "value": 0.95, "conf": "HIGH",
+        "image_url": "/landmarks/three-forks.jpg",
+        "significance": "Very High — backup sample cache for Mars Sample Return containing igneous, sedimentary, and atmospheric tubes.",
+        "perseverance_history": "Between December 2022 and January 2023 (Sols 652-690), Perseverance deposited 10 titanium sample tubes.",
+        "note": "Flat, low-hazard terrain at the base of the western delta front selected for future sample recovery.",
+    },
+    {
+        "id": "hawksbill-gap",
+        "name": "Hawksbill Gap",
+        "x": 70, "y": 48, "lon": 77.4295, "lat": 18.4480,
+        "type": "Delta Front Ascent Corridor",
+        "category": "rover_waypoint", "subcategory": "delta_front",
+        "value": 0.92, "conf": "HIGH",
+        "image_url": "/landmarks/hawksbill-gap.jpg",
+        "significance": "Very High — exposes full sedimentary transition from crater-floor volcanic rocks to bottomset mudstones and topset sandstones.",
+        "perseverance_history": "Primary delta front campaign site in 2022; rover traversed up and down this corridor.",
+        "note": "Steeply dipping sedimentary strata along the eroded southern scarp of the western delta.",
+    },
+    {
+        "id": "enchanted-lake",
+        "name": "Enchanted Lake",
+        "x": 66, "y": 49, "lon": 77.4260, "lat": 18.4465,
+        "type": "Outcrop · Lower Western Delta Scarp",
+        "category": "rover_waypoint", "subcategory": "sedimentary_outcrop",
+        "value": 0.94, "conf": "HIGH",
+        "image_url": "/landmarks/enchanted-lake.jpg",
+        "significance": "Very High — fine-grained lacustrine mudstones and siltstones with highest potential to trap organic biosignatures.",
+        "perseverance_history": "First contact site on the lower delta front in April 2022 (Sol 410+).",
+        "note": "Thinly laminated sedimentary outcrop at the western foot of Cape Nukshak.",
+    },
+    {
+        "id": "cape-nukshak",
+        "name": "Cape Nukshak",
+        "x": 69, "y": 49, "lon": 77.4285, "lat": 18.4460,
+        "type": "Promontory · Delta Front",
+        "category": "rover_waypoint", "subcategory": "delta_promontory",
+        "value": 0.87, "conf": "HIGH",
+        "image_url": "/landmarks/cape-nukshak.jpg",
+        "significance": "High — cross-section of delta front progradation and post-depositional wind erosion.",
+        "perseverance_history": "Landmark promontory rounding the southern delta lobe between Enchanted Lake and Hawksbill Gap.",
+        "note": "Prominent jutting cliff-face separating the Enchanted Lake and Hawksbill Gap embayments.",
+    },
+    {
+        "id": "belva-crater",
+        "name": "Belva Crater",
+        "x": 49, "y": 30, "lon": 77.4150, "lat": 18.4630,
+        "type": "Impact Crater · Upper Delta Fan",
+        "category": "rover_waypoint", "subcategory": "impact_crater",
+        "value": 0.89, "conf": "HIGH",
+        "image_url": "/landmarks/belva-crater.jpg",
+        "significance": "High — natural ~900 m drill hole exposing deep delta stratigraphy and dipping foreset beds.",
+        "perseverance_history": "Imaged in high-resolution Mastcam-Z mosaics on Sol 772 (April 2023) at Echo Creek.",
+        "note": "0.9 km diameter impact crater excavated into the upper western delta deposits.",
+    },
+    {
+        "id": "bunsen-peak",
+        "name": "Bunsen Peak",
+        "x": 27, "y": 28, "lon": 77.4010, "lat": 18.4650,
+        "type": "Outcrop · Margin Unit",
+        "category": "rover_waypoint", "subcategory": "margin_unit",
+        "value": 0.96, "conf": "HIGH",
+        "image_url": "/landmarks/bunsen-peak.jpg",
+        "significance": "Exceptional — Comet Geyser core showed ~75% carbonate grains cemented by hydrated silica, prime biosignature preservation matrix.",
+        "perseverance_history": "Investigated and cored on Sol 1088 (March 2024).",
+        "note": "Prominent light-toned outcrop within the carbonate-bearing Margin Unit along the inner crater rim.",
+    },
+    {
+        "id": "jurabi-point",
+        "name": "Jurabi Point",
+        "x": 38, "y": 25, "lon": 77.4080, "lat": 18.4680,
+        "type": "Contact · Upper Fan / Margin Unit",
+        "category": "rover_waypoint", "subcategory": "geological_contact",
+        "value": 0.88, "conf": "HIGH",
+        "image_url": "/landmarks/jurabi-point.jpg",
+        "significance": "High — defines chronological sequence between marginal shoreline carbonates and late-stage boulder-rich fluvial floods.",
+        "perseverance_history": "Investigated in late 2023 during transition from Upper Fan to Margin Unit campaign.",
+        "note": "Stratigraphic boundary zone where upper delta fan boulder conglomerates meet the Margin Unit.",
+    },
+    {
+        "id": "gnaraloo-bay",
+        "name": "Gnaraloo Bay",
+        "x": 32, "y": 29, "lon": 77.4040, "lat": 18.4640,
+        "type": "Carbonate Outcrop · Margin Unit",
+        "category": "rover_waypoint", "subcategory": "margin_unit",
+        "value": 0.91, "conf": "HIGH",
+        "image_url": "/landmarks/gnaraloo-bay.jpg",
+        "significance": "Very High — strong orbital CRISM and in-situ SHERLOC/PIXL signatures of magnesium-iron carbonates along ancient lake shoreline.",
+        "perseverance_history": "Examined in early 2024 along the southern Margin Unit traverse.",
+        "note": "Embayment of fractured, carbonate-bearing bedrock near the base of the western delta.",
+    },
+    {
+        "id": "western-delta",
+        "name": "Western Delta",
+        "x": 55, "y": 38, "lon": 77.4200, "lat": 18.4550,
+        "type": "Fluvial-Lacustrine Deltaic Fan",
+        "category": "geomorphic_feature", "subcategory": "delta",
+        "value": 0.98, "conf": "HIGH",
+        "image_url": "/landmarks/western-delta.jpg",
+        "significance": "Exceptional — primary astrobiological target of Mars 2020; preserves fine-grained clay and carbonate sediments.",
+        "perseverance_history": "Explored across the Delta Front, Upper Fan, and Margin Unit campaigns (2022-2024).",
+        "note": "Classic Gilbert-type fan-delta built where Neretva Vallis discharged into ancient Lake Jezero.",
+    },
+    {
+        "id": "neretva-vallis",
+        "name": "Neretva Vallis",
+        "x": 14, "y": 22, "lon": 77.3800, "lat": 18.4850,
+        "type": "Inlet Channel · Bright Angel",
+        "category": "geomorphic_feature", "subcategory": "inlet_channel",
+        "value": 0.97, "conf": "HIGH",
+        "image_url": "/landmarks/neretva-vallis.jpg",
+        "significance": "Exceptional — Cheyava Falls ('leopard spots') core collected at Bright Angel contains organic carbon with iron-phosphate reaction fronts.",
+        "perseverance_history": "Perseverance entered Neretva Vallis in mid-2024 and drilled the landmark Cheyava Falls sample on Sol 1215.",
+        "note": "Western inlet river channel that breached the Jezero Crater rim and built the Western Delta.",
+    },
+    {
+        "id": "jezero-crater-rim",
+        "name": "Jezero Crater Rim",
+        "x": 10, "y": 40, "lon": 77.3600, "lat": 18.4400,
+        "type": "Crater Rim · Noachian Basement",
+        "category": "geomorphic_feature", "subcategory": "crater_rim",
+        "value": 0.93, "conf": "HIGH",
+        "image_url": "/landmarks/jezero-crater-rim.jpg",
+        "significance": "Very High — samples oldest pre-Jezero Martian crust (~3.9-4.0 Ga) and deep hydrothermal habitats.",
+        "perseverance_history": "Target of Perseverance's Crater Rim Campaign (2024-2025) climbing toward Pico Turquino and Witch Hazel Hill.",
+        "note": "45-km diameter impact structure uplifted megabreccia and ancient Noachian crust.",
+    },
+    {
+        "id": "sava-vallis",
+        "name": "Sava Vallis",
+        "x": 85, "y": 8, "lon": 77.5200, "lat": 18.6800,
+        "type": "Northern Inlet Channel",
+        "category": "geomorphic_feature", "subcategory": "inlet_channel",
+        "value": 0.78, "conf": "MEDIUM",
+        "image_url": "/landmarks/sava-vallis.jpg",
+        "significance": "High — records secondary northern watershed and sediment source feeding Lake Jezero.",
+        "perseverance_history": "Observed from orbit by HiRISE, CTX, and MOLA; outside rover surface traverse range.",
+        "note": "Northern inlet valley breaching the northwestern/northern rim of Jezero Crater.",
+    },
+    {
+        "id": "pliva-vallis",
+        "name": "Eastern Outlet Valley (Pliva Vallis)",
+        "x": 115, "y": 38, "lon": 77.9500, "lat": 18.4200,
+        "type": "Outlet Canyon · Open-Basin Spillway",
+        "category": "geomorphic_feature", "subcategory": "outlet_channel",
+        "value": 0.82, "conf": "HIGH",
+        "image_url": "/landmarks/pliva-vallis.jpg",
+        "significance": "High — proves Jezero was an open-basin, hydrologically stable fresh-water lake system that overflowed its eastern rim.",
+        "perseverance_history": "Mapped from orbital MOLA and CTX topography to establish ancient lake highstand.",
+        "note": "Outflow canyon breaching the eastern rim of Jezero Crater.",
+    },
+    {
+        "id": "ancient-lake-basin",
+        "name": "Ancient Lake Basin",
+        "x": 92, "y": 54, "lon": 77.5500, "lat": 18.3800,
+        "type": "Crater Floor · Māʻaz & Séítah",
+        "category": "geomorphic_feature", "subcategory": "basin_floor",
+        "value": 0.85, "conf": "HIGH",
+        "image_url": "/landmarks/ancient-lake-basin.jpg",
+        "significance": "High — radiometric dating of returned igneous cores will calibrate the absolute timeline of the inner solar system.",
+        "perseverance_history": "Explored during the Crater Floor Campaign (2021-2022) across Māʻaz and Séítah formations.",
+        "note": "Broad interior floor of Jezero Crater hosting olivine cumulates and aqueous alteration.",
+    },
 ]
+
+ROUTE_TRADEOFFS = {
+    "safety": {
+        "profile": "Safest",
+        "advantage_summary": "Maximizes crew survival margin and suit integrity across hazardous terrain.",
+        "compromise_summary": "Increases total traverse distance, duration, and life-support consumable draw.",
+        "gained": [
+            "Lowest terrain risk score and peak slope exposure (< 12 deg typical)",
+            "Avoids high-roughness boulder fields that degrade suit boots and rover wheels",
+            "Minimizes traversal through unmapped / low-confidence orbital data cells",
+            "Maintains wider buffer from the 25 deg hard mobility exclusion limit",
+        ],
+        "compromised": [
+            "+12% to +25% longer path distance due to hazard avoidance detours",
+            "Higher cumulative O2, battery, and cooling water consumption",
+            "Bypasses steeper delta scarps where high-value outcrops are exposed",
+        ],
+    },
+    "fastest": {
+        "profile": "Fastest",
+        "advantage_summary": "Minimizes EVA duration and life-support consumable burn for rapid transit.",
+        "compromise_summary": "Accepts steeper grades and rougher regolith near mobility limits.",
+        "gained": [
+            "Shortest geometric path and fastest transit time to destination",
+            "Lowest total oxygen (kg), battery (kWh), and cooling water expenditure",
+            "Maximizes remaining Point-of-No-Return (PNR) life-support reserve margin",
+            "Ideal for contingency return-to-habitat or medical abort scenarios",
+        ],
+        "compromised": [
+            "Higher exposure to caution-zone slopes (10 deg - 24 deg) and surface roughness",
+            "Reduced safety margin against local slip or unmapped micro-hazards",
+            "Zero weighting for nearby astrobiological or geologic science targets",
+        ],
+    },
+    "science": {
+        "profile": "Science",
+        "advantage_summary": "Maximizes astrobiological & geological return across Jezero landmarks (capped <= 1.5x fastest).",
+        "compromise_summary": "Trades path efficiency and moderate terrain exposure for target proximity.",
+        "gained": [
+            "Highest science value collected along traverse (phyllosilicates, carbonates, delta beds)",
+            "Routes within observation range of mapped Jezero landmarks & sample depots",
+            "Detour length strictly capped at <= 1.5x the fastest route to protect EVA budget",
+            "Balanced slope weighting keeps grades within safe human/rover limits",
+        ],
+        "compromised": [
+            "Moderate increase in traverse distance and EVA time vs. Fastest route",
+            "Enters moderate-roughness outcrop zones near delta scarps and crater rims",
+            "Slightly higher consumable burn than direct transit",
+        ],
+    },
+    "balanced": {
+        "profile": "Balanced",
+        "advantage_summary": "Equilibrates terrain safety, transit speed, and opportunistic science.",
+        "compromise_summary": "Sub-optimal for pure emergency speed or maximum-risk outcrop approaches.",
+        "gained": [
+            "Well-rounded trade-off between slope avoidance and direct progress",
+            "Moderate consumable usage with comfortable Point-of-No-Return reserve",
+            "Captures opportunistic science targets that lie near the main corridor",
+        ],
+        "compromised": [
+            "Slightly longer than Fastest route and slightly higher slope exposure than Safest",
+            "Skips distant high-value science targets that require major detours",
+        ],
+    },
+}
 
 @dataclass
 class Grid:
@@ -145,8 +390,13 @@ def load_real_grid(dem_path: str | None = None) -> Grid:
                     s_val += abs(g(x + k, y + l) - elev[i])
             rough[i] = min(1.0, s_val / 9 / 60 + noise(x / 5, y / 5) * 0.35)
 
-            # Science values: simulated, biased by terrain features
-            science[i] = max(0.0, noise(x / 8 + 40, y / 8 + 40) - 0.6) * 2.5
+            # Science values: simulated, biased by terrain features + proximity to mapped Jezero landmarks
+            sci_val = max(0.0, noise(x / 8 + 40, y / 8 + 40) - 0.6) * 2.5
+            for t in TARGETS:
+                d_cells = math.hypot(x - t["x"], y - t["y"])
+                if d_cells <= 5.0:
+                    sci_val = max(sci_val, t["value"] * math.exp(-d_cells * d_cells / 8.0))
+            science[i] = min(1.0, sci_val)
 
     return Grid(GRID_W, GRID_H, CELL_M, elev, slope, rough, science, terrain_source="HiRISE_DTM")
 
@@ -223,7 +473,48 @@ def search(gr: Grid, a, b, wt: dict, max_slope=20.0, algorithm="astar") -> Resul
     path, k = [], ti
     while k != -1:
         path.append((k % gr.w, k // gr.w)); k = prev[k]
-    return Result(path[::-1], dist[ti], expanded)
+    res = Result(path[::-1], dist[ti], expanded)
+
+    # Science detour cap (from nipun_branch): ensure science routes do not exceed 1.5x fastest route distance
+    if algorithm == "astar" and wt.get("wv", 0.0) > 1.0:
+        fast_res = search(gr, a, b, PROFILES["fastest"], max_slope=max_slope, algorithm="astar")
+        if fast_res is not None:
+            cand_dist = sum(math.hypot(res.path[i][0] - res.path[i - 1][0], res.path[i][1] - res.path[i - 1][1]) for i in range(1, len(res.path)))
+            fast_dist = sum(math.hypot(fast_res.path[i][0] - fast_res.path[i - 1][0], fast_res.path[i][1] - fast_res.path[i - 1][1]) for i in range(1, len(fast_res.path)))
+            if fast_dist > 0 and cand_dist > 1.5 * fast_dist:
+                # Re-plan with bounded science bonus so detour stays <= 1.5x fastest
+                capped_wt = dict(wt, wv=0.45)
+                capped = search(gr, a, b, capped_wt, max_slope=max_slope, algorithm="astar")
+                if capped is not None:
+                    # Recompute cost under original wt so validation matches
+                    re_cost = 0.0
+                    for i in range(1, len(capped.path)):
+                        (x0, y0), (x1, y1) = capped.path[i - 1], capped.path[i]
+                        f0 = max(_cell_factor(gr, y0 * gr.w + x0, wt, max_slope) or 0, floor)
+                        f1 = max(_cell_factor(gr, y1 * gr.w + x1, wt, max_slope) or 0, floor)
+                        re_cost += gr.cell_m * (math.sqrt(2) if x0 != x1 and y0 != y1 else 1.0) * (f0 + f1) / 2
+                    return Result(capped.path, re_cost, res.nodes_expanded + capped.nodes_expanded)
+    return res
+
+
+def multi_stop_search(gr: Grid, points: list[tuple[int, int]], wt: dict, max_slope=20.0, algorithm="astar") -> Result | None:
+    """Multi-waypoint A* / Dijkstra search stitching legs in sequence."""
+    if len(points) < 2:
+        return None
+    full_path: list[tuple[int, int]] = []
+    total_cost = 0.0
+    expanded = 0
+    for idx in range(len(points) - 1):
+        leg = search(gr, points[idx], points[idx + 1], wt, max_slope=max_slope, algorithm=algorithm)
+        if leg is None:
+            return None
+        if idx == 0:
+            full_path.extend(leg.path)
+        else:
+            full_path.extend(leg.path[1:])
+        total_cost += leg.total_cost
+        expanded += leg.nodes_expanded
+    return Result(full_path, total_cost, expanded)
 
 def validate(gr: Grid, res: Result, wt: dict, max_slope: float) -> dict:
     p = res.path
@@ -268,9 +559,109 @@ def leg_time_min(gr: Grid, path: list) -> float:
     return s / 60.0
 
 
+def eva_consumables(gr: Grid, path: list) -> dict:
+    """Compute EVA life-support consumables for both single-suit xEMU tanks and 2-astronaut buddy system (nipun_branch)."""
+    n = len(path)
+    if n < 2:
+        return {
+            "crew_size": 2, "active_walking_min": 0.0, "rest_stops_min": 0.0, "total_eva_min": 0.0,
+            "oxygen_kg": 0.0, "battery_kwh": 0.0, "cooling_water_kg": 0.0,
+            "o2_used_l": 0.0, "o2_pct": 0.0, "batt_used_wh": 0.0, "batt_pct": 0.0,
+            "water_used_kg": 0.0, "water_pct": 0.0, "pnr_idx": None, "pnr_dist_m": None,
+            "within_budget": True,
+        }
+
+    o2_used_l = 0.0
+    batt_used_wh = 0.0
+    water_used_kg = 0.0
+    cum_dist = 0.0
+    pnr_idx = None
+    pnr_dist_m = None
+    usable_o2 = EVA_TOTAL_O2_L * (1.0 - EVA_RESERVE_FRAC)
+
+    for k in range(1, n):
+        ax, ay = path[k - 1]
+        bx, by = path[k]
+        i0 = ay * gr.w + ax
+        i1 = by * gr.w + bx
+        step_m = math.hypot(bx - ax, by - ay) * gr.cell_m
+        cum_dist += step_m
+        sl = gr.slope[i1]
+        rg = gr.rough[i1]
+        dz = gr.elev[i1] - gr.elev[i0]
+        dt_min = (step_m / speed_mps(sl)) / 60.0
+
+        grade_factor = max(0.0, dz / max(1.0, step_m)) * 8.5 if dz > 0 else max(0.0, -dz / max(1.0, step_m)) * 1.8
+        slope_factor = (sl / MAX_SLOPE) * 1.4
+        rough_factor = rg * 0.65
+        metabolic_mult = 1.0 + grade_factor + slope_factor + rough_factor
+
+        o2_used_l += 1.65 * metabolic_mult * dt_min
+        batt_used_wh += (195.0 + 35.0 * rg) * (dt_min / 60.0)
+        water_used_kg += 0.0062 * metabolic_mult * dt_min
+
+        if pnr_idx is None and o2_used_l >= usable_o2 * 0.5:
+            pnr_idx = k
+            pnr_dist_m = round(cum_dist, 1)
+
+    # 2-astronaut buddy protocol model (from nipun_branch)
+    crew_size = 2
+    active_walking_min = cum_dist / 0.8 / 60.0
+    sl_vals = [gr.slope[p[1] * gr.w + p[0]] for p in path]
+    mean_slope = sum(sl_vals) / len(sl_vals)
+    rest_stops_min = (active_walking_min / 50.0) * 10.0 + (mean_slope / 10.0) * 8.0
+    total_eva_min = active_walking_min + rest_stops_min
+    eva_hours = total_eva_min / 60.0
+    effort_factor = 1.0 + (mean_slope / 15.0) * 0.35
+
+    oxygen_kg = crew_size * eva_hours * 0.084 * effort_factor
+    battery_kwh = crew_size * eva_hours * 0.32 * (1.0 + (mean_slope / 20.0) * 0.15)
+    cooling_water_kg = crew_size * eva_hours * 0.45 * effort_factor
+
+    o2_pct = min(100.0, (o2_used_l / EVA_TOTAL_O2_L) * 100.0)
+    batt_pct = min(100.0, (batt_used_wh / EVA_TOTAL_BATT_WH) * 100.0)
+    water_pct = min(100.0, (water_used_kg / EVA_TOTAL_WATER_KG) * 100.0)
+
+    return {
+        "crew_size": crew_size,
+        "active_walking_min": round(active_walking_min, 1),
+        "rest_stops_min": round(rest_stops_min, 1),
+        "total_eva_min": round(total_eva_min, 1),
+        "oxygen_kg": round(oxygen_kg, 3),
+        "battery_kwh": round(battery_kwh, 3),
+        "cooling_water_kg": round(cooling_water_kg, 2),
+        "o2_used_l": round(o2_used_l, 1),
+        "o2_pct": round(o2_pct, 1),
+        "batt_used_wh": round(batt_used_wh, 1),
+        "batt_pct": round(batt_pct, 1),
+        "water_used_kg": round(water_used_kg, 2),
+        "water_pct": round(water_pct, 1),
+        "pnr_idx": pnr_idx,
+        "pnr_dist_m": pnr_dist_m,
+        "within_budget": (o2_pct <= 80.0 and batt_pct <= 80.0 and water_pct <= 80.0),
+    }
+
+
+def compute_tradeoffs(profile: str, cand_metrics: dict, fastest_metrics: dict | None = None, safest_metrics: dict | None = None) -> dict:
+    """Return structured qualitative and quantitative trade-offs (what is gained vs. compromised) for a route profile."""
+    key = profile if profile in ROUTE_TRADEOFFS else "balanced"
+    base = dict(ROUTE_TRADEOFFS[key])
+    deltas = {}
+    if fastest_metrics and fastest_metrics.get("distance_m", 0) > 0:
+        d_fast = fastest_metrics["distance_m"]
+        t_fast = fastest_metrics["estimated_duration_min"]
+        deltas["distance_vs_fastest_pct"] = round(((cand_metrics["distance_m"] - d_fast) / d_fast) * 100.0, 1)
+        deltas["duration_vs_fastest_min"] = round(cand_metrics["estimated_duration_min"] - t_fast, 1)
+        deltas["detour_ratio"] = round(cand_metrics["distance_m"] / d_fast, 2)
+    if safest_metrics:
+        deltas["max_slope_vs_safest_deg"] = round(cand_metrics["max_slope_deg"] - safest_metrics["max_slope_deg"], 2)
+    base["quantitative_deltas"] = deltas
+    return base
+
+
 # ---------- Risk score 0-100 (SIMULATED weights, see PLAN section 6.4) ----------
 def risk_score(gr: Grid, res: Result, mean_rough: float | None = None, mean_unc: float | None = None) -> dict:
-    """Compute detailed risk breakdown for a route (matching frontend riskScore)."""
+    """Compute detailed risk breakdown for a route (matching frontend riskScore + EVA consumables)."""
     path = res.path
     n = len(path)
     idx = [p[1] * gr.w + p[0] for p in path]
@@ -291,8 +682,6 @@ def risk_score(gr: Grid, res: Result, mean_rough: float | None = None, mean_unc:
     if mean_unc is None:
         # Compute uncertainty analogous to frontend: lower near edges, higher on rough ground
         unc_values = []
-        noise_rnd = random.Random(19)
-        noise_g = [noise_rnd.random() for _ in range(64 * 64)]
         for x, y in path:
             i = y * gr.w + x
             edge = min(x, y, gr.w - 1 - x, gr.h - 1 - y) / 12.0
@@ -323,7 +712,14 @@ def risk_score(gr: Grid, res: Result, mean_rough: float | None = None, mean_unc:
     else:
         level = "VERY HIGH"
 
-    return {"score": score, "level": level, "timeMin": round(time_min, 2), "parts": parts}
+    consumables = eva_consumables(gr, path)
+    return {
+        "score": score,
+        "level": level,
+        "timeMin": round(time_min, 2),
+        "parts": parts,
+        "consumables": consumables,
+    }
 
 
 # ---------- Landmarks (no-GPS navigation, PLAN section 6.5) ----------

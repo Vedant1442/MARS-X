@@ -28,6 +28,30 @@ def test_generate_and_validate():
     r = c.post("/api/routes/generate", json={"start": S, "goal": G, "constraints": {"return_to_base": False}}).json()
     assert r["validation"]["passed"] and r["label"] == "candidate route"
     assert "parts" in r["risk"] and 0 <= r["risk"]["score"] <= 100
+    assert "consumables" in r and r["consumables"]["crew_size"] == 2
+    assert r["consumables"]["oxygen_kg"] > 0 and r["consumables"]["battery_kwh"] > 0
+    assert "tradeoffs" in r and len(r["tradeoffs"]["gained"]) > 0 and len(r["tradeoffs"]["compromised"]) > 0
+
+
+def test_mapped_jezero_landmarks():
+    r = c.get("/api/landmarks/mapped")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["count"] == 15
+    assert all(lm.get("image_url", "").startswith("/landmarks/") for lm in data["landmarks"])
+
+    reg = c.get("/api/landmarks-register")
+    assert reg.status_code == 200
+    assert reg.json()["mapped_count"] == 15
+
+
+def test_compare_tradeoffs_and_detour_cap():
+    r = c.post("/api/routes/compare", json={"start": S, "goal": G, "constraints": {"return_to_base": False}}).json()
+    by_prof = {x["profile"]: x["route"] for x in r["routes"]}
+    assert "safety" in by_prof and "fastest" in by_prof and "science" in by_prof
+    # Science detour cap <= 1.5x fastest
+    assert by_prof["science"]["metrics"]["distance_m"] <= 1.5 * by_prof["fastest"]["metrics"]["distance_m"] + 1e-6
+    assert "quantitative_deltas" in by_prof["science"]["tradeoffs"]
 
 
 def test_outside_aoi():

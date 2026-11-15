@@ -71,9 +71,27 @@ class _TerrainMapScreenState extends ConsumerState<TerrainMapScreen> {
                         final y = (dy * grid.h).floor().clamp(0, grid.h - 1);
                         notifier.tapCell(grid, GridPoint(x, y));
                       },
-                      child: CustomPaint(
-                        painter: _TerrainPainter(grid: grid, st: st, landmarks: landmarksAsync.valueOrNull ?? const [], roverStops: roverStopsAsync.valueOrNull ?? const [], craterRimPaths: craterRimAsync.valueOrNull ?? const []),
-                        size: Size(constraints.maxWidth, constraints.maxHeight),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.asset(
+                            'assets/terrain/jezero-ctx-overview.png',
+                            fit: BoxFit.fill,
+                            filterQuality: FilterQuality.medium,
+                            errorBuilder: (context, error, stack) => const ColoredBox(color: MarsTheme.mapBg),
+                          ),
+                          CustomPaint(
+                            painter: _TerrainPainter(
+                              grid: grid,
+                              st: st,
+                              landmarks: landmarksAsync.valueOrNull ?? const [],
+                              roverStops: roverStopsAsync.valueOrNull ?? const [],
+                              craterRimPaths: craterRimAsync.valueOrNull ?? const [],
+                              showTerrain: st.layer != TerrainLayer.imagery,
+                            ),
+                            size: Size(constraints.maxWidth, constraints.maxHeight),
+                          ),
+                        ],
                       ),
                     );
 
@@ -140,6 +158,29 @@ class _TerrainMapScreenState extends ConsumerState<TerrainMapScreen> {
                               label: const Text('3D TILT', style: TextStyle(fontFamily: 'monospace', fontSize: 10)),
                               selected: st.tilt3D,
                               onSelected: (_) => notifier.toggleTilt3D(),
+                            ),
+                            const SizedBox(width: 4),
+                            ActionChip(
+                              avatar: const Icon(Icons.photo_library_outlined, size: 14),
+                              label: const Text('15 LANDMARKS', style: TextStyle(fontFamily: 'monospace', fontSize: 10)),
+                              onPressed: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: MarsTheme.paper,
+                                  builder: (ctx) => DraggableScrollableSheet(
+                                    expand: false,
+                                    initialChildSize: 0.78,
+                                    maxChildSize: 0.94,
+                                    minChildSize: 0.45,
+                                    builder: (ctx, scrollCtrl) => _MappedLandmarksSheet(
+                                      grid: grid,
+                                      notifier: notifier,
+                                      scrollController: scrollCtrl,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                             const SizedBox(width: 4),
                             ActionChip(
@@ -383,6 +424,27 @@ class _BottomRouteSheet extends ConsumerWidget {
                     ),
               ],
             ),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: MarsTheme.ink,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: MarsTheme.line),
+              ),
+              child: Text(
+                switch (st.activeMode) {
+                  RouteMode.safest =>
+                    'GAINED: Lowest slope hazard (≤18°) & highest suit reserve.  |  COMPROMISED: +25–40% detour distance & time.',
+                  RouteMode.fastest =>
+                    'GAINED: Shortest distance & fastest travel time.  |  COMPROMISED: Steeper slopes (up to 25°) & higher O₂ burn.',
+                  RouteMode.science =>
+                    'GAINED: Max science targets & sample diversity (≤1.5× detour cap).  |  COMPROMISED: Longer EVA & higher consumables.',
+                },
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: MarsTheme.dim),
+              ),
+            ),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -420,6 +482,7 @@ class _BottomRouteSheet extends ConsumerWidget {
                             riskScore: rk.score,
                             currentStep: st.landmarkStep,
                             createdAt: DateTime.now().toIso8601String(),
+                            gridId: grid.gridId,
                           ));
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -434,6 +497,182 @@ class _BottomRouteSheet extends ConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _MappedLandmarksSheet extends StatefulWidget {
+  final TerrainGrid grid;
+  final PlannerNotifier notifier;
+  final ScrollController scrollController;
+
+  const _MappedLandmarksSheet({
+    required this.grid,
+    required this.notifier,
+    required this.scrollController,
+  });
+
+  @override
+  State<_MappedLandmarksSheet> createState() => _MappedLandmarksSheetState();
+}
+
+class _MappedLandmarksSheetState extends State<_MappedLandmarksSheet> {
+  String _cat = 'ALL';
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = _cat == 'ALL'
+        ? kMappedJezeroLandmarks
+        : kMappedJezeroLandmarks.where((l) => l.category == _cat).toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('15 MAPPED JEZERO LANDMARKS', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text('Authoritative USGS SIM 3464, FU Berlin WFS & NASA PDS Register', style: TextStyle(fontSize: 11, color: MarsTheme.dim)),
+                ],
+              ),
+              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+            ],
+          ),
+        ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              for (final entry in [
+                ('ALL', 'ALL (15)'),
+                ('geological_features', 'GEOLOGICAL (6)'),
+                ('rover_exploration', 'ROVER EXPLORATION (6)'),
+                ('points_of_interest', 'POINTS OF INTEREST (3)'),
+              ])
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ChoiceChip(
+                    label: Text(entry.$2, style: const TextStyle(fontFamily: 'monospace', fontSize: 10)),
+                    selected: _cat == entry.$1,
+                    onSelected: (_) => setState(() => _cat = entry.$1),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const Divider(height: 12),
+        Expanded(
+          child: ListView.builder(
+            controller: widget.scrollController,
+            padding: const EdgeInsets.all(12),
+            itemCount: filtered.length,
+            itemBuilder: (context, idx) {
+              final l = filtered[idx];
+              final cell = (l.lonEast != null && l.latDeg != null)
+                  ? widget.grid.georeference?.cellFor(l.lonEast!, l.latDeg!, widget.grid.w, widget.grid.h)
+                  : null;
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.asset(
+                            l.assetPath,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF1F1917)),
+                          ),
+                          Positioned(
+                            top: 8,
+                            left: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.75),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '${l.geometryType.toUpperCase()} · ${l.subcategory.toUpperCase()}',
+                                style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: DataBadge(l.isObserved ? DataType.observed : DataType.derived),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(l.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              ),
+                              if (l.latDeg != null && l.lonEast != null)
+                                Text(
+                                  '${l.latDeg!.toStringAsFixed(3)}°N, ${l.lonEast!.toStringAsFixed(3)}°E',
+                                  style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: MarsTheme.dim),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(l.geologicalDescription, style: const TextStyle(fontSize: 12)),
+                          const SizedBox(height: 4),
+                          Text('Significance: ${l.scientificSignificance}', style: const TextStyle(fontSize: 11, color: MarsTheme.dim)),
+                          if (l.perseveranceHistory != null) ...[
+                            const SizedBox(height: 4),
+                            Text('Rover History: ${l.perseveranceHistory}', style: const TextStyle(fontSize: 11, color: MarsTheme.marsDeep)),
+                          ],
+                          if (l.panoramaInfo != null) ...[
+                            const SizedBox(height: 4),
+                            Text('Mastcam-Z Panorama: ${l.panoramaInfo}', style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: MarsTheme.atmosDeep)),
+                          ],
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text('Source: ${l.sourceName}', style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: MarsTheme.dim)),
+                              ),
+                              if (cell != null)
+                                FilledButton.tonalIcon(
+                                  onPressed: () {
+                                    widget.notifier.tapCell(widget.grid, GridPoint(cell.x, cell.y));
+                                    Navigator.pop(context);
+                                  },
+                                  icon: const Icon(Icons.place, size: 14),
+                                  label: const Text('SET ON MAP', style: TextStyle(fontFamily: 'monospace', fontSize: 10)),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -516,6 +755,7 @@ class _TerrainPainter extends CustomPainter {
   final List<JezeroLandmark> landmarks;
   final List<RoverStop> roverStops;
   final List<List<List<double>>> craterRimPaths;
+  final bool showTerrain;
 
   _TerrainPainter({
     required this.grid,
@@ -523,6 +763,7 @@ class _TerrainPainter extends CustomPainter {
     this.landmarks = const [],
     this.roverStops = const [],
     this.craterRimPaths = const [],
+    this.showTerrain = true,
   });
 
   @override
@@ -532,53 +773,72 @@ class _TerrainPainter extends CustomPainter {
     final paint = Paint();
     final elevSpan = (grid.maxElev - grid.minElev) == 0 ? 1.0 : (grid.maxElev - grid.minElev);
 
-    for (var y = 0; y < grid.h; y++) {
-      for (var x = 0; x < grid.w; x++) {
-        final i = y * grid.w + x;
-        final eL = grid.elev[y * grid.w + math.max(0, x - 1)];
-        final eR = grid.elev[y * grid.w + math.min(grid.w - 1, x + 1)];
-        final shade = (0.55 + (eL - eR) / 140.0).clamp(0.2, 1.15);
+    if (showTerrain) {
+      final displayCols = math.min(grid.w, math.max(1, size.width.ceil()));
+      final displayRows = math.min(grid.h, math.max(1, size.height.ceil()));
+      final stepX = (grid.w / displayCols).ceil();
+      final stepY = (grid.h / displayRows).ceil();
+      for (var y = 0; y < grid.h; y += stepY) {
+        final blockH = math.min(stepY, grid.h - y);
+        for (var x = 0; x < grid.w; x += stepX) {
+          final blockW = math.min(stepX, grid.w - x);
+          final sx = x + blockW ~/ 2;
+          final sy = y + blockH ~/ 2;
+          final i = sy * grid.w + sx;
+          if (grid.nodata[i] != 0) {
+            paint.color = const Color(0xFF16181B);
+            canvas.drawRect(Rect.fromLTWH(x * cw, y * ch, blockW * cw + 0.5, blockH * ch + 0.5), paint);
+            continue;
+          }
+          final eL = grid.elev[sy * grid.w + math.max(0, sx - stepX)];
+          final eR = grid.elev[sy * grid.w + math.min(grid.w - 1, sx + stepX)];
+          final shade = (0.55 + (eL - eR) / 140.0).clamp(0.2, 1.15);
 
-        double t;
-        Color base;
-        switch (st.layer) {
-          case TerrainLayer.slope:
-            t = (grid.slope[i] / MarsRouter.defaultMaxSlopeDeg).clamp(0.0, 1.0);
-            base = Color.lerp(const Color(0xFF2B2724), const Color(0xFFB85C43), t)!;
-            break;
-          case TerrainLayer.roughness:
-            t = grid.rough[i].clamp(0.0, 1.0);
-            base = Color.lerp(const Color(0xFF2B2724), const Color(0xFFD3A24C), t)!;
-            break;
-          case TerrainLayer.pressure:
-            t = ((grid.elev[i] - grid.minElev) / elevSpan).clamp(0.0, 1.0);
-            base = Color.lerp(const Color(0xFF789BA8), const Color(0xFF2A2F3D), t)!;
-            break;
-          case TerrainLayer.elevation:
-            t = ((grid.elev[i] - grid.minElev) / elevSpan).clamp(0.0, 1.0);
-            base = Color.lerp(const Color(0xFF2F3540), const Color(0xFFEFE2C8), t)!;
-            break;
-          case TerrainLayer.hillshade:
-            t = ((grid.elev[i] - grid.minElev) / elevSpan).clamp(0.0, 1.0);
-            base = Color.lerp(const Color(0xFF3E2D24), const Color(0xFFC2A284), t)!;
-            break;
-        }
+          double t;
+          Color base;
+          switch (st.layer) {
+            case TerrainLayer.imagery:
+              base = const Color(0x00000000);
+              t = 0;
+              break;
+            case TerrainLayer.slope:
+              t = (grid.slope[i] / MarsRouter.defaultMaxSlopeDeg).clamp(0.0, 1.0);
+              base = Color.lerp(const Color(0xFF2B2724), const Color(0xFFB85C43), t)!;
+              break;
+            case TerrainLayer.roughness:
+              t = grid.rough[i].clamp(0.0, 1.0);
+              base = Color.lerp(const Color(0xFF2B2724), const Color(0xFFD3A24C), t)!;
+              break;
+            case TerrainLayer.pressure:
+              t = ((grid.elev[i] - grid.minElev) / elevSpan).clamp(0.0, 1.0);
+              base = Color.lerp(const Color(0xFF789BA8), const Color(0xFF2A2F3D), t)!;
+              break;
+            case TerrainLayer.elevation:
+              t = ((grid.elev[i] - grid.minElev) / elevSpan).clamp(0.0, 1.0);
+              base = Color.lerp(const Color(0xFF2F3540), const Color(0xFFEFE2C8), t)!;
+              break;
+            case TerrainLayer.hillshade:
+              t = ((grid.elev[i] - grid.minElev) / elevSpan).clamp(0.0, 1.0);
+              base = Color.lerp(const Color(0xFF3E2D24), const Color(0xFFC2A284), t)!;
+              break;
+          }
 
-        paint.color = Color.fromARGB(
-          255,
-          (base.red * shade).round().clamp(0, 255),
-          (base.green * shade).round().clamp(0, 255),
-          (base.blue * shade).round().clamp(0, 255),
-        );
-        canvas.drawRect(Rect.fromLTWH(x * cw, y * ch, cw + 0.4, ch + 0.4), paint);
+          paint.color = Color.fromARGB(
+            255,
+            (base.red * shade).round().clamp(0, 255),
+            (base.green * shade).round().clamp(0, 255),
+            (base.blue * shade).round().clamp(0, 255),
+          );
+          canvas.drawRect(Rect.fromLTWH(x * cw, y * ch, blockW * cw + 0.4, blockH * ch + 0.4), paint);
 
-        if (st.showContours && x + 1 < grid.w && y + 1 < grid.h) {
-          final b0 = (grid.elev[i] / 20.0).floor();
-          final bx = (grid.elev[y * grid.w + x + 1] / 20.0).floor();
-          final by = (grid.elev[(y + 1) * grid.w + x] / 20.0).floor();
-          if (b0 != bx || b0 != by) {
-            paint.color = const Color(0xAAFAF8F2);
-            canvas.drawRect(Rect.fromLTWH(x * cw, y * ch, cw, ch), paint);
+          if (st.showContours && x + stepX < grid.w && y + stepY < grid.h) {
+            final b0 = (grid.elev[i] / 50.0).floor();
+            final bx = (grid.elev[sy * grid.w + math.min(grid.w - 1, sx + stepX)] / 50.0).floor();
+            final by = (grid.elev[math.min(grid.h - 1, sy + stepY) * grid.w + sx] / 50.0).floor();
+            if (b0 != bx || b0 != by) {
+              paint.color = const Color(0xAAFAF8F2);
+              canvas.drawRect(Rect.fromLTWH(x * cw, y * ch, blockW * cw, blockH * ch), paint);
+            }
           }
         }
       }

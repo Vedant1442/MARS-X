@@ -72,31 +72,62 @@ class GeoLayersCatalog:
         return self._landmarks
 
     def get_science_targets(self) -> list[dict[str, Any]]:
-        """Return real science targets formatted for MARS-X planners."""
+        """Return real science targets formatted for MARS-X planners, including all 15 mapped Jezero landmarks."""
+        from . import core
         self.load()
         targets = []
+        seen_names: set[str] = set()
 
-        # 1. Authoritative landmarks
+        # 1. Authoritative landmarks from GeoJSON
         for idx, feat in enumerate(self._landmarks):
             props = feat.get("properties", {})
             coords = feat.get("geometry", {}).get("coordinates", [0, 0])
             name = props.get("name", f"Landmark-{idx+1}")
+            seen_names.add(name.lower())
             kind = props.get("kind", "reference_point")
+            # Match against core.TARGETS for local image_url and astrobiological significance
+            matched = next((t for t in core.TARGETS if t["name"].lower() in name.lower() or name.lower() in t["name"].lower()), None)
             targets.append({
-                "id": feat.get("id") or f"LM_{idx+1}",
+                "id": feat.get("id") or (matched["id"] if matched else f"LM_{idx+1}"),
                 "name": name,
                 "type": kind.replace("_", " ").title(),
                 "coord": {"lon": coords[0], "lat": coords[1]},
-                "value": 0.95 if "landing" in kind else 0.85,
+                "value": matched["value"] if matched else (0.95 if "landing" in kind else 0.85),
                 "confidence": "HIGH" if "published" in props.get("coordinateStatus", "") else "MEDIUM",
                 "source": props.get("sourceLabel") or "USGS SIM 3464 / PDS",
                 "citation": props.get("source", ""),
                 "note": props.get("note", "Verified Jezero feature"),
+                "image_url": matched["image_url"] if matched else None,
+                "significance": matched["significance"] if matched else None,
+                "perseverance_history": matched["perseverance_history"] if matched else None,
                 "data_type": "DERIVED",
             })
 
-        # 2. Key representative craters / geologic features from SIM 3464
-        # Add top craters or surface features
+        # 2. All 15 Mapped Jezero Expedition Landmarks (from nipun_branch + processed register)
+        for t in core.TARGETS:
+            if t["name"].lower() in seen_names:
+                continue
+            seen_names.add(t["name"].lower())
+            targets.append({
+                "id": t["id"],
+                "name": t["name"],
+                "type": t["type"],
+                "category": t.get("category"),
+                "subcategory": t.get("subcategory"),
+                "coord": {"lon": t["lon"], "lat": t["lat"]},
+                "grid": {"x": t["x"], "y": t["y"]},
+                "value": t["value"],
+                "confidence": t["conf"],
+                "source": "USGS SIM 3464 / NASA Mars 2020 PDS",
+                "citation": "https://pubs.usgs.gov/publication/sim3464",
+                "note": t["note"],
+                "image_url": t.get("image_url"),
+                "significance": t.get("significance"),
+                "perseverance_history": t.get("perseverance_history"),
+                "data_type": "DERIVED",
+            })
+
+        # 3. Key representative craters / geologic features from SIM 3464
         for idx, feat in enumerate(self._location_features[:15]):
             props = feat.get("properties", {})
             coords = feat.get("geometry", {}).get("coordinates", [0, 0])
@@ -110,11 +141,29 @@ class GeoLayersCatalog:
                 "confidence": "HIGH",
                 "source": props.get("sourceProduct", "USGS SIM 3464"),
                 "citation": props.get("sourceUrl", "https://pubs.usgs.gov/publication/sim3464"),
-                "note": f"Geological location feature from USGS SIM 3464.",
+                "note": "Geological location feature from USGS SIM 3464.",
                 "data_type": "DERIVED",
             })
 
         return targets
+
+    def get_landmarks_register(self) -> dict[str, Any]:
+        """Return the full landmark register enriched with the 15 mapped Jezero landmarks and close-up images."""
+        from . import core
+        self.load()
+        reg = self._load_file("landmarks_register.json")
+        if reg and isinstance(reg, dict):
+            return {
+                **reg,
+                "mapped_landmarks": core.TARGETS,
+                "mapped_count": len(core.TARGETS),
+                "data_type": "DERIVED",
+            }
+        return {
+            "mapped_landmarks": core.TARGETS,
+            "mapped_count": len(core.TARGETS),
+            "data_type": "DERIVED",
+        }
 
     def get_rover_traverse(self) -> dict[str, Any]:
         self.load()

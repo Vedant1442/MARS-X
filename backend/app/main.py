@@ -100,12 +100,15 @@ def run(req, profile: str, algorithm: str, weights=None):
     is_real = GRID.terrain_source != "SYNTHETIC"
     data_type = "DERIVED" if is_real else "SIMULATED"
     risk = core.risk_score(GRID, res, mean_rough=sum(GRID.rough[y * GRID.w + x] for x, y in path) / len(path))
+    tradeoffs = core.compute_tradeoffs(profile, m)
     return {"route_id": "r_" + uuid.uuid4().hex[:4], "profile": profile, "algorithm": algorithm,
         "label": "candidate route", "geometry": {"type": "Feature", "properties": {}, "geometry": {"type": "LineString", "coordinates": [to_coord(x, y) for x, y in path]}},
         "metrics": {**m, "duration_basis": "SIMULATED speed model v1 (0.5 m/s)"}, "legs": legs,
         "elevation_profile": {"distance_m": dist, "elevation_m": [GRID.elev[y * GRID.w + x] for x, y in path], "slope_deg": [GRID.slope[y * GRID.w + x] for x, y in path]},
         "validation": {"passed": all(val.values()), "checks": val},
         "risk": {**risk, "basis": "Simulation assumptions v1 (not certified mobility limits)"},
+        "consumables": risk.get("consumables", {}),
+        "tradeoffs": tradeoffs,
         "uncertainty": {"terrain_source": GRID.terrain_source, "resolution_m": GRID.cell_m, "data_type": data_type},
         "assumptions": ["max_slope_deg is a configurable simulation assumption",
                         "HiRISE DTM resampled to 35.99 m/cell; sub-cell hazards unknown" if is_real else "Terrain is synthetic until the DTM bundle is built"],
@@ -161,6 +164,14 @@ def targets():
         return {"targets": real_targets, "count": len(real_targets), "data_type": "DERIVED"}
     return {"targets": [{**t, "data_type": "SIMULATED"} for t in core.TARGETS], "count": len(core.TARGETS), "data_type": "SIMULATED"}
 
+@app.get("/api/landmarks-register")
+def landmarks_register():
+    return geo_layers.geo_catalog.get_landmarks_register()
+
+@app.get("/api/landmarks/mapped")
+def mapped_landmarks():
+    return {"landmarks": core.TARGETS, "count": len(core.TARGETS), "data_type": "DERIVED"}
+
 @app.get("/api/rover/traverse")
 def rover_traverse():
     return geo_layers.geo_catalog.get_rover_traverse()
@@ -199,9 +210,15 @@ def generate(req: RouteReq): return run(req, req.profile, req.algorithm, req.wei
 @app.post("/api/routes/compare")
 def compare(req: CompareReq):
     routes = [{"profile": p, "route": run(req, p, "astar")} for p in req.profiles]
+    fast_m = next((r["route"]["metrics"] for r in routes if r["profile"] == "fastest"), None)
+    safe_m = next((r["route"]["metrics"] for r in routes if r["profile"] == "safety"), None)
+    for r in routes:
+        r["route"]["tradeoffs"] = core.compute_tradeoffs(r["profile"], r["route"]["metrics"], fastest_metrics=fast_m, safest_metrics=safe_m)
     out = {"comparison_id": "c_" + uuid.uuid4().hex[:4], "routes": routes,
            "summary_table": [{"profile": r["profile"], "distance_m": r["route"]["metrics"]["distance_m"], "max_slope_deg": r["route"]["metrics"]["max_slope_deg"],
-                              "duration_min": r["route"]["metrics"]["estimated_duration_min"], "science_value": r["route"]["metrics"]["science_value_collected"], "risk_level": r["route"]["risk"]["level"]} for r in routes]}
+                              "duration_min": r["route"]["metrics"]["estimated_duration_min"], "science_value": r["route"]["metrics"]["science_value_collected"],
+                              "risk_level": r["route"]["risk"]["level"], "consumables": r["route"].get("consumables", {}),
+                              "tradeoffs": r["route"].get("tradeoffs", {})} for r in routes]}
     if req.include_dijkstra:
         d = run(req, "balanced", "dijkstra"); a = next((r["route"] for r in routes if r["profile"] == "balanced"), run(req, "balanced", "astar"))
         out["algorithm_comparison"] = {k: {x: v["metrics"][x] for x in ("total_cost", "nodes_expanded", "runtime_ms")} for k, v in (("astar", a), ("dijkstra", d))}

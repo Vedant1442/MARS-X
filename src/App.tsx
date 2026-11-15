@@ -16,9 +16,12 @@ import {
   NOMENCLATURE_ANCHORS,
   PROCESSED_ROVER_STOPS,
   THREE_FORKS_SAMPLES,
+  MAPPED_JEZERO_LANDMARKS,
+  type MappedJezeroLandmark,
 } from "./processedDataLayers";
 import { AVAILABLE_SOLS, getMedaWeather, MEDA_SOLS, solHourToSun } from "./medaData";
 import { API_BASE } from "./api";
+import LandingPage from "./pages/LandingPage";
 
 const LATEST_APK_URL = "https://github.com/Vedant1442/MARS-X/releases/download/latest/app-arm64-v8a-release.apk";
 
@@ -282,9 +285,9 @@ function MarsMap({
   showTargets = true,
   showRover = true,
   showGeology = false,
-  showEllipse = true,
-  showLandforms = true,
-  showCraters = true,
+  showEllipse = false,
+  showLandforms = false,
+  showCraters = false,
   highlight,
   inspect,
   loadingLabel = "Loading terrain…",
@@ -331,7 +334,8 @@ function MarsMap({
     if (d[e.key]) { e.preventDefault(); const s = e.shiftKey ? 5 : 1; setHover((h) => { const c = h ?? { x: 60, y: 38 }; return { x: Math.min(W - 1, Math.max(0, c.x + d[e.key][0] * s)), y: Math.min(H - 1, Math.max(0, c.y + d[e.key][1] * s)) }; }); }
     else if ((e.key === "Enter" || e.key === " ") && hover) { e.preventDefault(); onPick?.(hover); }
   };
-  const hi = hover ? hover.y * W + hover.x : -1;
+  const activePt = hover ?? inspect ?? null;
+  const hi = activePt ? activePt.y * W + activePt.x : -1;
   const focusMode = highlight && highlight !== "ALL" ? highlight : mode;
   const modes = (Object.keys(routes) as Mode[]).filter((m) => routes[m] && (highlight === "ALL" || !highlight || highlight === m));
   const outline = "#241b17";
@@ -339,7 +343,7 @@ function MarsMap({
     <div className="on-dark relative w-full h-full bg-map overflow-hidden select-none">
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="relative w-full" style={{ aspectRatio: `${W}/${H}`, maxHeight: "100%" }}>
-          <canvas key={layer} ref={ref} width={W} height={H} tabIndex={0} role="application" aria-label={`HiRISE terrain map, ${layer} layer. ${onPick ? "Use arrow keys to move the cursor and Enter to select a cell." : "Use arrow keys to read cell values."}`} className="layer-in absolute inset-0 w-full h-full [image-rendering:pixelated] cursor-crosshair" onMouseMove={(e) => setHover(toPt(e))} onMouseLeave={() => setHover(null)} onClick={(e) => onPick?.(toPt(e))} onKeyDown={onKey} />
+          <canvas key={layer} ref={ref} width={W} height={H} tabIndex={0} role="application" aria-label={`HiRISE terrain map, ${layer} layer. ${onPick ? "Tap or use arrow keys to move the cursor and Enter to select a cell." : "Use arrow keys to read cell values."}`} className="layer-in absolute inset-0 w-full h-full [image-rendering:pixelated] cursor-crosshair" onMouseMove={(e) => setHover(toPt(e))} onMouseLeave={() => setHover(null)} onClick={(e) => { const pt = toPt(e); setHover(pt); onPick?.(pt); }} onKeyDown={onKey} />
           <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" aria-hidden="true">
             {Array.from({ length: 11 }).map((_, k) => <line key={"v" + k} x1={(k * W) / 10} x2={(k * W) / 10} y1={0} y2={H} stroke="#f5f1e8" strokeOpacity={0.1} strokeWidth={0.1} />)}
             {Array.from({ length: 7 }).map((_, k) => <line key={"h" + k} y1={(k * H) / 6} y2={(k * H) / 6} x1={0} x2={W} stroke="#f5f1e8" strokeOpacity={0.1} strokeWidth={0.1} />)}
@@ -372,55 +376,59 @@ function MarsMap({
               <g>
                 <polygon
                   points={LANDING_ELLIPSE.pts.map(([x, y]) => `${x + 0.5},${y + 0.5}`).join(" ")}
-                  fill="none"
+                  fill="#E5A93C"
+                  fillOpacity={0.05}
                   stroke="#E5A93C"
-                  strokeWidth={0.45}
+                  strokeWidth={0.5}
                   strokeDasharray="2.2 1.4"
-                  opacity={0.85}
+                  opacity={0.9}
                 />
                 <text
-                  x={LANDING_ELLIPSE.pts[15][0] - 2}
-                  y={Math.max(2.5, Math.min(H - 2.5, LANDING_ELLIPSE.pts[15][1] + 2.5))}
-                  fontSize={1.8}
+                  x={56}
+                  y={6.5}
+                  fontSize={1.75}
                   fill="#E5A93C"
                   stroke={outline}
                   strokeWidth={0.4}
                   paintOrder="stroke"
                   fontFamily="IBM Plex Mono"
-                  letterSpacing={0.06}
+                  letterSpacing={0.05}
                 >
-                  NASA MARS 2020 LANDING ELLIPSE (7.7×6.6 km)
+                  M2020 LANDING ELLIPSE (7.7×6.6 km)
                 </text>
               </g>
             )}
             {showLandforms && (
               <g>
-                {LINEAR_LANDFORMS.map((lf, idx) => (
-                  <g key={`lf-${idx}`}>
-                    <polyline
-                      points={lf.pts.map(([x, y]) => `${x + 0.5},${y + 0.5}`).join(" ")}
-                      fill="none"
-                      stroke="#4CD3C5"
-                      strokeWidth={0.55}
-                      strokeDasharray="1.5 0.8"
-                      opacity={0.85}
-                    />
-                    {lf.pts[0] && (
-                      <text
-                        x={lf.pts[0][0] + 0.5}
-                        y={lf.pts[0][1] - 0.6}
-                        fontSize={1.6}
-                        fill="#4CD3C5"
-                        stroke={outline}
-                        strokeWidth={0.35}
-                        paintOrder="stroke"
-                        fontFamily="IBM Plex Mono"
-                      >
-                        DELTA LOBE FRONT
-                      </text>
-                    )}
-                  </g>
-                ))}
+                {LINEAR_LANDFORMS.map((lf, idx) => {
+                  const visPt = lf.pts.find(([x, y]) => x >= 2 && x <= 100 && y >= 3 && y <= 72);
+                  return (
+                    <g key={`lf-${idx}`}>
+                      <polyline
+                        points={lf.pts.map(([x, y]) => `${x + 0.5},${y + 0.5}`).join(" ")}
+                        fill="none"
+                        stroke="#4CD3C5"
+                        strokeWidth={0.55}
+                        strokeDasharray="1.5 0.8"
+                        opacity={0.85}
+                      />
+                      {idx === 1 && visPt && (
+                        <text
+                          x={visPt[0] + 1.2}
+                          y={visPt[1] - 0.8}
+                          fontSize={1.65}
+                          fill="#4CD3C5"
+                          stroke={outline}
+                          strokeWidth={0.35}
+                          paintOrder="stroke"
+                          fontFamily="IBM Plex Mono"
+                        >
+                          DELTA LOBE FRONT
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
               </g>
             )}
             {showCraters && (
@@ -478,15 +486,15 @@ function MarsMap({
                 <text x={w.x + 0.5} y={w.y + 1.1} fontSize={1.8} textAnchor="middle" fill="#241b17" fontWeight="bold" fontFamily="IBM Plex Mono">W{idx + 1}</text>
               </g>
             ))}
-            {(inspect ?? hover) && <g stroke="#D3A24C" strokeWidth={0.22}>{(() => { const p = (inspect ?? hover)!; return <><line x1={p.x + 0.5} x2={p.x + 0.5} y1={p.y - 3} y2={p.y + 4} /><line y1={p.y + 0.5} y2={p.y + 0.5} x1={p.x - 3} x2={p.x + 4} /></>; })()}</g>}
+            {activePt && <g stroke="#D3A24C" strokeWidth={0.22}>{(() => { const p = activePt; return <><line x1={p.x + 0.5} x2={p.x + 0.5} y1={p.y - 3} y2={p.y + 4} /><line y1={p.y + 0.5} y2={p.y + 0.5} x1={p.x - 3} x2={p.x + 4} /></>; })()}</g>}
           </svg>
-          <div className="absolute bottom-0 left-0 right-0 flex justify-between px-1 font-mono text-[10px] text-ink/75 pointer-events-none" aria-hidden="true">{[0, 1, 2, 3, 4].map((k) => <span key={k} className="[text-shadow:0_0_3px_#241b17]">{(MAP_W_KM * k / 4).toFixed(1)}</span>)}<span className="[text-shadow:0_0_3px_#241b17]">km</span></div>
-          <div className="absolute top-0 bottom-0 left-0 flex flex-col justify-between py-1 pl-1 font-mono text-[10px] text-ink/75 pointer-events-none" aria-hidden="true">{[0, 1, 2, 3].map((k) => <span key={k} className="[text-shadow:0_0_3px_#241b17]">{(MAP_H_KM * k / 3).toFixed(1)}</span>)}</div>
+          <div className="absolute bottom-0 left-0 right-0 flex justify-between px-1 font-mono text-[9px] sm:text-[10px] text-ink/75 pointer-events-none" aria-hidden="true">{[0, 1, 2, 3, 4].map((k) => <span key={k} className="[text-shadow:0_0_3px_#241b17]">{(MAP_W_KM * k / 4).toFixed(1)}</span>)}<span className="[text-shadow:0_0_3px_#241b17]">km</span></div>
+          <div className="absolute top-0 bottom-0 left-0 flex flex-col justify-between py-1 pl-1 font-mono text-[9px] sm:text-[10px] text-ink/75 pointer-events-none" aria-hidden="true">{[0, 1, 2, 3].map((k) => <span key={k} className="[text-shadow:0_0_3px_#241b17]">{(MAP_H_KM * k / 3).toFixed(1)}</span>)}</div>
         </div>
       </div>
-      <div className="absolute top-2 left-7 flex items-center gap-2 font-mono text-[10px] text-ink/85 pointer-events-none" aria-hidden="true"><svg width={14} height={18} viewBox="-7 -9 14 18"><path d="M0 -8 L3.5 4 L0 2 L-3.5 4 Z" fill="#f5f1e8" /></svg>N · HiRISE DTM · {CELL_M.toFixed(0)} m/cell</div>
-      <div className="absolute top-2 right-2 font-mono text-[11px] bg-ink/92 text-fg border border-line-strong rounded-sm px-2 py-1.5 min-w-44 pointer-events-none">
-        {hover ? (T.nodata[hi] ? <div className="text-dim">x{hover.x} y{hover.y} · UNKNOWN / insufficient data</div> : <div className="grid grid-cols-2 gap-x-3"><span className="text-dim">CELL</span><span>{hover.x},{hover.y}</span><span className="text-dim">ELEVATION</span><span>{T.elev[hi].toFixed(0)} m</span><span className="text-dim">DERIVED SLOPE</span><span>{T.slope[hi].toFixed(1)}°</span><span className="text-dim">ROUGHNESS</span><span>{T.rough[hi].toFixed(2)}</span><span className="text-dim">UNCERTAINTY</span><span>{T.unc[hi].toFixed(2)}</span></div>) : <span className="text-dim">HOVER OR USE ARROW KEYS</span>}
+      <div className="absolute top-1.5 sm:top-2 left-5 sm:left-7 flex items-center gap-1.5 font-mono text-[9px] sm:text-[10px] text-ink/85 pointer-events-none" aria-hidden="true"><svg width={12} height={15} viewBox="-7 -9 14 18"><path d="M0 -8 L3.5 4 L0 2 L-3.5 4 Z" fill="#f5f1e8" /></svg>N · HiRISE DTM · {CELL_M.toFixed(0)} m/cell</div>
+      <div className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 font-mono text-[9px] sm:text-[11px] bg-ink/92 text-fg border border-line-strong rounded-sm px-1.5 sm:px-2 py-1 sm:py-1.5 pointer-events-none shadow-xs">
+        {activePt && hi >= 0 ? (T.nodata[hi] ? <div className="text-dim">({activePt.x},{activePt.y}) · UNKNOWN</div> : <div className="grid grid-cols-2 gap-x-2 sm:gap-x-3"><span className="text-dim">CELL</span><span>{activePt.x},{activePt.y}</span><span className="text-dim">ELEV</span><span>{T.elev[hi].toFixed(0)} m</span><span className="text-dim">SLOPE</span><span>{T.slope[hi].toFixed(1)}°</span><span className="text-dim hidden sm:inline">ROUGHNESS</span><span className="hidden sm:inline">{T.rough[hi].toFixed(2)}</span><span className="text-dim hidden sm:inline">UNCERTAINTY</span><span className="hidden sm:inline">{T.unc[hi].toFixed(2)}</span></div>) : <span className="text-dim">TAP OR HOVER CELL</span>}
       </div>
       {!ready && <div className="absolute inset-0 bg-map flex flex-col items-center justify-center gap-4 z-10"><div className="skeleton-dark w-[70%] max-w-xl aspect-[120/76] rounded-sm" /><p role="status" className="font-mono text-[12px] tracking-[0.08em] text-ink/80">{loadingLabel}</p></div>}
     </div>
@@ -552,12 +560,12 @@ function Provenance({ d, tag }: { d: Dataset; tag?: Label }) {
 }
 
 // ---------- Shell ----------
-const NAV: [string, string][] = [["/map", "Map"], ["/follow", "Follow"], ["/report", "Report"], ["/data", "Data & Saved"], ["/globe", "Globe"], ["/immersive", "3D Walk"], ["/methodology", "Methodology"]];
+const NAV: [string, string][] = [["/map", "Map"], ["/explorer", "Explorer"], ["/follow", "Follow"], ["/science", "Science"], ["/report", "Report"], ["/data", "Data & Saved"], ["/globe", "Globe"], ["/immersive", "3D Walk"], ["/methodology", "Methodology"]];
 function Shell({ path, children }: { path: string; children: React.ReactNode }) {
   const [menu, setMenu] = useState(false);
   useEffect(() => setMenu(false), [path]);
   const isOn = (p: string) => {
-    if (p === "/map" && (path.startsWith("/map") || path.startsWith("/planner") || path.startsWith("/explorer") || path.startsWith("/routes"))) return true;
+    if (p === "/map" && (path.startsWith("/map") || path.startsWith("/planner") || path.startsWith("/routes"))) return true;
     if (p === "/report" && (path.startsWith("/report") || path.startsWith("/mission"))) return true;
     if (p === "/globe" && (path === "/" || path.startsWith("/globe"))) return true;
     return path.startsWith(p.split("/").slice(0, 2).join("/"));
@@ -565,35 +573,34 @@ function Shell({ path, children }: { path: string; children: React.ReactNode }) 
   const full = path.startsWith("/map") || path.startsWith("/planner") || path.startsWith("/explorer") || path.startsWith("/immersive");
   return (
     <div className="min-h-full flex flex-col">
-      <nav aria-label="Primary" className="h-[52px] shrink-0 border-b border-line flex items-center px-4 gap-6 bg-ink/95 backdrop-blur-sm sticky top-0 z-30">
-        <A to="/" className="flex items-center gap-2.5"><BrandMark /><span className="font-mono font-medium tracking-[0.18em] text-[14px] text-mars-deep">MARS-X · JEZERO</span></A>
-        <div className="hidden md:flex gap-0.5">{NAV.map(([p, n]) => <A key={p} to={p} className={`font-mono text-[12px] tracking-[0.1em] uppercase px-2.5 py-1.5 border-b-2 ${isOn(p) ? "border-mars-deep text-mars-deep font-semibold" : "border-transparent text-dim hover:text-fg"}`}>{n}</A>)}</div>
+      <nav aria-label="Primary" className="h-[52px] shrink-0 border-b border-line flex items-center px-3 sm:px-4 gap-3 xl:gap-5 bg-ink/95 backdrop-blur-sm sticky top-0 z-30">
+        <A to="/" className="flex items-center gap-2 shrink-0"><BrandMark /><span className="font-mono font-medium tracking-[0.16em] text-[13px] sm:text-[14px] text-mars-deep whitespace-nowrap">MARS-X · JEZERO</span></A>
+        <div className="hidden lg:flex items-center gap-0.5 overflow-x-auto no-scrollbar">{NAV.map(([p, n]) => <A key={p} to={p} className={`font-mono text-[11px] xl:text-[12px] tracking-[0.08em] uppercase px-2 xl:px-2.5 py-1.5 border-b-2 whitespace-nowrap ${isOn(p) ? "border-mars-deep text-mars-deep font-semibold" : "border-transparent text-dim hover:text-fg"}`}>{n}</A>)}</div>
         <a
           href={LATEST_APK_URL}
           download="mars-x-release.apk"
-          className="ml-auto hidden sm:flex items-center gap-1.5 font-mono text-[11px] tracking-[0.08em] border border-mars-deep/40 bg-mars/[0.08] text-mars-deep hover:bg-mars-deep hover:text-ink px-2.5 py-1 rounded-sm transition-colors"
+          className="ml-auto hidden sm:flex items-center gap-1.5 font-mono text-[11px] tracking-[0.06em] border border-mars-deep/40 bg-mars/[0.08] text-mars-deep hover:bg-mars-deep hover:text-ink px-2.5 py-1 rounded-sm transition-colors shrink-0"
           title="Download Latest Android APK (arm64-v8a)"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span>DOWNLOAD APK</span>
+          <span>APK</span>
         </a>
         <a
           href={`${API_BASE}/api/health`}
           target="_blank"
           rel="noreferrer"
-          className="hidden lg:flex items-center gap-1.5 font-mono text-[10px] tracking-[0.06em] px-2 py-0.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+          className="hidden xl:flex items-center gap-1.5 font-mono text-[10px] tracking-[0.06em] px-2 py-0.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors shrink-0"
           title={`Connected to Railway Backend: ${API_BASE}`}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span>RAILWAY LIVE</span>
+          <span>LIVE</span>
         </a>
-        <div className="hidden xl:block font-mono text-[11px] tracking-[0.06em] text-mars-deep">HiRISE DTM</div>
-        <button className="md:hidden ml-auto font-mono text-[12px] tracking-[0.12em] border border-line-strong rounded-sm px-3 py-1.5" aria-expanded={menu} aria-controls="mobile-menu" onClick={() => setMenu((m) => !m)}>{menu ? "CLOSE" : "MENU"}</button>
+        <button className="lg:hidden ml-auto sm:ml-0 font-mono text-[12px] tracking-[0.12em] border border-line-strong rounded-sm px-3 py-1.5 shrink-0 cursor-pointer" aria-expanded={menu} aria-controls="mobile-menu" onClick={() => setMenu((m) => !m)}>{menu ? "CLOSE" : "MENU"}</button>
       </nav>
-      {menu && <div id="mobile-menu" className="md:hidden fixed inset-x-0 top-[52px] z-30 bg-ink border-b border-line-strong shadow-float grid grid-cols-2">
-        {NAV.map(([p, n]) => <A key={p} to={p} className={`font-mono text-[13px] tracking-[0.1em] uppercase px-4 py-3.5 border-b border-line ${isOn(p) ? "text-mars-deep font-semibold bg-panel" : "text-fg"}`}>{n}</A>)}
-        <a href={LATEST_APK_URL} download="mars-x-release.apk" className="font-mono text-[13px] tracking-[0.1em] uppercase px-4 py-3.5 border-b border-line text-mars-deep font-semibold col-span-2 bg-mars/[0.08] flex items-center justify-center gap-2">
-          <span>DOWNLOAD ANDROID APK</span>
+      {menu && <div id="mobile-menu" className="lg:hidden fixed inset-x-0 top-[52px] z-40 bg-ink border-b border-line-strong shadow-float grid grid-cols-2 sm:grid-cols-3">
+        {NAV.map(([p, n]) => <A key={p} to={p} className={`font-mono text-[12px] sm:text-[13px] tracking-[0.1em] uppercase px-4 py-3 border-b border-r border-line ${isOn(p) ? "text-mars-deep font-semibold bg-panel" : "text-fg"}`}>{n}</A>)}
+        <a href={LATEST_APK_URL} download="mars-x-release.apk" className="font-mono text-[12px] sm:text-[13px] tracking-[0.1em] uppercase px-4 py-3 border-b border-line text-mars-deep font-semibold col-span-2 sm:col-span-3 bg-mars/[0.08] flex items-center justify-center gap-2">
+          <span>DOWNLOAD ANDROID APK (17.3 MB)</span>
         </a>
       </div>}
       <div className="flex-1 flex flex-col">{children}</div>
@@ -604,7 +611,7 @@ function Shell({ path, children }: { path: string; children: React.ReactNode }) 
 function Footer() {
   return (
     <footer className="border-t border-line bg-panel mt-16 no-print">
-      <div className="max-w-6xl mx-auto px-6 py-10 grid md:grid-cols-3 gap-8 text-[13px] leading-relaxed text-fg/85">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10 grid md:grid-cols-3 gap-6 sm:gap-8 text-[13px] leading-relaxed text-fg/85">
         <div><Eyebrow className="mb-2">Data attribution</Eyebrow><p>Globe imagery: Viking MDIM 2.1 colorized global mosaic, NASA / USGS Astrogeology Science Center, public domain. Instrument metadata on the <A to="/data" className="underline underline-offset-2">Data page</A> is credited to the NASA Planetary Data System and mission teams. Terrain in the planner is synthetic.</p></div>
         <div><Eyebrow className="mb-2">Privacy</Eyebrow><p>No accounts, cookies or analytics. Routes are computed in your browser and nothing you select is sent anywhere. Typefaces are requested from Google Fonts, which receives your IP address as any font host would.</p></div>
         <div><Eyebrow className="mb-2">Scope</Eyebrow><p>Built for NASA Space Apps Challenge 2026. Not affiliated with or endorsed by NASA. All routes are candidate routes for research and education. Safety is not certified.</p></div>
@@ -625,7 +632,7 @@ const ANNOT = "font-mono text-[11px] tracking-[0.12em] text-fg";
 
 function HeroGlobe({ fly, stage }: { fly: FlyTarget; stage: number | null }) {
   const reduce = useReducedMotion();
-  const [ready, setReady] = useState(false);
+  const [, setReady] = useState(false);
   const [active, setActive] = useState(true);
   const [gl] = useState(hasWebGL);
   const box = useRef<HTMLDivElement>(null);
@@ -637,17 +644,11 @@ function HeroGlobe({ fly, stage }: { fly: FlyTarget; stage: number | null }) {
     io.observe(el); return () => io.disconnect();
   }, []);
 
-  // Safe timeout so loading state never hangs
-  useEffect(() => {
-    const timer = window.setTimeout(() => setReady(true), 1200);
-    return () => window.clearTimeout(timer);
-  }, []);
-
   const still = (
     <div
       role="img"
       aria-label="Mars, Viking color mosaic"
-      className="w-[82%] aspect-square rounded-full shadow-float ring-2 ring-[#c1440e]/40 relative overflow-hidden flex items-center justify-center"
+      className="w-[78%] aspect-square rounded-full shadow-float ring-2 ring-[#c1440e]/40 relative overflow-hidden flex items-center justify-center"
       style={{
         background: "radial-gradient(circle at 35% 35%, #e26f47 0%, #b84b28 45%, #6a2512 85%, #2a0c05 100%)",
         boxShadow: "inset -25px -25px 40px rgba(0,0,0,0.8), 0 0 35px rgba(224,109,68,0.25)",
@@ -661,7 +662,7 @@ function HeroGlobe({ fly, stage }: { fly: FlyTarget; stage: number | null }) {
 
   return (
     <figure className="relative w-full">
-      <div ref={box} className="relative aspect-square max-h-[54vh] sm:max-h-[74vh] w-full max-w-[540px] mx-auto">
+      <div ref={box} className="relative aspect-square max-h-[52vh] sm:max-h-[74vh] w-full max-w-[560px] mx-auto">
         {["top-0 left-0 border-t border-l", "top-0 right-0 border-t border-r", "bottom-0 left-0 border-b border-l", "bottom-0 right-0 border-b border-r"].map((c) => (
           <span key={c} aria-hidden="true" className={`absolute w-4 h-4 border-line-strong ${c}`} />
         ))}
@@ -673,12 +674,13 @@ function HeroGlobe({ fly, stage }: { fly: FlyTarget; stage: number | null }) {
               </Suspense>
             </GlobeBoundary>
           ) : still}
-          {gl && !ready && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none bg-ink/40 backdrop-blur-2xs rounded-full">
-              <LoadingNote>Initializing 3D orbital renderer…</LoadingNote>
-            </div>
-          )}
         </div>
+
+        {/* Desktop corner annotations */}
+        <div className="hidden sm:block absolute top-4 left-5 pointer-events-none"><div className={ANNOT}>MOLA</div><div className="text-[12px] text-dim">Global elevation, ~463 m/px</div></div>
+        <div className="hidden sm:block absolute top-4 right-5 text-right pointer-events-none"><div className={ANNOT}>CTX</div><div className="text-[12px] text-dim">Context imagery, ~6 m/px</div></div>
+        <div className="hidden sm:block absolute bottom-12 left-5 pointer-events-none"><div className={ANNOT}>ROVER DATA</div><div className="text-[12px] text-dim">Jezero, Gale</div></div>
+        <div className="hidden sm:block absolute bottom-12 right-5 text-right pointer-events-none"><div className={ANNOT}>SCIENCE TARGETS</div><div className="text-[12px] text-dim">Simulated in this build</div></div>
 
         {gl && !stage && stage !== 0 && (
           <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 no-print bg-ink/90 backdrop-blur-md px-2.5 py-1 rounded-sm border border-line-strong shadow-md z-10">
@@ -702,8 +704,8 @@ function HeroGlobe({ fly, stage }: { fly: FlyTarget; stage: number | null }) {
         )}
       </div>
 
-      {/* 4 Orbital & Exploration Data Cards - Cleanly separated below the globe */}
-      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px]">
+      {/* Mobile-only 2x2 grid below globe so mobile labels never overlap the sphere */}
+      <div className="sm:hidden mt-3 grid grid-cols-2 gap-2 font-mono text-[11px]">
         <div className="p-2 border border-line rounded-sm bg-panel/50 space-y-0.5">
           <div className="font-bold text-fg text-[11px]">MOLA</div>
           <div className="text-[10px] text-dim">Global elevation, ~463 m/px</div>
@@ -714,7 +716,7 @@ function HeroGlobe({ fly, stage }: { fly: FlyTarget; stage: number | null }) {
         </div>
         <div className="p-2 border border-line rounded-sm bg-panel/50 space-y-0.5">
           <div className="font-bold text-fg text-[11px]">ROVER DATA</div>
-          <div className="text-[10px] text-dim">Jezero & Gale traverse</div>
+          <div className="text-[10px] text-dim">Jezero, Gale</div>
         </div>
         <div className="p-2 border border-line rounded-sm bg-panel/50 space-y-0.5">
           <div className="font-bold text-fg text-[11px]">SCIENCE TARGETS</div>
@@ -745,81 +747,14 @@ function Landing() {
     at(2100, () => setCover(true));
     at(2450, () => { arrivedFromGlobe = true; go("/explorer"); });
   };
-  const flow: [string, string, string][] = [
-    ["Discover Mars", "/", "Orient on the globe: landing sites, regions and the data that covers them."],
-    ["Explore terrain", "/explorer", "Read elevation, derived slope and roughness cell by cell in 2D."],
-    ["Select a destination", "/planner", "Place a start and destination on the map."],
-    ["Analyze science", "/science", "Browse candidate observation sites and add them to a mission."],
-    ["Compare routes", "/routes", "Weigh safest, fastest and science-weighted candidates side by side."],
-    ["Understand risks", "/methodology", "See the cost model, assumptions and what is treated as unknown."],
-    ["Generate a mission plan", "/mission/ARES-01", "An explainable report for one candidate traverse."],
-  ];
-  const wk: { k: keyof Weights; n: string; c: string }[] = [{ k: "s", n: "Slope", c: "#B85C43" }, { k: "r", n: "Roughness", c: "#C9785D" }, { k: "u", n: "Uncertainty", c: "#75837B" }, { k: "h", n: "Distance", c: "#789BA8" }];
-  const objs: [Mode, string, Weights][] = [["SAFEST", "Minimises slope, roughness and uncertainty exposure. Accepts a longer distance.", MODE_W.SAFEST], ["FASTEST", "Minimises path length under the hard slope constraint. Carries more terrain exposure.", MODE_W.FASTEST], ["SCIENCE", "Discounts cost near high-value targets. Trades distance for observation opportunity.", MODE_W.SCIENCE]];
   return (
     <div>
-      <section className="sheet-lines border-b border-line">
-        <div className="max-w-7xl mx-auto px-6 py-10 lg:py-6 grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] gap-10 lg:gap-6 items-center lg:min-h-[calc(100dvh-52px)]">
-          <div className="order-2 lg:order-1">
-            <Eyebrow>NASA Space Apps Challenge 2026 · Interplanetary Survival Guide: Martian Map</Eyebrow>
-            <h1 className="mt-4 sm:mt-6 text-[clamp(44px,7vw,104px)] leading-[0.95] tracking-[-0.03em] font-medium">MARS-X</h1>
-            <p className="mt-2.5 sm:mt-3 font-serif italic font-light text-[clamp(18px,2.2vw,28px)] text-mars-deep">Interplanetary Surface Planning</p>
-            <p className="mt-4 sm:mt-6 max-w-md text-[14px] sm:text-[16px] leading-relaxed text-fg/85">Fuse NASA terrain, science, and exploration data into explainable candidate routes across Mars.</p>
-            <div className="mt-6 sm:mt-8 flex flex-wrap gap-2.5 sm:gap-3">
-              <Btn primary onClick={() => go("/map")} disabled={stage !== null}>PLAN A MISSION</Btn>
-              <Btn onClick={explore} disabled={stage !== null}>EXPLORE MARS</Btn>
-              <a
-                href="/mars-x-release.apk"
-                download="mars-x-release.apk"
-                className="font-mono text-[11px] sm:text-[12px] tracking-[0.1em] px-3.5 py-2.5 border rounded-sm transition-colors border-line-strong text-fg hover:border-fg hover:bg-panel flex items-center gap-2"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                <span>DOWNLOAD APK</span>
-              </a>
-            </div>
-            <div className="mt-6 sm:mt-8 pt-4 border-t border-line/60">
-              <p className="text-[11px] sm:text-[12px] text-dim leading-relaxed">Every value carries an honest provenance label:</p>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
-                {(["OBSERVED", "DERIVED", "MODELED", "UNKNOWN", "SIMULATED"] as Label[]).map((l) => (
-                  <Tag key={l} l={l} />
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="order-1 lg:order-2 max-w-[640px] w-full mx-auto"><HeroGlobe fly={fly} stage={stage} /></div>
-        </div>
-      </section>
+      <LandingPage
+        renderGlobe={(f, st) => <HeroGlobe fly={f ?? fly} stage={st ?? stage} />}
+        onNavigate={go}
+        onExplore={explore}
+      />
       <div className={`fixed inset-0 z-[60] bg-ink pointer-events-none transition-opacity duration-300 ${cover ? "opacity-100" : "opacity-0"}`} aria-hidden="true" />
-
-      <section className="max-w-6xl mx-auto px-6 pt-24 grid lg:grid-cols-[1fr_1.5fr] gap-12">
-        <div><Eyebrow>From orbit to decision</Eyebrow><h2 className="mt-4 text-[34px] leading-tight">One workflow, seven steps.</h2><p className="mt-4 text-dim text-[14px] leading-relaxed max-w-sm">The globe is for orientation. Measurement, selection and routing happen on the 2D map, where distances and cells can be read precisely.</p></div>
-        <ol className="border-t border-line">{flow.map(([t, p, d], k) => <li key={t} className="border-b border-line"><A to={p} className="grid grid-cols-[36px_1fr] sm:grid-cols-[36px_200px_1fr] gap-x-4 gap-y-1 py-4 hover:bg-panel px-1"><span className="font-mono text-[12px] text-dim pt-0.5">{String(k + 1).padStart(2, "0")}</span><span className="text-[15px] font-medium">{t}</span><span className="col-start-2 sm:col-start-3 text-[13px] text-dim leading-relaxed">{d}</span></A></li>)}</ol>
-      </section>
-
-      <section className="max-w-6xl mx-auto px-6 pt-24">
-        <div className="grid lg:grid-cols-[1fr_1.5fr] gap-12">
-          <div><Eyebrow>Why terrain is hard</Eyebrow><h2 className="mt-4 text-[34px] leading-tight">A rover drives between images it cannot fully trust.</h2></div>
-          <dl className="grid sm:grid-cols-2 gap-x-10 gap-y-7 self-end">{[["Steep slopes", "Above 25° in this model a cell is impassable. The limit is a planning assumption."], ["Rough ground", "Wheel damage is a documented risk on Mars, so roughness is a cost term."], ["Data gaps", "Missing high-resolution coverage is UNKNOWN, never treated as safe."], ["Uneven science", "Valuable targets are scattered and compete with terrain risk."]].map(([a, b]) => <div key={a}><dt className="font-mono text-[12px] tracking-[0.1em] uppercase text-mars-deep">{a}</dt><dd className="mt-1.5 text-[14px] text-fg/85 leading-relaxed">{b}</dd></div>)}</dl>
-        </div>
-      </section>
-
-      <section className="max-w-6xl mx-auto px-6 pt-24">
-        <div className="flex items-end justify-between flex-wrap gap-3"><div><Eyebrow>Target datasets</Eyebrow><h2 className="mt-4 text-[34px] leading-tight">Built around NASA orbital data.</h2></div><A to="/data" className="font-mono text-[12px] tracking-[0.1em] underline underline-offset-4 decoration-line-strong hover:decoration-fg">FULL PROVENANCE</A></div>
-        <div className="mt-8 overflow-x-auto border-t border-fg"><table className="w-full text-[13px]"><thead><tr className="text-left font-mono text-[11px] tracking-[0.1em] text-dim"><th className="font-normal py-2 pr-4">DATASET</th><th className="font-normal py-2 pr-4">MISSION</th><th className="font-normal py-2 pr-4">RESOLUTION</th><th className="font-normal py-2">USED FOR</th></tr></thead><tbody>{DATASETS.map((d) => <tr key={d.id} className="border-t border-line"><td className="py-2.5 pr-4 font-mono text-mars-deep">{d.id}</td><td className="py-2.5 pr-4 text-fg/85">{d.mission}</td><td className="py-2.5 pr-4 font-mono text-[12px]">{d.res}</td><td className="py-2.5 text-fg/85">{d.purpose}</td></tr>)}</tbody></table></div>
-        <p className="mt-3 text-[12px] text-dim">This prototype plans on a real HiRISE terrain window. Most datasets above are not yet ingested; see the Data page for status and limitations.</p>
-      </section>
-
-      <section className="max-w-6xl mx-auto px-6 pt-24">
-        <Eyebrow>Route objectives</Eyebrow>
-        <h2 className="mt-4 text-[34px] leading-tight max-w-xl">Three ways to weigh the same terrain.</h2>
-        <div className="mt-8 border-t border-fg">{objs.map(([m, d, w]) => { const tot = w.s + w.r + w.u + w.h; return (
-          <div key={m} className="grid md:grid-cols-[180px_1fr_1fr] gap-x-8 gap-y-3 py-5 border-b border-line items-center">
-            <div className="flex items-center gap-3 font-mono text-[14px] tracking-[0.08em]"><Swatch m={m} w={32} />{m}</div>
-            <p className="text-[14px] text-fg/85 leading-relaxed">{d}</p>
-            <div><div className="flex h-2.5 rounded-sm overflow-hidden" role="img" aria-label={`Cost weights: ${wk.map((x) => `${x.n} ${w[x.k]} percent`).join(", ")}`}>{wk.map((x) => <span key={x.k} style={{ width: `${(w[x.k] / tot) * 100}%`, background: x.c }} />)}</div><div className="mt-1.5 flex justify-between font-mono text-[10px] text-dim">{wk.map((x) => <span key={x.k}>{x.n.slice(0, 4).toUpperCase()} {w[x.k]}</span>)}</div></div>
-          </div>); })}</div>
-        <p className="mt-3 text-[12px] text-dim">Cost weights are planning assumptions, not validated parameters. SCIENCE also applies a cost discount near targets.</p>
-      </section>
       <Footer />
     </div>
   );
@@ -849,6 +784,10 @@ function Planner() {
   const [sheet, setSheet] = useState<"setup" | "results" | null>(null);
   const [layer, setLayer] = useState<Layer>("hillshade");
   const [tilt, setTilt] = useState(false);
+  const [showEllipse, setShowEllipse] = useState(true);
+  const [showLandforms, setShowLandforms] = useState(true);
+  const [showCraters, setShowCraters] = useState(true);
+  const [showGeology, setShowGeology] = useState(false);
   const [inspected, setInspected] = useState<Pt | null>(null);
   const [waypoints, setWaypoints] = useState<Pt[]>([]);
   const [sampling, setSampling] = useState(false);
@@ -1100,6 +1039,23 @@ function Planner() {
               <label className="text-[11px] font-mono text-dim block mb-1" htmlFor="planner-layer">Base layer</label>
               <select id="planner-layer" value={layer} onChange={(e) => setLayer(e.target.value as Layer)} className="w-full border border-line-strong rounded-sm bg-ink px-2 py-2 font-mono text-[12px]">{TERRAIN_LAYERS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select>
             </div>
+            <div className="pt-1 border-t border-line/60 space-y-1.5 font-mono text-[11px]">
+              <span className="text-[10px] text-dim block">GIS OVERLAYS (OBSERVED)</span>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button onClick={() => setShowEllipse((v) => !v)} className={`px-2 py-1 border rounded-sm text-left truncate cursor-pointer ${showEllipse ? "bg-gold/15 border-gold text-gold-deep font-semibold" : "border-line text-dim"}`}>
+                  {showEllipse ? "✓ " : ""}Landing Ellipse
+                </button>
+                <button onClick={() => setShowLandforms((v) => !v)} className={`px-2 py-1 border rounded-sm text-left truncate cursor-pointer ${showLandforms ? "bg-teal-500/15 border-teal-500 text-teal-700 font-semibold" : "border-line text-dim"}`}>
+                  {showLandforms ? "✓ " : ""}Delta Fronts
+                </button>
+                <button onClick={() => setShowCraters((v) => !v)} className={`px-2 py-1 border rounded-sm text-left truncate cursor-pointer ${showCraters ? "bg-mars/15 border-mars text-mars-deep font-semibold" : "border-line text-dim"}`}>
+                  {showCraters ? "✓ " : ""}Small Craters
+                </button>
+                <button onClick={() => setShowGeology((v) => !v)} className={`px-2 py-1 border rounded-sm text-left truncate cursor-pointer ${showGeology ? "bg-atmos/20 border-atmos text-sci font-semibold" : "border-line text-dim"}`}>
+                  {showGeology ? "✓ " : ""}USGS Geology
+                </button>
+              </div>
+            </div>
             <div className="flex items-center justify-between pt-1">
               <span className="text-[12px] font-mono">3D Oblique Tilt</span>
               <button
@@ -1122,17 +1078,30 @@ function Planner() {
 
       <main className="relative flex flex-col min-h-0 h-[calc(100dvh-52px-56px)] lg:h-auto overflow-hidden">
         <SynthBanner />
+        {/* Mobile quick-action bar so users on phones can trigger practice routes & layers directly */}
+        <div className="lg:hidden flex items-center justify-between gap-2 px-3 py-1.5 bg-paper border-b border-line font-mono text-[11px]">
+          <button onClick={setPracticeRoute} className="px-2.5 py-1 rounded-sm bg-mars-deep text-ink font-semibold tracking-wider shrink-0">
+            ★ PRACTICE ROUTE
+          </button>
+          <select aria-label="Base terrain layer" value={layer} onChange={(e) => setLayer(e.target.value as Layer)} className="border border-line-strong rounded-sm bg-ink px-2 py-1 text-[11px] min-w-0 flex-1 max-w-[150px]">
+            {TERRAIN_LAYERS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
+          </select>
+          {S.start && S.end && (
+            <button onClick={run} disabled={busy} className="px-2.5 py-1 rounded-sm border border-mars-deep text-mars-deep font-semibold shrink-0">
+              {busy ? "WAIT…" : "COMPUTE"}
+            </button>
+          )}
+        </div>
         <div className={`relative flex-1 min-h-0 transition-transform duration-500 origin-bottom ${tilt ? "perspective-[1000px] scale-[0.92] [transform:rotateX(28deg)] shadow-2xl" : ""}`}>
-          <MarsMap layer={layer} onPick={pick} waypoints={waypoints} highlight="ALL" loadingLabel="Loading terrain…" />
+          <MarsMap layer={layer} onPick={pick} inspect={inspected} waypoints={waypoints} showEllipse={showEllipse} showLandforms={showLandforms} showCraters={showCraters} showGeology={showGeology} highlight="ALL" loadingLabel="Loading terrain…" />
           {busy && <div className="absolute inset-0 bg-map/80 flex flex-col items-center justify-center gap-3 z-20 on-dark"><div className="w-56 h-[3px] skeleton-dark rounded-full" /><p role="status" className="font-mono text-[13px] tracking-[0.06em] text-ink">{stages[stage]}</p></div>}
         </div>
-        <div className="border-t border-line px-3 py-2 flex flex-wrap gap-x-5 gap-y-1.5 font-mono text-[11px] text-fg bg-ink">
+        <div className="border-t border-line px-3 py-2 flex flex-wrap gap-x-4 sm:gap-x-5 gap-y-1 font-mono text-[10px] sm:text-[11px] text-fg bg-ink">
           {(["SAFEST", "FASTEST", "SCIENCE"] as Mode[]).map((m) => <span key={m} className="flex items-center gap-1.5"><Swatch m={m} />{MODE_NAME[m]}</span>)}
-          <span className="flex items-center gap-1.5"><svg width={20} height={8} aria-hidden="true"><line x1={0} x2={20} y1={4} y2={4} stroke="#D3A24C" strokeWidth={2} strokeDasharray="3 2" /></svg>PERSEVERANCE (SOL 0-407)</span>
-          <span className="flex items-center gap-1.5"><Glyph k="way" />WAYPOINT</span>
-          <span className="flex items-center gap-1.5"><Glyph k="warn" />TERRAIN WARNING</span>
-          <span className="flex items-center gap-1.5"><Glyph k="sci" />SCIENCE TARGET (JEZERO)</span>
-          <span className="flex items-center gap-1.5"><Glyph k="nodata" />NO DATA</span>
+          <span className="flex items-center gap-1.5"><svg width={18} height={8} aria-hidden="true"><line x1={0} x2={18} y1={4} y2={4} stroke="#D3A24C" strokeWidth={2} strokeDasharray="3 2" /></svg>PERSEVERANCE</span>
+          <span className="hidden sm:flex items-center gap-1.5"><Glyph k="way" />WAYPOINT</span>
+          <span className="flex items-center gap-1.5"><Glyph k="warn" />SLOPE WARN</span>
+          <span className="flex items-center gap-1.5"><Glyph k="sci" />SCIENCE TARGET</span>
         </div>
       </main>
 
@@ -1413,19 +1382,229 @@ function RoutesPage() {
 }
 
 
+// ---------- 15 Mapped Jezero Landmarks Visual Register ----------
+const LANDMARK_CATS: [string, string][] = [
+  ["all", "All 15 Landmarks"],
+  ["geological_features", "Geological Features (6)"],
+  ["rover_exploration", "Rover Exploration (6)"],
+  ["points_of_interest", "Points of Interest (3)"],
+];
+
+function JezeroLandmarkGallery() {
+  const [cat, setCat] = useState<string>("all");
+  const [activeLm, setActiveLm] = useState<MappedJezeroLandmark | null>(null);
+  const filtered = useMemo(
+    () => (cat === "all" ? MAPPED_JEZERO_LANDMARKS : MAPPED_JEZERO_LANDMARKS.filter((l) => l.category === cat)),
+    [cat]
+  );
+
+  return (
+    <section className="border border-line rounded-md bg-paper p-4 sm:p-6 space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line pb-4">
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-[10px] tracking-[0.1em] px-2 py-0.5 rounded-sm bg-mars-deep text-ink font-semibold uppercase">
+              15 MAPPED JEZERO LANDMARKS
+            </span>
+            <Tag l="OBSERVED" />
+            <span className="font-mono text-[11px] text-dim">USGS SIM 3464 · NASA PDS · FU BERLIN WFS</span>
+          </div>
+          <h2 className="text-[20px] sm:text-[24px] font-normal text-mars-deep mt-1.5">
+            Authoritative Jezero Landmark Register &amp; Visual Reference
+          </h2>
+          <p className="text-[12px] sm:text-[13px] text-dim mt-1 max-w-3xl leading-relaxed">
+            The 15 Jezero Crater entries with verified mapped geometry in <code className="bg-panel px-1 py-0.5 rounded text-[11px]">data/processed/jezero/landmarks.json</code>, paired with orbital/rover visual close-ups and georeferenced Mastcam-Z panorama viewpoints (<code className="bg-panel px-1 py-0.5 rounded text-[11px]">panoramas.geojson</code>).
+          </p>
+        </div>
+      </div>
+
+      {/* Category Filter Pills */}
+      <div className="flex flex-wrap gap-1.5">
+        {LANDMARK_CATS.map(([k, label]) => (
+          <button
+            key={k}
+            onClick={() => setCat(k)}
+            className={`font-mono text-[11px] tracking-[0.06em] px-3 py-1.5 rounded-sm border transition-colors cursor-pointer ${
+              cat === k
+                ? "bg-mars-deep text-ink border-mars-deep font-semibold"
+                : "bg-ink text-fg border-line-strong hover:bg-panel"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* 15 Landmarks Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filtered.map((lm) => (
+          <article
+            key={lm.id}
+            onClick={() => setActiveLm(lm)}
+            className="group border border-line hover:border-mars-deep rounded-sm bg-ink overflow-hidden flex flex-col cursor-pointer transition-all shadow-2xs hover:shadow-md"
+          >
+            <div className="relative h-40 w-full bg-map overflow-hidden">
+              <img
+                src={`${import.meta.env.BASE_URL}${lm.imageUrl}`}
+                alt={lm.name}
+                loading="lazy"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                <span className="font-mono text-[9px] tracking-[0.08em] uppercase px-1.5 py-0.5 rounded-xs bg-black/75 text-[#f5f1e8] border border-white/15">
+                  {lm.subcategory.replace(/_/g, " ")}
+                </span>
+              </div>
+              <div className="absolute top-2 right-2">
+                <span className="font-mono text-[9px] tracking-[0.06em] px-1.5 py-0.5 rounded-xs bg-black/75 text-amber-300 border border-amber-400/30">
+                  {lm.geometryType}
+                </span>
+              </div>
+              {lm.panoramas.length > 0 && (
+                <div className="absolute bottom-2 left-2 font-mono text-[9px] px-1.5 py-0.5 rounded-xs bg-mars-deep/90 text-ink font-semibold">
+                  📷 MASTCAM-Z PANORAMA (SOL {lm.panoramas[0].sol})
+                </div>
+              )}
+            </div>
+
+            <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2.5">
+              <div>
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-sans text-[15px] font-semibold text-mars-deep group-hover:underline">
+                    {lm.name}
+                  </h3>
+                  <Tag l="OBSERVED" />
+                </div>
+                <p className="text-[12px] text-fg/85 mt-1 line-clamp-2 leading-relaxed">
+                  {lm.geologicalDescription}
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-line/60 space-y-1 font-mono text-[10px] text-dim">
+                <div className="flex justify-between">
+                  <span>COORDINATES:</span>
+                  <span className="text-fg">
+                    {lm.lonEast !== null && lm.latDeg !== null
+                      ? `${lm.latDeg.toFixed(4)}°N, ${lm.lonEast.toFixed(4)}°E`
+                      : "Mapped Polygon/Line Geometry"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>SOURCE:</span>
+                  <span className="text-fg truncate max-w-[170px]">{lm.sourceName}</span>
+                </div>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {/* Modal Inspector when a landmark card is clicked */}
+      {activeLm && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6"
+          onClick={() => setActiveLm(null)}
+        >
+          <div
+            className="bg-ink border border-line-strong rounded-md max-w-2xl w-full max-h-[88dvh] overflow-y-auto shadow-float"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative h-52 sm:h-64 bg-map">
+              <img
+                src={`${import.meta.env.BASE_URL}${activeLm.imageUrl}`}
+                alt={activeLm.name}
+                className="w-full h-full object-cover"
+              />
+              <button
+                onClick={() => setActiveLm(null)}
+                className="absolute top-3 right-3 font-mono text-[11px] px-2.5 py-1 rounded-sm bg-black/80 text-[#f5f1e8] border border-white/20 hover:bg-black cursor-pointer"
+              >
+                ✕ CLOSE
+              </button>
+              <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
+                <span className="font-mono text-[10px] px-2 py-0.5 rounded-xs bg-black/80 text-amber-300 border border-amber-400/30">
+                  {activeLm.category.replace(/_/g, " ").toUpperCase()} · {activeLm.geometryType}
+                </span>
+              </div>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-[22px] sm:text-[26px] text-mars-deep leading-tight">{activeLm.name}</h3>
+                  <div className="font-mono text-[11px] text-dim mt-0.5">
+                    {activeLm.lonEast !== null && activeLm.latDeg !== null
+                      ? `Planetocentric: ${activeLm.latDeg.toFixed(5)}°N, ${activeLm.lonEast.toFixed(5)}°E (Mars 2000 Sphere)`
+                      : `Geometry: ${activeLm.geometryNote}`}
+                  </div>
+                </div>
+                <Tag l="OBSERVED" />
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-3 text-[13px]">
+                <div className="p-3 border border-line rounded-sm bg-paper">
+                  <Eyebrow className="mb-1">Geological Description</Eyebrow>
+                  <p className="text-fg/90 leading-relaxed">{activeLm.geologicalDescription}</p>
+                </div>
+                <div className="p-3 border border-line rounded-sm bg-paper">
+                  <Eyebrow className="mb-1">Scientific Significance</Eyebrow>
+                  <p className="text-fg/90 leading-relaxed">{activeLm.scientificSignificance}</p>
+                </div>
+              </div>
+
+              <div className="p-3 border border-line rounded-sm bg-panel/60 text-[13px] space-y-1">
+                <Eyebrow>Perseverance Rover Context</Eyebrow>
+                <p className="text-fg/90 leading-relaxed">{activeLm.perseveranceHistory}</p>
+                <p className="font-mono text-[11px] text-dim pt-1">Note: {activeLm.geometryNote}</p>
+              </div>
+
+              {activeLm.panoramas.length > 0 && (
+                <div className="p-3 border border-gold/50 rounded-sm bg-gold/[0.08] space-y-1 font-mono text-[11px]">
+                  <div className="text-gold-deep font-semibold">GEOREFERENCED PANORAMA VIEWPOINT (panoramas.geojson)</div>
+                  {activeLm.panoramas.map((p) => (
+                    <div key={p.id} className="flex flex-wrap justify-between gap-2 text-fg">
+                      <span>Panorama #{p.id}: {p.name} (Sol {p.sol})</span>
+                      <span className="text-dim">{p.credits}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-line font-mono text-[11px]">
+                <span className="text-dim">Primary Source: {activeLm.sourceName}</span>
+                <div className="flex gap-3">
+                  {activeLm.sourceUrl && (
+                    <a href={activeLm.sourceUrl} target="_blank" rel="noreferrer" className="text-mars-deep underline hover:opacity-80">
+                      SOURCE ARCHIVE ↗
+                    </a>
+                  )}
+                  {activeLm.imageryUrl && (
+                    <a href={activeLm.imageryUrl} target="_blank" rel="noreferrer" className="text-mars-deep underline hover:opacity-80">
+                      NASA PIA / IMAGERY ↗
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 // ---------- Science ----------
 function SciencePage() {
   const S = useStore();
   const ready = useDelay(500);
-  const [sampleList, setSampleList] = useState<SampleTube[]>(() => getCachedSampleTubes());
+  const [sampleList] = useState<SampleTube[]>(() => getCachedSampleTubes());
 
   return (
-    <div className="max-w-6xl w-full mx-auto px-6 py-10 space-y-10">
+    <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8 sm:space-y-10">
       <div>
         <div className="flex items-end justify-between flex-wrap gap-4 mb-2">
           <div>
-            <Eyebrow>Science targets</Eyebrow>
-            <h1 className="text-[34px] mt-2 leading-tight">Candidate observation sites</h1>
+            <Eyebrow>Science targets &amp; Jezero Landmarks</Eyebrow>
+            <h1 className="text-[26px] sm:text-[34px] mt-2 leading-tight">Candidate observation sites</h1>
           </div>
           <Tag l="SIMULATED" />
         </div>
@@ -1467,6 +1646,9 @@ function SciencePage() {
           })}
         </div>
       )}
+
+      {/* 15 Mapped Jezero Landmarks Register */}
+      <JezeroLandmarkGallery />
 
       {/* Perseverance Sample Caching & Return Depot */}
       <section className="border border-line rounded-md bg-paper p-6 space-y-4">
@@ -1911,11 +2093,11 @@ function VisorHud({
   const targetOnCompass = targetDelta !== null && Math.abs(targetDelta) <= 45;
 
   return (
-    <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-3 sm:p-5 select-none font-mono">
-      {/* Top Bar: Corner Brackets & Center Compass Tape */}
-      <div className="flex items-start justify-between gap-3">
-        {/* Upper Left: Suit Telemetry HUD */}
-        <div className="border-l-2 border-t-2 border-cyan-400/60 bg-black/55 backdrop-blur-xs p-2.5 rounded-tl-sm w-48 sm:w-56 shadow-lg text-[10px] space-y-1 text-cyan-200">
+    <div className="absolute inset-x-0 top-[88px] bottom-8 pointer-events-none z-10 flex flex-col justify-between px-2.5 sm:px-5 py-1.5 sm:py-3 select-none font-mono">
+      {/* Top Bar: Corner Brackets (desktop) & Center Compass Tape */}
+      <div className="flex items-start justify-center md:justify-between gap-2 sm:gap-3">
+        {/* Upper Left: Suit Telemetry HUD (Desktop/Tablet) */}
+        <div className="hidden md:block border-l-2 border-t-2 border-cyan-400/60 bg-black/55 backdrop-blur-xs p-2.5 rounded-tl-sm w-52 lg:w-56 shadow-lg text-[10px] space-y-1 text-cyan-200">
           <div className="flex items-center justify-between border-b border-cyan-500/30 pb-1">
             <span className="font-bold tracking-wider text-cyan-300">xEMU LIFE SUPPORT</span>
             <span className={eva?.isBreached ? "text-mars-deep font-bold" : "text-emerald-400"}>
@@ -1952,15 +2134,13 @@ function VisorHud({
           </div>
         </div>
 
-        {/* Center Top: Compass Heading Tape */}
-        <div className="flex flex-col items-center">
-          <div className="relative w-64 sm:w-80 h-9 bg-black/60 backdrop-blur-xs border-x-2 border-t-2 border-cyan-400/50 rounded-t-sm px-2 flex items-center justify-center overflow-hidden shadow-lg">
-            {/* Center tick indicator */}
+        {/* Center Top: Compass Heading Tape + Mobile Telemetry Strip */}
+        <div className="flex flex-col items-center max-w-full">
+          <div className="relative w-60 sm:w-80 h-8 sm:h-9 bg-black/65 backdrop-blur-xs border-x-2 border-t-2 border-cyan-400/50 rounded-t-sm px-2 flex items-center justify-center overflow-hidden shadow-lg">
             <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-0.5 bg-cyan-400 z-20" />
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-1 bg-cyan-400 [clip-path:polygon(50%_0%,0%_100%,100%_100%)] z-20" />
 
-            {/* Compass Scale */}
-            <div className="flex justify-between w-full text-[11px] text-cyan-300/90 font-mono relative">
+            <div className="flex justify-between w-full text-[10px] sm:text-[11px] text-cyan-300/90 font-mono relative">
               {ticks.map((t, idx) => (
                 <div key={idx} className="flex flex-col items-center" style={{ width: "14%" }}>
                   <span className={`text-[9px] ${t.isCard ? "font-bold text-cyan-200" : "text-cyan-400/70"}`}>
@@ -1971,7 +2151,6 @@ function VisorHud({
               ))}
             </div>
 
-            {/* Target Landmark Needle */}
             {nextLm && targetOnCompass && (
               <div
                 className="absolute top-1 text-[8px] text-amber-400 font-bold flex flex-col items-center transition-all duration-200 z-30"
@@ -1982,7 +2161,7 @@ function VisorHud({
               </div>
             )}
           </div>
-          <div className="bg-black/75 px-3 py-0.5 border-x border-b border-cyan-500/40 rounded-b-sm text-[11px] text-cyan-300 font-bold tracking-wider flex items-center gap-2 shadow-md">
+          <div className="bg-black/75 px-3 py-0.5 border-x border-b border-cyan-500/40 rounded-b-sm text-[10px] sm:text-[11px] text-cyan-300 font-bold tracking-wider flex items-center gap-2 shadow-md">
             <span>{head}°</span>
             <span className="text-cyan-400/70">·</span>
             <span>{cardinal(head)}</span>
@@ -1992,11 +2171,14 @@ function VisorHud({
                 <span className="text-amber-400 text-[10px]">TGT {nextLm.bearing.toFixed(0)}°</span>
               </>
             )}
+            <span className="md:hidden text-cyan-400/70">·</span>
+            <span className="md:hidden text-emerald-300 text-[10px]">O2 {eva ? eva.o2Percent : 98}%</span>
+            <span className="md:hidden text-cyan-200 text-[10px]">{weather.airC > 0 ? `+${weather.airC}` : weather.airC}°C</span>
           </div>
         </div>
 
-        {/* Upper Right: Comm & Environment HUD */}
-        <div className="border-r-2 border-t-2 border-cyan-400/60 bg-black/55 backdrop-blur-xs p-2.5 rounded-tr-sm w-48 sm:w-56 shadow-lg text-[10px] space-y-1 text-right text-cyan-200">
+        {/* Upper Right: Comm & Environment HUD (Desktop/Tablet) */}
+        <div className="hidden md:block border-r-2 border-t-2 border-cyan-400/60 bg-black/55 backdrop-blur-xs p-2.5 rounded-tr-sm w-52 lg:w-56 shadow-lg text-[10px] space-y-1 text-right text-cyan-200">
           <div className="flex items-center justify-between border-b border-cyan-500/30 pb-1">
             <span className="text-emerald-400">● 401.5 MHz</span>
             <span className="font-bold tracking-wider text-cyan-300">ORBITER RELAY</span>
@@ -2022,24 +2204,20 @@ function VisorHud({
       {/* Center: Tactical Pitch Horizon & Crosshair Reticle */}
       <div className="flex items-center justify-center pointer-events-none">
         <div className="relative flex items-center justify-center">
-          {/* Horizon reference wings */}
-          <div className="w-16 h-px bg-cyan-400/40" />
-          <div className="w-2 h-2 border-t-2 border-l-2 border-cyan-400/50 -rotate-45 mx-2" />
-          {/* Crosshairs Reticle */}
-          <div className="relative w-12 h-12 flex items-center justify-center">
+          <div className="w-10 sm:w-16 h-px bg-cyan-400/40" />
+          <div className="w-2 h-2 border-t-2 border-l-2 border-cyan-400/50 -rotate-45 mx-1.5 sm:mx-2" />
+          <div className="relative w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
             <div className="absolute inset-0 border border-cyan-400/30 rounded-full" />
-            <div className="w-2 h-2 bg-cyan-400/60 rounded-full" />
-            {/* Rangefinder ticks */}
+            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-cyan-400/60 rounded-full" />
             <div className="absolute top-0 w-px h-2 bg-cyan-400/60" />
             <div className="absolute bottom-0 w-px h-2 bg-cyan-400/60" />
             <div className="absolute left-0 h-px w-2 bg-cyan-400/60" />
             <div className="absolute right-0 h-px w-2 bg-cyan-400/60" />
           </div>
-          <div className="w-2 h-2 border-t-2 border-r-2 border-cyan-400/50 rotate-45 mx-2" />
-          <div className="w-16 h-px bg-cyan-400/40" />
+          <div className="w-2 h-2 border-t-2 border-r-2 border-cyan-400/50 rotate-45 mx-1.5 sm:mx-2" />
+          <div className="w-10 sm:w-16 h-px bg-cyan-400/40" />
 
-          {/* Inclinometer Pitch Indicator */}
-          <div className="absolute left-full ml-4 bg-black/60 backdrop-blur-xs px-2 py-1 rounded-sm border border-cyan-500/40 text-[10px] space-y-0.5">
+          <div className="hidden sm:block absolute left-full ml-4 bg-black/60 backdrop-blur-xs px-2 py-1 rounded-sm border border-cyan-500/40 text-[10px] space-y-0.5 whitespace-nowrap">
             <div className="flex items-center gap-1.5">
               <span className="text-cyan-400/70">PITCH:</span>
               <span className={`font-bold ${isSteep ? "text-mars-deep" : "text-cyan-200"}`}>
@@ -2054,9 +2232,9 @@ function VisorHud({
       </div>
 
       {/* Bottom Bar: Terrain Inclinometer Box & Navigation Waypoint Box */}
-      <div className="flex items-end justify-between gap-3">
-        {/* Lower Left: Terrain / Mobility Box */}
-        <div className="border-l-2 border-b-2 border-cyan-400/60 bg-black/55 backdrop-blur-xs p-2.5 rounded-bl-sm w-48 sm:w-56 shadow-lg text-[10px] space-y-1 text-cyan-200">
+      <div className="flex items-end justify-between gap-2 sm:gap-3">
+        {/* Lower Left: Terrain / Mobility Box (Desktop/Tablet) */}
+        <div className="hidden md:block border-l-2 border-b-2 border-cyan-400/60 bg-black/55 backdrop-blur-xs p-2.5 rounded-bl-sm w-52 lg:w-56 shadow-lg text-[10px] space-y-1 text-cyan-200">
           <div className="flex items-center justify-between border-b border-cyan-500/30 pb-0.5 font-bold text-cyan-300">
             <span>TERRAIN TELEMETRY</span>
             <span>HiRISE</span>
@@ -2086,31 +2264,27 @@ function VisorHud({
         </div>
 
         {/* Lower Right: Waypoint Rangefinder Box */}
-        <div className="border-r-2 border-b-2 border-cyan-400/60 bg-black/55 backdrop-blur-xs p-2.5 rounded-br-sm w-52 sm:w-64 shadow-lg text-[10px] space-y-1 text-right text-cyan-200">
+        <div className="border-r-2 border-b-2 border-cyan-400/60 bg-black/65 backdrop-blur-xs p-2 sm:p-2.5 rounded-br-sm w-48 sm:w-64 shadow-lg text-[10px] space-y-0.5 sm:space-y-1 text-right text-cyan-200 ml-auto md:ml-0">
           <div className="flex items-center justify-between border-b border-cyan-500/30 pb-0.5 font-bold text-cyan-300">
-            <span>{nextLm ? `LANDMARK ${curLm ? curLm.n : 1}/${totalLms}` : "DESTINATION"}</span>
+            <span>{nextLm ? `LM ${curLm ? curLm.n : 1}/${totalLms}` : "DESTINATION"}</span>
             <span className="text-amber-400 font-bold">{nextLm ? `${cardinal(nextLm.bearing)}` : "ARRIVED"}</span>
           </div>
           <div className="text-cyan-100 font-semibold truncate">
             {curLm?.name.toUpperCase() ?? "TRAVERSE IN PROGRESS"}
           </div>
           {nextLm ? (
-            <div className="space-y-0.5 text-[10px]">
+            <div className="space-y-0.5 text-[9px] sm:text-[10px]">
               <div className="flex justify-between">
-                <span className="text-cyan-400/70">NEXT BEARING:</span>
-                <span className="font-bold">{nextLm.bearing.toFixed(0)}° {cardinal(nextLm.bearing)}</span>
+                <span className="text-cyan-400/70">NEXT:</span>
+                <span className="font-bold">{nextLm.bearing.toFixed(0)}° {cardinal(nextLm.bearing)} · {fmtKm(nextLm.distM)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-cyan-400/70">DISTANCE:</span>
-                <span className="font-bold">{fmtKm(nextLm.distM)}</span>
-              </div>
-              <div className="flex justify-between">
+              <div className="hidden sm:flex justify-between">
                 <span className="text-cyan-400/70">ELEV DELTA:</span>
                 <span className="font-bold">{nextLm.dElev >= 0 ? `+${nextLm.dElev.toFixed(0)}` : nextLm.dElev.toFixed(0)} m</span>
               </div>
             </div>
           ) : (
-            <div className="text-emerald-400 font-bold pt-1">ENDPOINT REACHED</div>
+            <div className="text-emerald-400 font-bold pt-0.5">ENDPOINT REACHED</div>
           )}
         </div>
       </div>
@@ -2124,7 +2298,9 @@ function ImmersivePage() {
   const S = useStore();
   const [view, setView] = useState<View3D>("natural"), [cam, setCam] = useState<Cam>(() => (window.location.hash.includes("walk") ? "walk" : "orbit")), [exag, setExag] = useState(2.5);
   const [sunEl, setSunEl] = useState(24), [sunAz, setSunAz] = useState(250), [playing, setPlaying] = useState(false), [speed, setSpeed] = useState(40);
-  const [step, setStep] = useState(() => +(window.location.hash.match(/step=(\d)/)?.[1] ?? 0)), [probe, setProbe] = useState<Probe | null>(null), [ready, setReady] = useState(false), [hud, setHud] = useState(true), [resetKey, setResetKey] = useState(0);
+  const [step, setStep] = useState(() => +(window.location.hash.match(/step=(\d)/)?.[1] ?? 0)), [probe, setProbe] = useState<Probe | null>(null), [ready, setReady] = useState(false);
+  const [hud, setHud] = useState(() => (typeof window !== "undefined" ? window.innerWidth >= 1024 : true));
+  const [resetKey, setResetKey] = useState(0);
   const [telem, setTelem] = useState<Telemetry3D>({ pitchDeg: 0, headingDeg: 0 });
   const [visorOn, setVisorOn] = useState(true);
   const [sol, setSol] = useState<number>(20);
@@ -2422,7 +2598,8 @@ function DataPage() {
 
   const [savedMissions, setSavedMissions] = useState<any[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem("marsx.saved_missions") || "[]");
+      const parsed = JSON.parse(localStorage.getItem("marsx.saved_missions") || "[]");
+      return Array.isArray(parsed) ? parsed.filter((m) => m && typeof m === "object") : [];
     } catch {
       return [];
     }
@@ -2455,23 +2632,23 @@ function DataPage() {
   const airPts = readings.map((r, h) => `${tx(h)},${ty(r.airC)}`).join(" ");
 
   return (
-    <div className="max-w-6xl w-full mx-auto px-6 py-10 space-y-10">
+    <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8 sm:space-y-10">
       <div>
         <Eyebrow>Data &amp; Offline Storage</Eyebrow>
-        <h1 className="text-[34px] mt-2 leading-tight text-mars-deep">Mission Data, Telemetry &amp; APK</h1>
-        <p className="text-dim mt-2 max-w-2xl text-[14px] leading-relaxed">
-          Ground-truth HiRISE Jezero Crater terrain models, archived weather telemetry, offline saved mission profiles, and the standalone Android APK build.
+        <h1 className="text-[26px] sm:text-[34px] mt-2 leading-tight text-mars-deep">Mission Data, Telemetry &amp; APK</h1>
+        <p className="text-dim mt-2 max-w-2xl text-[13px] sm:text-[14px] leading-relaxed">
+          Ground-truth HiRISE Jezero Crater terrain models, 15 mapped Jezero landmarks, archived weather telemetry, offline saved mission profiles, and the standalone Android APK build.
         </p>
       </div>
 
       {/* APK Download Banner */}
-      <div className="border border-mars-deep/40 bg-paper rounded-md p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="border border-mars-deep/40 bg-paper rounded-md p-4 sm:p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
         <div className="space-y-1.5 max-w-xl">
           <div className="flex items-center gap-2">
             <span className="font-mono text-[11px] tracking-[0.1em] text-ink bg-mars-deep px-2 py-0.5 rounded-sm uppercase font-semibold">Offline Android App</span>
             <span className="font-mono text-[11px] text-dim">v1.0.0 · arm64-v8a</span>
           </div>
-          <h2 className="text-[22px] font-normal text-mars-deep">Download Standalone Mars-X APK</h2>
+          <h2 className="text-[20px] sm:text-[22px] font-normal text-mars-deep">Download Standalone Mars-X APK</h2>
           <p className="text-[13px] text-fg/85 leading-relaxed">
             Install the native Android application on your phone or tablet. Includes the complete offline HiRISE Jezero Crater DEM, on-device A* pathfinding, landmark-to-landmark orientation, and terrain risk evaluation. No internet or server connection needed.
           </p>
@@ -2484,24 +2661,73 @@ function DataPage() {
         <a
           href={LATEST_APK_URL}
           download="mars-x-release.apk"
-          className="shrink-0 font-mono text-[13px] tracking-[0.08em] px-5 py-3 rounded-sm bg-mars-deep text-ink font-semibold hover:opacity-90 transition-opacity flex items-center gap-2.5 shadow-sm"
+          className="w-full md:w-auto justify-center shrink-0 font-mono text-[12px] sm:text-[13px] tracking-[0.08em] px-5 py-3 rounded-sm bg-mars-deep text-ink font-semibold hover:opacity-90 transition-opacity flex items-center gap-2.5 shadow-sm"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span>DOWNLOAD APK (17.3 MB)</span>
         </a>
       </div>
 
+      {/* Saved Missions Card */}
+      <div className="border border-line rounded-md p-4 sm:p-6 bg-paper space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <Eyebrow>Local Storage</Eyebrow>
+            <h2 className="text-[20px] font-normal text-mars-deep mt-1">Saved Missions ({savedMissions.length})</h2>
+          </div>
+          <span className="font-mono text-[11px] text-dim">BROWSER CACHE · OFFLINE</span>
+        </div>
+        {savedMissions.length === 0 ? (
+          <p className="text-[13px] text-dim">
+            No missions saved locally yet. Compute a route in the <A to="/map" className="text-mars-deep underline font-medium">Map</A> and click &ldquo;SAVE MISSION (OFFLINE STORAGE)&rdquo; in the <A to="/report" className="text-mars-deep underline font-medium">Report</A>.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {savedMissions.map((m, idx) => (
+              <div key={m.id || idx} className="p-3 border border-line rounded-sm bg-ink flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-[12px] font-semibold text-mars-deep">{m.name || m.id || `Mission #${idx + 1}`}</span>
+                    <span className="font-mono text-[10px] px-1.5 py-0.5 border border-line-strong rounded-sm">{m.mode || "SAFEST"}</span>
+                  </div>
+                  <div className="font-mono text-[11px] text-dim flex flex-wrap gap-x-4 gap-y-1">
+                    <span>{m.distKm ?? 0} km</span>
+                    <span>Cost: {m.cost ?? 0}</span>
+                    <span>Max Slope: {m.maxSlope ?? 0}°</span>
+                    <span>{m.date ? new Date(m.date).toLocaleDateString() : "Saved offline"}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    onClick={() => loadSaved(m)}
+                    className="flex-1 sm:flex-initial font-mono text-[11px] px-3 py-1.5 bg-mars-deep text-ink rounded-sm font-medium hover:opacity-90 cursor-pointer"
+                  >
+                    LOAD IN MAP
+                  </button>
+                  <button
+                    onClick={() => deleteSaved(idx)}
+                    className="font-mono text-[11px] px-2.5 py-1.5 border border-line-strong text-dim hover:text-fg rounded-sm cursor-pointer"
+                  >
+                    DELETE
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* NASA Mars 2020 MEDA Diurnal Weather Station (Phase 4) */}
-      <div className="border border-line rounded-md p-6 bg-paper space-y-5">
+      <div className="border border-line rounded-md p-4 sm:p-6 bg-paper space-y-5">
         <div className="flex items-center justify-between flex-wrap gap-3 border-b border-line pb-3">
           <div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-[10px] tracking-[0.1em] px-2 py-0.5 rounded-sm bg-mars-deep text-ink font-semibold">NASA MARS 2020 MEDA</span>
               <Tag l="OBSERVED" />
             </div>
-            <h2 className="text-[22px] font-normal text-mars-deep mt-1">Jezero Diurnal Weather Station · Sol {dataSol}</h2>
+            <h2 className="text-[20px] sm:text-[22px] font-normal text-mars-deep mt-1">Jezero Diurnal Weather Station · Sol {dataSol}</h2>
           </div>
-          <div className="flex items-center gap-2 font-mono text-[11px]">
+          <div className="flex items-center gap-2 font-mono text-[11px] flex-wrap">
             <span className="text-dim">SELECT ARCHIVED SOL:</span>
             <div className="flex gap-1">
               {AVAILABLE_SOLS.map((s) => (
@@ -2523,8 +2749,8 @@ function DataPage() {
 
         {/* 24-Hour Diurnal Temperature Profile Chart */}
         <figure className="space-y-2">
-          <div className="flex flex-wrap items-center justify-between text-[11px] font-mono text-dim">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-between text-[11px] font-mono text-dim gap-2">
+            <div className="flex items-center gap-4 flex-wrap">
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-gold" /> GROUND BRIGHTNESS TEMP</span>
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-atmos" /> AIR TEMP (1.5m)</span>
             </div>
@@ -2533,25 +2759,20 @@ function DataPage() {
 
           <div className="relative border border-line bg-ink rounded-sm p-2">
             <svg viewBox={`0 0 100 ${chH}`} preserveAspectRatio="none" className="w-full h-36" role="img" aria-label="24-hour diurnal temperature profile">
-              {/* Zero degree C reference line */}
               <line x1={0} x2={100} y1={ty(0)} y2={ty(0)} stroke="#d9d4c9" strokeWidth={0.8} strokeDasharray="3 2" vectorEffect="non-scaling-stroke" />
               <text x={2} y={ty(0) - 2} fontSize={5} fill="#b9b2a3" fontFamily="IBM Plex Mono">0°C FREEZING</text>
 
-              {/* -50 degree C reference line */}
               <line x1={0} x2={100} y1={ty(-50)} y2={ty(-50)} stroke="#d9d4c9" strokeWidth={0.5} strokeDasharray="1 2" strokeOpacity={0.5} vectorEffect="non-scaling-stroke" />
               <text x={2} y={ty(-50) - 2} fontSize={5} fill="#807a70" fontFamily="IBM Plex Mono">-50°C</text>
 
-              {/* Temperature Curves */}
               <polyline points={groundPts} fill="none" stroke="#D3A24C" strokeWidth={2.0} vectorEffect="non-scaling-stroke" />
               <polyline points={airPts} fill="none" stroke="#789BA8" strokeWidth={2.0} vectorEffect="non-scaling-stroke" />
 
-              {/* Active Scrubber Cursor */}
               <line x1={tx(dataHour)} x2={tx(dataHour)} y1={0} y2={chH} stroke="#B85C43" strokeWidth={2.2} vectorEffect="non-scaling-stroke" />
               <circle cx={tx(dataHour)} cy={ty(curWeather.groundC)} r={1.8} fill="#D3A24C" stroke="#241b17" strokeWidth={0.4} />
               <circle cx={tx(dataHour)} cy={ty(curWeather.airC)} r={1.8} fill="#789BA8" stroke="#241b17" strokeWidth={0.4} />
             </svg>
 
-            {/* Time ticks */}
             <div className="flex justify-between font-mono text-[9px] text-dim px-1 pt-1 border-t border-line/40">
               <span>00:00</span>
               <span>04:00</span>
@@ -2585,100 +2806,53 @@ function DataPage() {
         </div>
 
         {/* Selected Hour Telemetry Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-1">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 pt-1">
           <div className="border border-line p-3 rounded-sm bg-ink/70">
-            <span className="font-mono text-[11px] text-dim block">AIR TEMP (1.5m)</span>
-            <span className="font-mono text-[22px] text-fg font-semibold">
+            <span className="font-mono text-[10px] sm:text-[11px] text-dim block">AIR TEMP (1.5m)</span>
+            <span className="font-mono text-[20px] sm:text-[22px] text-fg font-semibold">
               {curWeather.airC > 0 ? `+${curWeather.airC}` : curWeather.airC}°C
             </span>
             <span className="text-[10px] text-dim block mt-0.5">NASA MEDA TIRS (Air)</span>
           </div>
 
           <div className="border border-line p-3 rounded-sm bg-ink/70">
-            <span className="font-mono text-[11px] text-dim block">GROUND BRIGHTNESS</span>
-            <span className={`font-mono text-[22px] font-semibold ${curWeather.groundC > 0 ? "text-gold" : "text-fg"}`}>
+            <span className="font-mono text-[10px] sm:text-[11px] text-dim block">GROUND BRIGHTNESS</span>
+            <span className={`font-mono text-[20px] sm:text-[22px] font-semibold ${curWeather.groundC > 0 ? "text-gold" : "text-fg"}`}>
               {curWeather.groundC > 0 ? `+${curWeather.groundC}` : curWeather.groundC}°C
             </span>
             <span className="text-[10px] text-dim block mt-0.5">Surface regolith radiance</span>
           </div>
 
           <div className="border border-line p-3 rounded-sm bg-ink/70">
-            <span className="font-mono text-[11px] text-dim block">DIURNAL SWING (ΔT)</span>
-            <span className="font-mono text-[22px] text-mars-deep font-semibold">81.4°C</span>
+            <span className="font-mono text-[10px] sm:text-[11px] text-dim block">DIURNAL SWING (ΔT)</span>
+            <span className="font-mono text-[20px] sm:text-[22px] text-mars-deep font-semibold">81.4°C</span>
             <span className="text-[10px] text-dim block mt-0.5">Min -73.8°C / Max +7.6°C</span>
           </div>
 
           <div className="border border-line p-3 rounded-sm bg-ink/70">
-            <span className="font-mono text-[11px] text-dim block">ATMOSPHERIC PRESS.</span>
-            <span className="font-mono text-[22px] text-fg font-semibold">~760 Pa</span>
+            <span className="font-mono text-[10px] sm:text-[11px] text-dim block">ATMOSPHERIC PRESS.</span>
+            <span className="font-mono text-[20px] sm:text-[22px] text-fg font-semibold">~760 Pa</span>
             <span className="text-[10px] text-dim block mt-0.5">HiRISE DTM datum · ~0.0075 atm</span>
           </div>
         </div>
 
         <div className="p-3 bg-panel/70 border border-line rounded-sm text-[12px] text-fg/85 leading-relaxed space-y-1">
-          <strong>Environmental Physics Note:</strong> Mars exhibits extreme surface temperature fluctuations ($\Delta T &gt; 80^\circ\text{C}$ between midday and pre-dawn) due to low atmospheric density ($&lt; 1\%$ Earth) and low thermal inertia of fine aeolian basaltic dust. Midday ground temperatures briefly exceed freezing ($+7.6^\circ\text{C}$), while night drops to $-73.8^\circ\text{C}$, placing significant thermal heating loads on astronaut suit batteries and rover electronics.
+          <strong>Environmental Physics Note:</strong> Mars exhibits extreme surface temperature fluctuations (ΔT &gt; 80°C between midday and pre-dawn) due to low atmospheric density (&lt; 1% Earth) and low thermal inertia of fine aeolian basaltic dust. Midday ground temperatures briefly exceed freezing (+7.6°C), while night drops to −73.8°C, placing significant thermal heating loads on astronaut suit batteries and rover electronics.
         </div>
       </div>
 
-
-      {/* Saved Missions Card */}
-      <div className="border border-line rounded-md p-6 bg-paper space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <Eyebrow>Local Storage</Eyebrow>
-            <h2 className="text-[20px] font-normal text-mars-deep mt-1">Saved Missions ({savedMissions.length})</h2>
-          </div>
-          <span className="font-mono text-[11px] text-dim">BROWSER CACHE · OFFLINE</span>
-        </div>
-        {savedMissions.length === 0 ? (
-          <p className="text-[13px] text-dim">
-            No missions saved locally yet. Compute a route in the <A to="/map" className="text-mars-deep underline font-medium">Map</A> and click "SAVE MISSION (OFFLINE STORAGE)" in the <A to="/report" className="text-mars-deep underline font-medium">Report</A>.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {savedMissions.map((m, idx) => (
-              <div key={m.id || idx} className="p-3 border border-line rounded-sm bg-ink flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[12px] font-semibold text-mars-deep">{m.name || m.id}</span>
-                    <span className="font-mono text-[10px] px-1.5 py-0.2 border border-line-strong rounded-sm">{m.mode}</span>
-                  </div>
-                  <div className="font-mono text-[11px] text-dim flex gap-4">
-                    <span>{m.distKm} km</span>
-                    <span>Cost: {m.cost}</span>
-                    <span>Max Slope: {m.maxSlope}°</span>
-                    <span>{new Date(m.date).toLocaleDateString()}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => loadSaved(m)}
-                    className="font-mono text-[11px] px-3 py-1 bg-mars-deep text-ink rounded-sm font-medium hover:opacity-90"
-                  >
-                    LOAD IN MAP
-                  </button>
-                  <button
-                    onClick={() => deleteSaved(idx)}
-                    className="font-mono text-[11px] px-2.5 py-1 border border-line-strong text-dim hover:text-fg rounded-sm"
-                  >
-                    DELETE
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* 15 Mapped Jezero Landmarks Register */}
+      <JezeroLandmarkGallery />
 
       {/* Authoritative Jezero GIS & PDS Processed Data Repository */}
-      <div className="border border-line rounded-md p-6 bg-paper space-y-6">
+      <div className="border border-line rounded-md p-4 sm:p-6 bg-paper space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-2 border-b border-line pb-4">
           <div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-[10px] tracking-[0.1em] px-2 py-0.5 rounded-sm bg-gold text-ink font-semibold">PROCESSED GEODATA REPOSITORY</span>
               <Tag l="OBSERVED" />
             </div>
-            <h2 className="text-[24px] font-normal text-mars-deep mt-1">Processed Jezero GIS &amp; NASA PDS Catalog</h2>
+            <h2 className="text-[20px] sm:text-[24px] font-normal text-mars-deep mt-1">Processed Jezero GIS &amp; NASA PDS Catalog</h2>
             <p className="text-[13px] text-dim mt-1 max-w-2xl leading-relaxed">
               Authoritative datasets converted from raw USGS SIM 3464 geodatabases and NASA Mars 2020 PLACES Release 16 tables stored in <code className="bg-panel px-1 py-0.5 rounded text-[11px]">data/processed/jezero/</code> and integrated directly into the MARS-X frontend.
             </p>
@@ -2921,12 +3095,36 @@ function About() {
       <section className="mt-10 border-t border-fg pt-5 text-[14px] space-y-2 leading-relaxed"><Eyebrow>Disclaimer</Eyebrow><p>This project is not affiliated with, endorsed by, or sponsored by NASA. NASA data, when used, is credited to its original sources.</p><p>All routes are candidate routes for research and education. Safety is NOT CERTIFIED. The demo terrain and science targets are simulated.</p></section>
       <section className="mt-8 border-t border-line pt-5 text-[14px] space-y-2 leading-relaxed"><Eyebrow>Attribution</Eyebrow><p>Globe texture: Viking MDIM 2.1 colorized global mosaic, NASA / USGS Astrogeology Science Center, public domain, downsampled for the web. Landing-site coordinates are published mission values; region outlines and the globe trajectory are approximate or illustrative.</p></section>
       <section className="mt-8 border-t border-line pt-5 text-[14px] space-y-2 leading-relaxed"><Eyebrow>Privacy</Eyebrow><p>This build has no accounts, cookies, trackers or analytics. Routing runs entirely in your browser. Fonts are loaded from Google Fonts, which can see your IP address and user agent.</p></section>
-      <dl className="mt-8 grid grid-cols-2 border-t border-line text-[14px]">{[["Frontend", "React · Tailwind · React Three Fiber · client-side A*"], ["Cloud API", "FastAPI on Railway · https://api-production-14018b03.up.railway.app"], ["Planned pipeline", "GDAL raster fusion"], ["License", "Open source (NASA Space Apps 2026)"]].map(([a, b]) => <div key={a} className="py-3 pr-4 border-b border-line"><dt className="text-dim text-[11px] font-mono tracking-[0.08em] uppercase">{a}</dt><dd className="mt-1">{b}</dd></div>)}</dl>
+      <dl className="mt-8 grid grid-cols-1 sm:grid-cols-2 border-t border-line text-[14px]">{[["Frontend", "React · Tailwind · React Three Fiber · client-side A*"], ["Cloud API", "FastAPI on Railway · https://api-production-14018b03.up.railway.app"], ["Planned pipeline", "GDAL raster fusion"], ["License", "Open source (NASA Space Apps 2026)"]].map(([a, b]) => <div key={a} className="py-3 pr-4 border-b border-line break-words"><dt className="text-dim text-[11px] font-mono tracking-[0.08em] uppercase">{a}</dt><dd className="mt-1">{b}</dd></div>)}</dl>
     </div>
   );
 }
 
 // ---------- App ----------
+class PageErrorBoundary extends Component<{ routeKey: string; children: React.ReactNode }, { err: Error | null }> {
+  state: { err: Error | null } = { err: null };
+  static getDerivedStateFromError(err: Error) { return { err }; }
+  componentDidUpdate(prev: { routeKey: string }) {
+    if (prev.routeKey !== this.props.routeKey && this.state.err) this.setState({ err: null });
+  }
+  render() {
+    if (this.state.err) {
+      return (
+        <div className="max-w-2xl mx-auto my-12 p-6 border border-danger bg-danger/5">
+          <div className="font-mono text-[11px] tracking-[0.14em] uppercase text-danger font-bold">Page Render Recovery</div>
+          <h2 className="font-display text-2xl font-bold mt-1">Unable to render this section</h2>
+          <p className="text-[13px] text-fg/80 mt-2 font-mono break-words">{this.state.err.message}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button onClick={() => this.setState({ err: null })} className="px-4 py-2 bg-fg text-bg font-mono text-[11px] tracking-[0.12em] uppercase">Retry View</button>
+            <A to="/" className="px-4 py-2 border border-fg font-mono text-[11px] tracking-[0.12em] uppercase">Return to Globe</A>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function TerrainLoading() {
   return (
     <div className="flex-1 grid lg:grid-cols-[288px_1fr_320px] gap-px p-3 lg:p-0">
@@ -2962,5 +3160,5 @@ export default function App() {
   else if (path.startsWith("/methodology")) page = <Methodology />;
   else if (path.startsWith("/about")) page = <About />;
   else page = <div className="p-10 font-mono text-dim">404 · Unknown route. <A to="/" className="text-mars-deep underline">Return</A></div>;
-  return <Ctx.Provider value={store}><Shell path={path}>{page}</Shell></Ctx.Provider>;
+  return <Ctx.Provider value={store}><Shell path={path}><PageErrorBoundary routeKey={path}>{page}</PageErrorBoundary></Shell></Ctx.Provider>;
 }

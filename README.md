@@ -1,8 +1,57 @@
-# MARS-X
+# MARS-X · Jezero Crater Surface Planning & Astronaut Survival Engine
 
-An offline-capable Mars exploration prototype for Jezero crater. The project is being expanded to combine orbital terrain and imagery, sourced landmarks, rover observations, and route planning. Data availability and scientific limits vary by layer; the app should identify the source and resolution of the map currently shown.
+An offline-capable Mars exploration and autonomous EVA surface-navigation system for Jezero Crater (NASA Space Apps Challenge 2026). Combines NASA MRO HiRISE stereo terrain (`DTEEC_045994_1985_046060_1985_U01`), 15 georeferenced Jezero Crater landmarks with close-up imagery, USGS SIM 3464 geologic units, Perseverance MEDA atmospheric observations, and 2-astronaut xEMU life-support consumables / Point-of-No-Return (PNR) physics.
 
-## Start here
+---
+
+## Quick Download & Teammate Integration Locations
+
+All rectified backend files, the standalone Landing Page component, and the downloadable integration kit are available both **in the repository** and **via direct HTTP download** from the deployed web app (`#download` section on the Landing Page):
+
+| Deliverable | Repository Path | Live Web App Download Path | Description |
+| :--- | :--- | :--- | :--- |
+| **Standalone Landing Page (React/TS)** | [`src/pages/LandingPage.tsx`](src/pages/LandingPage.tsx) | [`/downloads/LandingPage.tsx`](public/downloads/LandingPage.tsx) | Drop-in React component wired to `src/api.ts`, `src/processedDataLayers.ts` (15 mapped Jezero landmarks), live MEDA Sol telemetry, interactive Route Trade-Off Comparator, and Download Station. |
+| **Full Backend + UI Integration Kit (ZIP)** | [`public/downloads/mars-x-backend-integration-kit.zip`](public/downloads/mars-x-backend-integration-kit.zip) | `/downloads/mars-x-backend-integration-kit.zip` | Single ZIP archive bundling the rectified `backend/app/*` (`core.py`, `main.py`, `geo_layers.py`, `meda_reader.py`), `backend/tests/test_api.py`, `src/api.ts`, and `src/pages/LandingPage.tsx`. |
+| **Rectified FastAPI Routing & EVA Core** | [`backend/app/core.py`](backend/app/core.py) | Included in Integration ZIP | Unified Python routing core with all **15 mapped Jezero landmarks**, **Science route detour cap (`<= 1.5x` fastest)**, **2-astronaut buddy-system EVA consumables** (`oxygen_kg`, `battery_kwh`, `cooling_water_kg`, `pnr_dist_m`), and **Route Trade-Off Analysis** (`gained` vs. `compromised`). |
+| **FastAPI Endpoints & Geo Layers** | [`backend/app/main.py`](backend/app/main.py), [`backend/app/geo_layers.py`](backend/app/geo_layers.py) | Included in Integration ZIP | Serves `/api/health`, `/api/environment`, `/api/science-targets`, `/api/landmarks/mapped`, `/api/landmarks-register`, `/api/routes/generate`, `/api/routes/compare`, `/api/risk`, `/api/missions/*` (23/23 `pytest` tests passing). |
+| **15 Mapped Jezero Landmark Close-Up Images** | [`public/landmarks/`](public/landmarks/) & [`mobile/assets/landmarks/`](mobile/assets/landmarks/) | `/landmarks/<id>.jpg` | Optimized close-up imagery for all 15 mapped Jezero Crater landmarks (`octavia-butler-landing.jpg`, `three-forks.jpg`, `hawksbill-gap.jpg`, `enchanted-lake.jpg`, `cape-nukshak.jpg`, `belva-crater.jpg`, `bunsen-peak.jpg`, `jurabi-point.jpg`, `gnaraloo-bay.jpg`, `western-delta.jpg`, `neretva-vallis.jpg`, `jezero-crater-rim.jpg`, `sava-vallis.jpg`, `pliva-vallis.jpg`, `ancient-lake-basin.jpg`). |
+| **Android Release APK (`arm64-v8a`)** | [GitHub Releases (`latest`)](https://github.com/Vedant1442/MARS-X/releases/download/latest/app-arm64-v8a-release.apk) | Direct button in navbar & `#download` | Standalone offline-capable Flutter Android APK (`app-arm64-v8a-release.apk`). |
+
+---
+
+## How to Integrate `LandingPage.tsx` on `main`
+
+`src/App.tsx` is already wired to render `src/pages/LandingPage.tsx` on the root route (`/`):
+
+```tsx
+import LandingPage from "./pages/LandingPage";
+
+// Inside Landing() in src/App.tsx:
+<LandingPage
+  renderGlobe={(f, st) => <HeroGlobe fly={f ?? fly} stage={st ?? stage} />}
+  onNavigate={go}
+  onExplore={explore}
+/>
+```
+
+## Running & Verifying Locally
+
+1. **Frontend (Vite + React + Three.js):**
+   ```bash
+   npm install
+   npx tsc --noEmit
+   npm run dev
+   ```
+2. **Backend (FastAPI + Pytest):**
+   ```bash
+   cd backend
+   python -m pytest -v
+   python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+   ```
+
+---
+
+## Documentation & Provenance
 
 - [Frontend Landing Page Developer Guide](docs/LANDING_PAGE_DEV_GUIDE.md) — quickstart, styling tokens, and landing page tasks for frontend contributors.
 - [Data sources and plain-language explanations](docs/DATA_SOURCES.md) — source, coverage, resolution, current status, limitations, and credit for each layer.
@@ -11,4 +60,4 @@ An offline-capable Mars exploration prototype for Jezero crater. The project is 
 
 ## Coverage status
 
-The original HiRISE DTM is being used for a small, high-detail patch around Perseverance's landing site. The whole-crater CTX elevation and image mosaics are downloaded and verified, but still need to be aligned and integrated. Read the source register before describing the current app map as whole-crater coverage.
+The original HiRISE DTM is used for a high-detail patch around Perseverance's landing site (`120×76` planning grid at `35.99 m/cell`, block-averaged from `480×304`). All 15 mapped Jezero landmarks, USGS SIM 3464 geologic units, and Perseverance PLACES traverse localizations are integrated with explicit scientific provenance badges (`OBSERVED`, `DERIVED`, `MODELED`, `UNKNOWN`, `SIMULATED`).

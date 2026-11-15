@@ -7,6 +7,7 @@ import '../../app/theme.dart';
 import '../../data/api_service.dart';
 import '../../data/mission_repo.dart';
 import '../../domain/routing/astar.dart';
+import '../../domain/terrain/jezero_landmark.dart';
 import '../../domain/terrain/terrain_grid.dart';
 import '../../shared/widgets/data_badge.dart';
 
@@ -22,6 +23,7 @@ class _EnvironmentAndSavedScreenState extends ConsumerState<EnvironmentAndSavedS
   MedaEnvironmentData? _liveMeda;
   BackendStatus? _backendStatus;
   bool _isSyncing = false;
+  String _landmarkCategory = 'ALL';
 
   @override
   void initState() {
@@ -283,6 +285,144 @@ class _EnvironmentAndSavedScreenState extends ConsumerState<EnvironmentAndSavedS
                   );
                 },
               ),
+
+              const SizedBox(height: 20),
+
+              // 15 Mapped Jezero Landmarks Register with Close-Up Images
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('15 MAPPED JEZERO LANDMARKS REGISTER', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600)),
+                  DataBadge(DataType.observed),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Authoritative USGS SIM 3464, FU Berlin WFS & NASA PDS Mars 2020 register with bundled close-up imagery.',
+                style: TextStyle(fontSize: 11, color: MarsTheme.dim),
+              ),
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final entry in [
+                      ('ALL', 'ALL (15)'),
+                      ('geological_features', 'GEOLOGICAL (6)'),
+                      ('rover_exploration', 'ROVER EXPLORATION (6)'),
+                      ('points_of_interest', 'POINTS OF INTEREST (3)'),
+                    ])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ChoiceChip(
+                          label: Text(entry.$2, style: const TextStyle(fontFamily: 'monospace', fontSize: 10)),
+                          selected: _landmarkCategory == entry.$1,
+                          onSelected: (_) => setState(() => _landmarkCategory = entry.$1),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              for (final l in (_landmarkCategory == 'ALL'
+                  ? kMappedJezeroLandmarks
+                  : kMappedJezeroLandmarks.where((item) => item.category == _landmarkCategory)))
+                Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.asset(
+                              l.assetPath,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF1F1917)),
+                            ),
+                            Positioned(
+                              top: 8,
+                              left: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.75),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  '${l.geometryType.toUpperCase()} · ${l.subcategory.toUpperCase()}',
+                                  style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: Colors.white),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: DataBadge(l.isObserved ? DataType.observed : DataType.derived),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(l.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                ),
+                                if (l.latDeg != null && l.lonEast != null)
+                                  Text(
+                                    '${l.latDeg!.toStringAsFixed(3)}°N, ${l.lonEast!.toStringAsFixed(3)}°E',
+                                    style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: MarsTheme.dim),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(l.geologicalDescription, style: const TextStyle(fontSize: 12)),
+                            const SizedBox(height: 4),
+                            Text('Significance: ${l.scientificSignificance}', style: const TextStyle(fontSize: 11, color: MarsTheme.dim)),
+                            if (l.perseveranceHistory != null) ...[
+                              const SizedBox(height: 4),
+                              Text('Rover History: ${l.perseveranceHistory}', style: const TextStyle(fontSize: 11, color: MarsTheme.marsDeep)),
+                            ],
+                            if (l.panoramaInfo != null) ...[
+                              const SizedBox(height: 4),
+                              Text('Mastcam-Z Panorama: ${l.panoramaInfo}', style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: MarsTheme.atmosDeep)),
+                            ],
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text('Source: ${l.sourceName}', style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: MarsTheme.dim)),
+                                ),
+                                if (grid != null && l.lonEast != null && l.latDeg != null)
+                                  FilledButton.tonalIcon(
+                                    onPressed: () {
+                                      final cell = grid.georeference?.cellFor(l.lonEast!, l.latDeg!, grid.w, grid.h);
+                                      if (cell != null) {
+                                        ref.read(plannerProvider.notifier).tapCell(grid, GridPoint(cell.x, cell.y));
+                                        ref.read(tabIndexProvider.notifier).state = 1;
+                                      }
+                                    },
+                                    icon: const Icon(Icons.place, size: 14),
+                                    label: const Text('VIEW ON MAP', style: TextStyle(fontFamily: 'monospace', fontSize: 10)),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),

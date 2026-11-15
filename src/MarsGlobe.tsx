@@ -29,6 +29,37 @@ const REGIONS: [number, number, number, number][] = [
   [-18, -6, -95, -45], // Valles Marineris region
 ];
 
+/** Synchronous procedural fallback texture so the 3D globe renders immediately on frame 1 even on slow mobile connections. */
+function makeProceduralMarsTexture(): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 512;
+  c.height = 256;
+  const ctx = c.getContext("2d")!;
+  const grad = ctx.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0, "#d8cfc4");
+  grad.addColorStop(0.08, "#b86342");
+  grad.addColorStop(0.35, "#c56a46");
+  grad.addColorStop(0.5, "#9c472b");
+  grad.addColorStop(0.68, "#843a22");
+  grad.addColorStop(0.92, "#b55f3e");
+  grad.addColorStop(1, "#dfd6cb");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 512, 256);
+
+  // Subtle albedo bands (Syrtis Major, Valles Marineris, Tharsis)
+  ctx.fillStyle = "rgba(62, 28, 18, 0.32)";
+  ctx.beginPath();
+  ctx.ellipse(370, 115, 55, 38, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(180, 145, 85, 22, -0.1, 0, Math.PI * 2);
+  ctx.fill();
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 function usePolyline(points: THREE.Vector3[], color: string, opacity: number) {
   const line = useMemo(() => {
     const g = new THREE.BufferGeometry().setFromPoints(points);
@@ -93,17 +124,19 @@ function Atmosphere() {
   const mat = useMemo(() => new THREE.ShaderMaterial({
     side: THREE.BackSide, transparent: true, depthWrite: false,
     vertexShader: "varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
-    fragmentShader: "varying vec3 vN; void main(){ float a = smoothstep(0.0, 0.48, -vN.z); a = pow(a, 1.8) * 0.65; gl_FragColor = vec4(0.92, 0.48, 0.30, a); }",
+    fragmentShader: "varying vec3 vN; void main(){ float a = smoothstep(0.0, 0.48, -vN.z); a = pow(a, 1.8) * 0.62; gl_FragColor = vec4(0.90, 0.48, 0.32, a); }",
   }), []);
   useEffect(() => () => mat.dispose(), [mat]);
   return <mesh scale={1.12}><sphereGeometry args={[1, 48, 32]} /><primitive object={mat} attach="material" /></mesh>;
 }
 
 function Planet({ reduce, onReady, planetRef, compact }: { reduce: boolean; onReady: () => void; planetRef: React.RefObject<THREE.Mesh | null>; compact?: boolean }) {
-  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+  const fallbackTex = useMemo(() => makeProceduralMarsTexture(), []);
+  const [texture, setTexture] = useState<THREE.Texture>(fallbackTex);
   const texPath = compact ? `${import.meta.env.BASE_URL}mars-color-1k.jpg` : `${import.meta.env.BASE_URL}mars-color-2k.jpg`;
 
   useEffect(() => {
+    onReady();
     let active = true;
     const loader = new THREE.TextureLoader();
     loader.load(
@@ -112,13 +145,12 @@ function Planet({ reduce, onReady, planetRef, compact }: { reduce: boolean; onRe
         if (!active) return;
         tex.colorSpace = THREE.SRGBColorSpace;
         tex.anisotropy = compact ? 4 : 8;
+        tex.needsUpdate = true;
         setTexture(tex);
-        onReady();
       },
       undefined,
-      (err) => {
-        console.warn("Mars texture load warning, rendering procedural surface:", err);
-        if (active) onReady();
+      () => {
+        // Keep procedural fallback texture if network fails
       }
     );
     return () => { active = false; };
@@ -128,9 +160,9 @@ function Planet({ reduce, onReady, planetRef, compact }: { reduce: boolean; onRe
     <mesh ref={planetRef}>
       <sphereGeometry args={[R, compact ? 64 : 96, compact ? 48 : 64]} />
       <meshStandardMaterial
+        key={texture.uuid}
         map={texture}
-        color={texture ? "#ffffff" : "#c14f2e"}
-        roughness={0.88}
+        roughness={0.9}
         metalness={0.02}
       />
     </mesh>
@@ -184,16 +216,16 @@ export default function MarsGlobe({ active, reduce, fly, apiRef, onReady, compac
     <Canvas
       frameloop={!active ? "never" : reduce ? "demand" : "always"}
       dpr={[1, compact ? 1.5 : 2]}
-      camera={{ position: latLon(10, -20).setLength(compact ? 2.65 : 3.1).toArray(), fov: compact ? 36 : 34, near: 0.1, far: 20 }}
+      camera={{ position: latLon(10, -20).setLength(compact ? 2.75 : 3.1).toArray(), fov: 34, near: 0.1, far: 20 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
       onPointerDown={() => setEngaged(true)}
       onPointerLeave={() => setEngaged(false)}
       aria-label="Interactive 3D globe of Mars. Drag to rotate; use the zoom buttons or focus the globe and scroll to zoom."
       role="img"
     >
-      <ambientLight intensity={0.55} color="#ffd4c0" />
+      <ambientLight intensity={0.48} color="#ffd4c0" />
       <directionalLight position={[-4, 2.5, 4.5]} intensity={1.85} color="#fff6ee" />
-      <directionalLight position={[4, -1, -3]} intensity={0.35} color="#b85230" />
+      <directionalLight position={[4, -1, -3]} intensity={0.3} color="#b85230" />
       <Planet reduce={reduce} onReady={onReady} planetRef={planet} compact={compact} />
       <Atmosphere />
       <Rig fly={fly} controls={controls} api={apiRef} reduce={reduce} />
