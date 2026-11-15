@@ -226,7 +226,7 @@ class MissionReportScreen extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('REPORT · ${route.mode.name.toUpperCase()}', style: const TextStyle(fontFamily: 'monospace', fontSize: 16, fontWeight: FontWeight.bold)),
-                    const DataBadge(DataType.modeled),
+                    DataBadge(DataType.modeled),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -301,7 +301,7 @@ class MissionReportScreen extends ConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('SIMULATED RISK: ${risk.score}/100 (${risk.level})', style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 12)),
-                            const DataBadge(DataType.simulated),
+                            DataBadge(DataType.simulated),
                           ],
                         ),
                         const SizedBox(height: 8),

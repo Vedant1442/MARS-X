@@ -36,6 +36,7 @@ class Landmark {
   final String desc;
   final String why;
   final ScienceTarget? target;
+  final String imagePath;
   LandmarkLeg? next;
 
   Landmark({
@@ -48,6 +49,7 @@ class Landmark {
     required this.desc,
     required this.why,
     this.target,
+    this.imagePath = '',
     this.next,
   });
 }
@@ -256,10 +258,11 @@ class LandmarkSelector {
         pathIdx: 0,
         pt: p[0],
         sM: 0.0,
-        name: 'Start',
+        name: 'Start Point',
         kind: LandmarkKind.start,
-        desc: 'Your starting cell. Note the surroundings before you set off.',
-        why: 'Reference point for the traverse.',
+        desc: 'Traverse departure coordinates. Observe local regolith and bearing before departure.',
+        why: 'Base reference point for dead-reckoning excursion vectors.',
+        imagePath: 'assets/landmarks/octavia-butler-landing.jpg',
       ),
       for (var j = 0; j < mids.length; j++)
         Landmark(
@@ -272,16 +275,18 @@ class LandmarkSelector {
           desc: mids[j].desc,
           why: mids[j].why,
           target: mids[j].target,
+          imagePath: mids[j].target?.imagePath ?? 'assets/landmarks/western-delta.jpg',
         ),
       Landmark(
         n: kCount,
         pathIdx: n - 1,
         pt: p[n - 1],
         sM: s[n - 1],
-        name: 'Destination',
+        name: 'Destination Outpost',
         kind: LandmarkKind.dest,
-        desc: 'End of the candidate route.',
-        why: 'Planned end point. Reaching it is not a safety guarantee.',
+        desc: 'Final target waypoint of the excursion track.',
+        why: 'Planned expedition destination. Establish sample depot cache and communications link.',
+        imagePath: 'assets/landmarks/three-forks.jpg',
       ),
     ];
 

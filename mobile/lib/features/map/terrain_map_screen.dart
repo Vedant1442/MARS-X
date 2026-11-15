@@ -19,6 +19,7 @@ class TerrainMapScreen extends ConsumerStatefulWidget {
 class _TerrainMapScreenState extends ConsumerState<TerrainMapScreen> {
   final TransformationController _transController = TransformationController();
   bool _drawerExpanded = true;
+  ScienceTarget? _selectedLandmark;
 
   @override
   void dispose() {
@@ -65,6 +66,21 @@ class _TerrainMapScreenState extends ConsumerState<TerrainMapScreen> {
                         final dy = scenePoint.dy / constraints.maxHeight;
                         final x = (dx * grid.w).floor().clamp(0, grid.w - 1);
                         final y = (dy * grid.h).floor().clamp(0, grid.h - 1);
+
+                        // Check if tapped near any of the 15 landmarks (within 3 cells)
+                        ScienceTarget? hitLandmark;
+                        for (final target in kDemoTargets) {
+                          final dist = math.sqrt((target.x - x) * (target.x - x) + (target.y - y) * (target.y - y));
+                          if (dist <= 3.5) {
+                            hitLandmark = target;
+                            break;
+                          }
+                        }
+
+                        setState(() {
+                          _selectedLandmark = hitLandmark;
+                        });
+
                         notifier.tapCell(grid, GridPoint(x, y));
                       },
                       child: CustomPaint(
@@ -204,8 +220,17 @@ class _TerrainMapScreenState extends ConsumerState<TerrainMapScreen> {
                 ),
               ),
 
-              // 3. TOP-RIGHT FLOATING CELL INSPECTOR
-              if (st.inspected != null)
+              // 3. TOP-RIGHT FLOATING CELL INSPECTOR / LANDMARK CALLOUT
+              if (_selectedLandmark != null)
+                Positioned(
+                  top: 90,
+                  right: 8,
+                  child: _LandmarkMapCard(
+                    target: _selectedLandmark!,
+                    onClose: () => setState(() => _selectedLandmark = null),
+                  ),
+                )
+              else if (st.inspected != null)
                 Positioned(
                   top: 90,
                   right: 8,
@@ -228,6 +253,89 @@ class _TerrainMapScreenState extends ConsumerState<TerrainMapScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _LandmarkMapCard extends StatelessWidget {
+  final ScienceTarget target;
+  final VoidCallback onClose;
+
+  const _LandmarkMapCard({required this.target, required this.onClose});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 240,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: const Color(0xFF191316).withOpacity(0.95),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFD3A24C), width: 1.5),
+        boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 8)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (target.imagePath.isNotEmpty)
+            Stack(
+              children: [
+                Image.asset(
+                  target.imagePath,
+                  height: 90,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: GestureDetector(
+                    onTap: onClose,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.black54,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close, size: 14, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  target.name.toUpperCase(),
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                    color: Color(0xFFF5F1E8),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Coord: (${target.x}, ${target.y}) · ${target.type}',
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: Color(0xFFD3A24C)),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  target.note,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 10, color: Color(0xFFD6CBC7)),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -571,11 +679,25 @@ class _TerrainPainter extends CustomPainter {
       }
     }
 
-    // Cited Science Targets
+    // Cited Science Targets (All 15 Jezero Landmarks)
     if (st.showTargets) {
-      final tp = Paint()..color = const Color(0xFFF06543);
       for (final t in kDemoTargets) {
-        canvas.drawCircle(Offset((t.x + 0.5) * cw, (t.y + 0.5) * ch), 4.0, tp);
+        final cx = (t.x + 0.5) * cw;
+        final cy = (t.y + 0.5) * ch;
+
+        // Outer glow
+        canvas.drawCircle(Offset(cx, cy), 5.5, Paint()..color = const Color(0x66F06543));
+        // Inner circle
+        canvas.drawCircle(Offset(cx, cy), 3.5, Paint()..color = const Color(0xFFF06543));
+        // Border
+        canvas.drawCircle(
+          Offset(cx, cy),
+          3.5,
+          Paint()
+            ..color = Colors.white
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.8,
+        );
       }
     }
 

@@ -120,4 +120,16 @@ void main() {
       expect(tradeoff.compromiseSummary, isNotEmpty);
     }
   });
+
+  test('All 15 Jezero expedition landmarks are defined with coordinates and images', () {
+    expect(kDemoTargets.length, equals(15));
+    for (final t in kDemoTargets) {
+      expect(t.name, isNotEmpty);
+      expect(t.x, inInclusiveRange(0, 119));
+      expect(t.y, inInclusiveRange(0, 75));
+      expect(t.note, isNotEmpty);
+      expect(t.imagePath, isNotEmpty);
+      expect(t.significance, isNotEmpty);
+    }
+  });
 }
