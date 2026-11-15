@@ -183,7 +183,7 @@ class _MarsGlobeScreenState extends ConsumerState<MarsGlobeScreen> with SingleTi
                       Text(
                         'USGS Viking/MOLA Global Mosaic · R = 3,396.19 km',
                         style: TextStyle(
-                          color: const Color(0xFFF5F1E8).withValues(alpha: 0.7),
+                          color: const Color(0xFFF5F1E8).withOpacity(0.7),
                           fontFamily: 'monospace',
                           fontSize: 10,
                         ),
@@ -218,7 +218,7 @@ class _MarsGlobeScreenState extends ConsumerState<MarsGlobeScreen> with SingleTi
                           ),
                         ),
                         selected: _selectedSite?.id == site.id,
-                        selectedColor: site.color.withValues(alpha: 0.3),
+                        selectedColor: site.color.withOpacity(0.3),
                         side: BorderSide(
                           color: _selectedSite?.id == site.id ? site.color : Colors.white24,
                         ),
@@ -238,12 +238,12 @@ class _MarsGlobeScreenState extends ConsumerState<MarsGlobeScreen> with SingleTi
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFF191316).withValues(alpha: 0.92),
+                color: const Color(0xFF191316).withOpacity(0.92),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFF06543).withValues(alpha: 0.5)),
+                border: Border.all(color: const Color(0xFFF06543).withOpacity(0.5)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.5),
+                    color: Colors.black.withOpacity(0.5),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -294,7 +294,7 @@ class _MarsGlobeScreenState extends ConsumerState<MarsGlobeScreen> with SingleTi
                   Text(
                     _selectedSite?.desc ?? 'Drag to rotate the Mars globe. Tap a planetary feature above to inspect.',
                     style: TextStyle(
-                      color: const Color(0xFFF5F1E8).withValues(alpha: 0.8),
+                      color: const Color(0xFFF5F1E8).withOpacity(0.8),
                       fontSize: 12,
                     ),
                   ),
@@ -399,7 +399,7 @@ class _Globe3DPainter extends CustomPainter {
       );
       final texPaint = Paint()
         ..filterQuality = FilterQuality.medium
-        ..color = Colors.white.withValues(alpha: 0.75);
+        ..color = Colors.white.withOpacity(0.75);
 
       canvas.drawImageRect(texture!, src1, dst1, texPaint);
 
@@ -418,7 +418,7 @@ class _Globe3DPainter extends CustomPainter {
           Offset(center.dx + radius, center.dy + radius),
           [
             Colors.transparent,
-            Colors.black.withValues(alpha: 0.55),
+            Colors.black.withOpacity(0.55),
           ],
         );
       canvas.drawCircle(center, radius, shadowPaint);
@@ -498,7 +498,7 @@ class _Globe3DPainter extends CustomPainter {
         if (isJezero) {
           final pulseRadius = 12.0 + pulse * 10.0;
           final pulsePaint = Paint()
-            ..color = site.color.withValues(alpha: 0.5 * (1.0 - pulse))
+            ..color = site.color.withOpacity(0.5 * (1.0 - pulse))
             ..style = PaintingStyle.stroke
             ..strokeWidth = 2.0;
           canvas.drawCircle(Offset(sx, sy), pulseRadius, pulsePaint);
@@ -512,7 +512,7 @@ class _Globe3DPainter extends CustomPainter {
 
         // Border
         final borderPaint = Paint()
-          ..color = Colors.black.withValues(alpha: 0.8)
+          ..color = Colors.black.withOpacity(0.8)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.2;
         canvas.drawCircle(Offset(sx, sy), isSelected ? 5.5 : 4.0, borderPaint);

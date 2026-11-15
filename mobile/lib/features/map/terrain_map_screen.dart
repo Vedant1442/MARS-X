@@ -106,11 +106,11 @@ class _TerrainMapScreenState extends ConsumerState<TerrainMapScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: MarsTheme.paper.withValues(alpha: 0.90),
+                        color: MarsTheme.paper.withOpacity(0.90),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: MarsTheme.lineStrong),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6, offset: const Offset(0, 2)),
+                          BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 6, offset: const Offset(0, 2)),
                         ],
                       ),
                       child: SingleChildScrollView(
@@ -160,7 +160,7 @@ class _TerrainMapScreenState extends ConsumerState<TerrainMapScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
-                          color: MarsTheme.paper.withValues(alpha: 0.88),
+                          color: MarsTheme.paper.withOpacity(0.88),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(color: MarsTheme.line),
                         ),
@@ -190,7 +190,7 @@ class _TerrainMapScreenState extends ConsumerState<TerrainMapScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF191316).withValues(alpha: 0.85),
+                          color: const Color(0xFF191316).withOpacity(0.85),
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(color: const Color(0xFFD3A24C)),
                         ),
@@ -247,7 +247,7 @@ class _FloatingInspector extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF191316).withValues(alpha: 0.90),
+        color: const Color(0xFF191316).withOpacity(0.90),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: passable ? const Color(0xFF7FA99B) : const Color(0xFFC3423F)),
         boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 6)],
@@ -304,7 +304,7 @@ class _BottomRouteSheet extends ConsumerWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: MarsTheme.paper.withValues(alpha: 0.92),
+          color: MarsTheme.paper.withOpacity(0.92),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: MarsTheme.lineStrong),
         ),
@@ -332,7 +332,7 @@ class _BottomRouteSheet extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: MarsTheme.paper.withValues(alpha: 0.94),
+        color: MarsTheme.paper.withOpacity(0.94),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: MarsTheme.lineStrong),
         boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 3))],
@@ -467,7 +467,7 @@ class _RoutePill extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? accentColor.withValues(alpha: 0.15) : MarsTheme.ink,
+          color: selected ? accentColor.withOpacity(0.15) : MarsTheme.ink,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: selected ? accentColor : MarsTheme.line,

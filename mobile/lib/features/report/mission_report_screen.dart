@@ -476,7 +476,7 @@ class _ComparativeMatrixCard extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(vertical: 4),
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: t.mode == activeMode ? t.color.withValues(alpha: 0.1) : Colors.transparent,
+                  color: t.mode == activeMode ? t.color.withOpacity(0.1) : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
                     color: t.mode == activeMode ? t.color : MarsTheme.line,

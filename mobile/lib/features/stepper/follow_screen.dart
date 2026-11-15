@@ -375,7 +375,7 @@ class _LandmarkPhotoCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.75),
+                      color: Colors.black.withOpacity(0.75),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: const Color(0xFFD3A24C)),
                     ),
@@ -392,7 +392,7 @@ class _LandmarkPhotoCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.75),
+                      color: Colors.black.withOpacity(0.75),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Text('MASTCAM-Z / HiRISE ANALOG', style: TextStyle(color: Color(0xFFD3A24C), fontFamily: 'monospace', fontSize: 9)),
@@ -406,7 +406,7 @@ class _LandmarkPhotoCard extends StatelessWidget {
                   right: 0,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    color: Colors.black.withValues(alpha: 0.65),
+                    color: Colors.black.withOpacity(0.65),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -535,7 +535,7 @@ class _Street360Viewport extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.75),
+                            color: Colors.black.withOpacity(0.75),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -605,7 +605,7 @@ class _CompassTape extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.70),
+        color: Colors.black.withOpacity(0.70),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.white24),
       ),
