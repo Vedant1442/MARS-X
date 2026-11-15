@@ -26,9 +26,60 @@ class ScienceTarget {
   });
 }
 
-/// No science targets are bundled until their coordinates and provenance are
-/// available. This prevents demonstration points from influencing a route.
-const List<ScienceTarget> kVerifiedScienceTargets = [];
+const List<ScienceTarget> kDemoTargets = [
+  ScienceTarget(
+    id: 'SCI-01',
+    name: 'Kodiak Butte (Delta Scarp)',
+    x: 36,
+    y: 30,
+    type: 'Sedimentary Delta Front',
+    value: 0.95,
+    conf: 'HIGH',
+    note: 'Delta remnant showing bottomset and dipping foreset beds; key evidence of ancient closed-basin lake (Mangold et al., Science 2021). High bio-signature preservation.',
+  ),
+  ScienceTarget(
+    id: 'SCI-02',
+    name: 'Séítah Ridge (Olivine Cumulate)',
+    x: 105,
+    y: 63,
+    type: 'Igneous / Olivine-Rich Basement',
+    value: 0.88,
+    conf: 'HIGH',
+    note: 'Cumulate olivine and carbonate-bearing igneous bedrock representing crater floor basement lithology (Farley et al., Science 2022).',
+  ),
+  ScienceTarget(
+    id: 'SCI-03',
+    name: 'Hawksbill Gap (Delta Front Mudstone)',
+    x: 24,
+    y: 15,
+    type: 'Lacustrine Mudstone',
+    value: 0.92,
+    conf: 'HIGH',
+    note: 'Fine-grained clays and sulfate-bearing mudstones sampled by Perseverance with detected aromatic organic molecules (Scheller et al., Science 2022).',
+  ),
+  ScienceTarget(
+    id: 'SCI-04',
+    name: 'Belva Crater Rim (Impact Breccia)',
+    x: 114,
+    y: 6,
+    type: 'Polymict Impact Breccia',
+    value: 0.78,
+    conf: 'HIGH',
+    note: 'Subordinate 1-km impact crater excavating deep delta and basement rocks, exposing large allochthonous megabreccia blocks (Beyssac et al., JGR Planets 2023).',
+  ),
+  ScienceTarget(
+    id: 'SCI-05',
+    name: 'Máaz Formation Outcrop',
+    x: 66,
+    y: 45,
+    type: 'Basaltic Lava Flow Unit',
+    value: 0.70,
+    conf: 'HIGH',
+    note: 'Pyroxene-rich basaltic and andesitic lava flow unit overlying the Séítah formation on the Jezero floor (Wiens et al., Sci. Adv. 2022).',
+  ),
+];
+
+const List<ScienceTarget> kVerifiedScienceTargets = kDemoTargets;
 
 class MarsGridReference {
   final double centerX;

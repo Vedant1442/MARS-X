@@ -33,3 +33,4 @@ flutter:
     - assets/terrain/jezero-ctx-crater-rim.geojson
     - assets/terrain/jezero-landmarks.geojson
     - assets/terrain/perseverance-rover-stops.geojson
+    - assets/images/

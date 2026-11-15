@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../app/theme.dart';
 import '../../domain/terrain/terrain_grid.dart';
+export '../../domain/terrain/terrain_grid.dart' show DataType;
 
 class DataBadge extends StatelessWidget {
   final DataType type;

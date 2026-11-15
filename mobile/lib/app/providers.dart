@@ -67,6 +67,7 @@ class PlannerState {
   final RouteMode activeMode;
   final TerrainLayer layer;
   final bool showContours;
+  final bool showTargets;
   final bool tilt3D;
   final double verticalExag;
   final Map<RouteMode, RouteResult?> routes;
@@ -81,6 +82,7 @@ class PlannerState {
     this.activeMode = RouteMode.safest,
     this.layer = TerrainLayer.imagery,
     this.showContours = false,
+    this.showTargets = true,
     this.tilt3D = false,
     this.verticalExag = 2.0,
     this.routes = const {},
@@ -100,6 +102,7 @@ class PlannerState {
     RouteMode? activeMode,
     TerrainLayer? layer,
     bool? showContours,
+    bool? showTargets,
     bool? tilt3D,
     double? verticalExag,
     Map<RouteMode, RouteResult?>? routes,
@@ -115,6 +118,7 @@ class PlannerState {
       activeMode: activeMode ?? this.activeMode,
       layer: layer ?? this.layer,
       showContours: showContours ?? this.showContours,
+      showTargets: showTargets ?? this.showTargets,
       tilt3D: tilt3D ?? this.tilt3D,
       verticalExag: verticalExag ?? this.verticalExag,
       routes: routes ?? this.routes,
@@ -133,10 +137,19 @@ class _RouteJob {
   const _RouteJob({required this.grid, required this.start, required this.end});
 }
 
-List<RouteResult?> _computeRouteCandidates(_RouteJob job) => [
-      for (final mode in RouteMode.values)
-        MarsRouter.findRoute(job.grid, job.start, job.end, RouteWeights.forMode(mode), mode),
-    ];
+List<RouteResult?> _computeRouteCandidates(_RouteJob job) {
+  final fastest = MarsRouter.findRoute(job.grid, job.start, job.end, RouteWeights.forMode(RouteMode.fastest), RouteMode.fastest);
+  final safest = MarsRouter.findRoute(job.grid, job.start, job.end, RouteWeights.forMode(RouteMode.safest), RouteMode.safest);
+  final refDist = fastest?.distanceM ?? 10000.0;
+  final science = MarsRouter.findScienceRouteWithDetourCap(
+    job.grid,
+    job.start,
+    job.end,
+    refDist,
+    maxDetourRatio: 1.5,
+  );
+  return [safest, fastest, science];
+}
 
 class PlannerNotifier extends StateNotifier<PlannerState> {
   PlannerNotifier() : super(const PlannerState());
@@ -231,6 +244,7 @@ class PlannerNotifier extends StateNotifier<PlannerState> {
   void setMode(RouteMode mode) => state = state.copyWith(activeMode: mode, landmarkStep: 0);
   void setLayer(TerrainLayer layer) => state = state.copyWith(layer: layer);
   void toggleContours() => state = state.copyWith(showContours: !state.showContours);
+  void toggleTargets() => state = state.copyWith(showTargets: !state.showTargets);
   void toggleTilt3D() => state = state.copyWith(tilt3D: !state.tilt3D);
   void setExag(double v) => state = state.copyWith(verticalExag: v);
   void setStep(int step) => state = state.copyWith(landmarkStep: step);
@@ -255,3 +269,5 @@ final riskProvider = Provider<RiskAssessment?>((ref) {
 });
 
 final missionRepoProvider = Provider<MissionRepo>((ref) => MissionRepo());
+
+final tabIndexProvider = StateProvider<int>((ref) => 0);
