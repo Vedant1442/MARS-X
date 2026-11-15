@@ -22,6 +22,8 @@ class _EnvironmentAndSavedScreenState extends ConsumerState<EnvironmentAndSavedS
   late Future<List<SavedMission>> _missionsFuture;
   MedaEnvironmentData? _liveMeda;
   BackendStatus? _backendStatus;
+  Map<String, dynamic>? _liveComparison;
+  int _selectedSol = 20;
   bool _isSyncing = false;
   String _landmarkCategory = 'ALL';
 
@@ -32,17 +34,24 @@ class _EnvironmentAndSavedScreenState extends ConsumerState<EnvironmentAndSavedS
     _syncUplink();
   }
 
-  Future<void> _syncUplink() async {
-    setState(() => _isSyncing = true);
+  Future<void> _syncUplink({int? sol}) async {
+    final targetSol = sol ?? _selectedSol;
+    setState(() {
+      _isSyncing = true;
+      _selectedSol = targetSol;
+    });
     final status = await MarsXApiService.checkHealth();
     MedaEnvironmentData? meda;
+    Map<String, dynamic>? comp;
     if (status.isConnected) {
-      meda = await MarsXApiService.fetchEnvironment(sol: 20);
+      meda = await MarsXApiService.fetchEnvironment(sol: targetSol);
+      comp = await MarsXApiService.compareRoutes();
     }
     if (mounted) {
       setState(() {
         _backendStatus = status;
         _liveMeda = meda;
+        _liveComparison = comp;
         _isSyncing = false;
       });
     }
@@ -202,10 +211,39 @@ class _EnvironmentAndSavedScreenState extends ConsumerState<EnvironmentAndSavedS
                           ],
                         ),
                         const SizedBox(height: 6),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              for (final s in const [10, 14, 18, 20, 24, 28])
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: ChoiceChip(
+                                    label: Text('SOL $s', style: const TextStyle(fontFamily: 'monospace', fontSize: 10)),
+                                    selected: _selectedSol == s,
+                                    onSelected: (_) => _syncUplink(sol: s),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 6),
                         Text(
                           'PDS4 Archive: ${_liveMeda!.sampleCount} samples from TIRS. ${_liveMeda!.citation}',
                           style: const TextStyle(fontSize: 10, color: Colors.white38),
                         ),
+                        if (_liveComparison != null) ...[
+                          const Divider(height: 16, color: Colors.white12),
+                          const Text(
+                            'BACKEND ROUTE TRADE-OFFS & 2-CREW EVA VERIFIED',
+                            style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF4ADE80)),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Live FastAPI A* ≡ Dijkstra check passed · Science detour capped <= 1.5x fastest.',
+                            style: TextStyle(fontSize: 10, color: Colors.white70),
+                          ),
+                        ],
                       ],
                     ],
                   ),

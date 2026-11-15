@@ -37,14 +37,6 @@ class MarsTheme {
         surfaceTintColor: Colors.transparent,
       ),
       dividerColor: line,
-      cardTheme: CardThemeData(
-        color: paper,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4),
-          side: const BorderSide(color: line),
-        ),
-      ),
     );
   }
 }

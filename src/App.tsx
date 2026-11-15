@@ -23,7 +23,7 @@ import { AVAILABLE_SOLS, getMedaWeather, MEDA_SOLS, solHourToSun } from "./medaD
 import { API_BASE } from "./api";
 import LandingPage from "./pages/LandingPage";
 
-const LATEST_APK_URL = "https://github.com/Vedant1442/MARS-X/releases/download/latest/app-arm64-v8a-release.apk";
+const LATEST_APK_URL = "/downloads/mars-x-pro-v2.0.0.apk";
 
 // ---------- Perseverance Sample Caching & Petrology Types (Phase 5) ----------
 export type SampleTube = {

@@ -13,8 +13,8 @@ import { MAPPED_JEZERO_LANDMARKS, type MappedJezeroLandmark } from "../processed
 import { AVAILABLE_SOLS, getMedaWeather, MEDA_SOLS } from "../medaData";
 import { MODE_W, type Label, type Mode, type Weights } from "../engine";
 
-export const LATEST_APK_URL =
-  "https://github.com/Vedant1442/MARS-X/releases/download/latest/app-arm64-v8a-release.apk";
+export const LATEST_APK_URL = "/downloads/mars-x-pro-v2.0.0.apk";
+export const LEGACY_APK_URL = "/mars-x-release.apk";
 
 const LABEL_C: Record<Label, string> = {
   OBSERVED: "text-sci border-atmos/70",
@@ -442,7 +442,7 @@ export default function LandingPage({ renderGlobe, onNavigate, onExplore }: Land
               </button>
               <a
                 href={LATEST_APK_URL}
-                download="mars-x-release.apk"
+                download="mars-x-pro-v2.0.0.apk"
                 className="font-mono text-[12px] tracking-[0.1em] px-4 py-2.5 border rounded-sm transition-colors border-mars-deep/60 bg-mars/[0.08] text-mars-deep hover:bg-mars-deep hover:text-ink font-semibold flex items-center gap-2"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -450,7 +450,7 @@ export default function LandingPage({ renderGlobe, onNavigate, onExplore }: Land
                   <polyline points="7 10 12 15 17 10" />
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
-                <span>DOWNLOAD APK (17.3 MB)</span>
+                <span>DOWNLOAD NEW PRO v2.0 APK</span>
               </a>
               <button
                 onClick={() => scrollToLandingSection("#download")}
@@ -1205,25 +1205,36 @@ export default function LandingPage({ renderGlobe, onNavigate, onExplore }: Land
           </div>
 
           <div className="grid md:grid-cols-3 gap-5">
-            {/* Card 1: Android APK */}
-            <div className="border border-line-strong rounded-lg p-5 bg-panel/40 flex flex-col justify-between space-y-4">
+            {/* Card 1: New Standalone MARS-X Pro v2.0.0 APK + Original v1 APK */}
+            <div className="border-2 border-mars-deep rounded-lg p-5 bg-mars/[0.06] flex flex-col justify-between space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between font-mono text-[10px]">
-                  <span className="text-mars-deep font-bold">ANDROID RELEASE APK</span>
-                  <span className="px-2 py-0.5 bg-mars/[0.12] text-mars-deep rounded-xs">arm64-v8a</span>
+                  <span className="text-mars-deep font-bold">NEW STANDALONE APK (v2.0.0)</span>
+                  <span className="px-2 py-0.5 bg-mars/[0.18] text-mars-deep rounded-xs font-bold">com.marsx.pro</span>
                 </div>
-                <h3 className="text-[18px] font-medium text-fg">MARS-X Mobile App</h3>
+                <h3 className="text-[18px] font-medium text-fg">MARS-X Pro v2.0 Mobile App</h3>
                 <p className="text-[12px] text-dim leading-relaxed">
-                  100% offline-capable Android APK with embedded HiRISE DEM, 15 Jezero landmarks, and EVA HUD.
+                  Brand-new standalone Android APK (installs side-by-side without overwriting v1). Merges the unified
+                  FastAPI backend, all 15 Jezero landmarks &amp; close-up imagery, MEDA Sol selector, 2-astronaut EVA
+                  consumables, and Route Trade-Offs.
                 </p>
               </div>
-              <a
-                href={LATEST_APK_URL}
-                download="mars-x-release.apk"
-                className="w-full font-mono text-[12px] tracking-[0.08em] px-4 py-3 rounded-sm bg-mars-deep text-ink hover:bg-fg transition-colors font-semibold flex items-center justify-center gap-2"
-              >
-                <span>DOWNLOAD APK (17.3 MB)</span>
-              </a>
+              <div className="space-y-2">
+                <a
+                  href={LATEST_APK_URL}
+                  download="mars-x-pro-v2.0.0.apk"
+                  className="w-full font-mono text-[12px] tracking-[0.08em] px-4 py-3 rounded-sm bg-mars-deep text-ink hover:bg-fg transition-colors font-semibold flex items-center justify-center gap-2"
+                >
+                  <span>DOWNLOAD MARS-X PRO v2.0 APK</span>
+                </a>
+                <a
+                  href={LEGACY_APK_URL}
+                  download="mars-x-v1-original.apk"
+                  className="w-full font-mono text-[10px] tracking-[0.06em] px-3 py-1.5 rounded-sm border border-line-strong text-dim hover:text-fg hover:bg-panel transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <span>Or download original v1.0 baseline APK (untouched)</span>
+                </a>
+              </div>
             </div>
 
             {/* Card 2: Teammate Drop-in LandingPage.tsx */}

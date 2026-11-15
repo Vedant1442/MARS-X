@@ -97,7 +97,7 @@ class MissionRepo {
         if (oldVersion < 2) {
           // Keep v1 missions and mark their coordinates as HiRISE patch cells.
           await database.execute(
-            "ALTER TABLE missions ADD COLUMN grid_id TEXT NOT NULL DEFAULT '$legacyPatchGridId'",
+            "ALTER TABLE missions ADD COLUMN grid_id TEXT NOT NULL DEFAULT '${SavedMission.legacyPatchGridId}'",
           );
         }
       },
