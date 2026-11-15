@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class MarsTheme {
   static const Color ink = Color(0xFFF5F1E8);
+  static const Color bg = Color(0xFFF5F1E8);
   static const Color panel = Color(0xFFEEEBE3);
   static const Color paper = Color(0xFFFAF8F2);
   static const Color line = Color(0xFFD9D4C9);
