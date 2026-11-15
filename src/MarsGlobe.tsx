@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Html, OrbitControls } from "@react-three/drei";
+import { Html, OrbitControls, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 
 export type GlobeApi = { zoom: (factor: number) => void };
@@ -93,36 +93,25 @@ function Atmosphere() {
   const mat = useMemo(() => new THREE.ShaderMaterial({
     side: THREE.BackSide, transparent: true, depthWrite: false,
     vertexShader: "varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
-    fragmentShader: "varying vec3 vN; void main(){ float a = smoothstep(0.0, 0.46, -vN.z); a = pow(a, 1.7) * 0.5; gl_FragColor = vec4(0.85, 0.58, 0.47, a); }",
+    fragmentShader: "varying vec3 vN; void main(){ float a = smoothstep(0.0, 0.48, -vN.z); a = pow(a, 1.8) * 0.65; gl_FragColor = vec4(0.92, 0.48, 0.30, a); }",
   }), []);
   useEffect(() => () => mat.dispose(), [mat]);
-  return <mesh scale={1.14}><sphereGeometry args={[1, 48, 32]} /><primitive object={mat} attach="material" /></mesh>;
-}
-
-function useProgressiveTexture(onFirst: () => void) {
-  const [tex, setTex] = useState<THREE.Texture | null>(null);
-  const [hi, setHi] = useState(false);
-  useEffect(() => {
-    let dead = false; const loader = new THREE.TextureLoader(); const made: THREE.Texture[] = [];
-    const load = (url: string, isHi: boolean) => loader.load(url, (t) => {
-      if (dead) { t.dispose(); return; }
-      t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; made.push(t);
-      setTex((old) => { if (old && old !== t) setTimeout(() => old.dispose(), 0); return t; });
-      if (isHi) setHi(true); else { onFirst(); load("/mars-color-2k.jpg", true); }
-    });
-    load("/mars-color-1k.jpg", false);
-    return () => { dead = true; made.forEach((t) => t.dispose()); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  return { tex, hi };
+  return <mesh scale={1.12}><sphereGeometry args={[1, 48, 32]} /><primitive object={mat} attach="material" /></mesh>;
 }
 
 function Planet({ reduce, onReady, planetRef }: { reduce: boolean; onReady: () => void; planetRef: React.RefObject<THREE.Mesh | null> }) {
-  const { tex, hi } = useProgressiveTexture(onReady);
+  const tex = useTexture(`${import.meta.env.BASE_URL}mars-color-2k.jpg`);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+
+  useEffect(() => {
+    onReady();
+  }, [onReady]);
+
   return (<>
     <mesh ref={planetRef}>
-      <sphereGeometry args={[R, hi ? 96 : 40, hi ? 64 : 28]} />
-      <meshStandardMaterial map={tex ?? undefined} color={tex ? "#ffffff" : "#8a5443"} roughness={1} metalness={0} />
+      <sphereGeometry args={[R, 96, 64]} />
+      <meshStandardMaterial map={tex} roughness={0.88} metalness={0.02} />
     </mesh>
     <Graticule />
     {REGIONS.map((b, i) => <Region key={i} box={b} />)}
@@ -175,14 +164,15 @@ export default function MarsGlobe({ active, reduce, fly, apiRef, onReady, compac
       frameloop={!active ? "never" : reduce ? "demand" : "always"}
       dpr={[1, compact ? 1.5 : 2]}
       camera={{ position: latLon(10, -20).setLength(3.1).toArray(), fov: 34, near: 0.1, far: 20 }}
-      gl={{ antialias: true, alpha: true, powerPreference: "high-performance", toneMapping: THREE.NoToneMapping }}
+      gl={{ antialias: true, alpha: true, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
       onPointerDown={() => setEngaged(true)}
       onPointerLeave={() => setEngaged(false)}
       aria-label="Interactive 3D globe of Mars. Drag to rotate; use the zoom buttons or focus the globe and scroll to zoom."
       role="img"
     >
-      <ambientLight intensity={1.25} />
-      <directionalLight position={[-4, 2, 5]} intensity={2.6} />
+      <ambientLight intensity={0.55} color="#ffd4c0" />
+      <directionalLight position={[-4, 2.5, 4.5]} intensity={1.85} color="#fff6ee" />
+      <directionalLight position={[4, -1, -3]} intensity={0.35} color="#b85230" />
       <Planet reduce={reduce} onReady={onReady} planetRef={planet} />
       <Atmosphere />
       <Rig fly={fly} controls={controls} api={apiRef} reduce={reduce} />

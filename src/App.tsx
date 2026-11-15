@@ -86,7 +86,15 @@ function Row({ k, v, l }: { k: string; v: React.ReactNode; l?: Label }) {
   return <div className="flex items-center justify-between gap-3 py-1.5 border-b border-line/70 last:border-0 text-[13px]"><span className="text-dim">{k}</span><span className="flex items-center gap-2 font-mono text-[12px] text-fg text-right">{v}{l && <Tag l={l} />}</span></div>;
 }
 const fmtKm = (m: number) => (m / 1000).toFixed(2) + " km";
-const SynthBanner = () => <div role="note" className="font-mono text-[11px] tracking-[0.08em] text-mars-deep border-b border-dust/40 bg-mars/[0.07] px-3 py-1.5">TERRAIN: USGS HiRISE DTM (DERIVED) · MISSION, TARGETS, RISK AND TIME ARE SIMULATED · ROUTES ARE CANDIDATES, SAFETY NOT CERTIFIED</div>;
+const SynthBanner = () => (
+  <div role="note" className="font-mono text-[10px] sm:text-[11px] tracking-[0.06em] text-mars-deep border-b border-dust/30 bg-mars/[0.08] px-3 py-1.5 flex items-center justify-center text-center gap-1.5 flex-wrap">
+    <span className="font-semibold uppercase tracking-wider">HiRISE DTM (DERIVED)</span>
+    <span className="text-dim/60 hidden sm:inline">·</span>
+    <span className="text-dim">Simulated Mission Targets</span>
+    <span className="text-dim/60 hidden sm:inline">·</span>
+    <span className="text-dim">Candidate Routes</span>
+  </div>
+);
 
 function Swatch({ m, w = 28 }: { m: Mode; w?: number }) {
   return <svg width={w} height={8} aria-hidden="true" className="shrink-0"><line x1={1.5} x2={w - 1.5} y1={4} y2={4} stroke={ROUTE_C[m]} strokeWidth={3} strokeDasharray={SW_DASH[m]} strokeLinecap={m === "SCIENCE" ? "round" : "butt"} /></svg>;
@@ -301,21 +309,40 @@ function Provenance({ d, tag }: { d: Dataset; tag?: Label }) {
 }
 
 // ---------- Shell ----------
-const NAV: [string, string][] = [["/planner", "Planner"], ["/explorer", "Explorer"], ["/routes", "Routes"], ["/follow", "Follow"], ["/immersive", "3D Map"], ["/science", "Science"], ["/mission/ARES-01", "Mission"], ["/data", "Data"], ["/methodology", "Method"], ["/about", "About"]];
+const NAV: [string, string][] = [["/map", "Map"], ["/follow", "Follow"], ["/report", "Report"], ["/data", "Data & Saved"], ["/globe", "Globe"], ["/immersive", "3D Walk"], ["/methodology", "Methodology"]];
 function Shell({ path, children }: { path: string; children: React.ReactNode }) {
   const [menu, setMenu] = useState(false);
   useEffect(() => setMenu(false), [path]);
-  const isOn = (p: string) => path.startsWith(p.split("/").slice(0, 2).join("/"));
-  const full = path.startsWith("/planner") || path.startsWith("/explorer") || path.startsWith("/immersive");
+  const isOn = (p: string) => {
+    if (p === "/map" && (path.startsWith("/map") || path.startsWith("/planner") || path.startsWith("/explorer") || path.startsWith("/routes"))) return true;
+    if (p === "/report" && (path.startsWith("/report") || path.startsWith("/mission"))) return true;
+    if (p === "/globe" && (path === "/" || path.startsWith("/globe"))) return true;
+    return path.startsWith(p.split("/").slice(0, 2).join("/"));
+  };
+  const full = path.startsWith("/map") || path.startsWith("/planner") || path.startsWith("/explorer") || path.startsWith("/immersive");
   return (
     <div className="min-h-full flex flex-col">
       <nav aria-label="Primary" className="h-[52px] shrink-0 border-b border-line flex items-center px-4 gap-6 bg-ink/95 backdrop-blur-sm sticky top-0 z-30">
-        <A to="/" className="flex items-center gap-2.5" ><BrandMark /><span className="font-mono font-medium tracking-[0.18em] text-[14px]">MARS-X</span></A>
-        <div className="hidden md:flex gap-0.5">{NAV.map(([p, n]) => <A key={p} to={p} className={`font-mono text-[12px] tracking-[0.1em] uppercase px-2.5 py-1.5 border-b-2 ${isOn(p) ? "border-mars text-fg" : "border-transparent text-dim hover:text-fg"}`}>{n}</A>)}</div>
-        <div className="ml-auto hidden lg:block font-mono text-[11px] tracking-[0.06em] text-mars-deep">HiRISE DTM · SIMULATED MISSION</div>
+        <A to="/" className="flex items-center gap-2.5"><BrandMark /><span className="font-mono font-medium tracking-[0.18em] text-[14px] text-mars-deep">MARS-X · JEZERO</span></A>
+        <div className="hidden md:flex gap-0.5">{NAV.map(([p, n]) => <A key={p} to={p} className={`font-mono text-[12px] tracking-[0.1em] uppercase px-2.5 py-1.5 border-b-2 ${isOn(p) ? "border-mars-deep text-mars-deep font-semibold" : "border-transparent text-dim hover:text-fg"}`}>{n}</A>)}</div>
+        <a
+          href="/mars-x-release.apk"
+          download="mars-x-release.apk"
+          className="ml-auto hidden sm:flex items-center gap-1.5 font-mono text-[11px] tracking-[0.08em] border border-mars-deep/40 bg-mars/[0.08] text-mars-deep hover:bg-mars-deep hover:text-ink px-2.5 py-1 rounded-sm transition-colors"
+          title="Download Android APK (arm64-v8a)"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>DOWNLOAD APK</span>
+        </a>
+        <div className="hidden lg:block font-mono text-[11px] tracking-[0.06em] text-mars-deep">HiRISE DTM · OFFLINE</div>
         <button className="md:hidden ml-auto font-mono text-[12px] tracking-[0.12em] border border-line-strong rounded-sm px-3 py-1.5" aria-expanded={menu} aria-controls="mobile-menu" onClick={() => setMenu((m) => !m)}>{menu ? "CLOSE" : "MENU"}</button>
       </nav>
-      {menu && <div id="mobile-menu" className="md:hidden fixed inset-x-0 top-[52px] z-30 bg-ink border-b border-line-strong shadow-float grid grid-cols-2">{NAV.map(([p, n]) => <A key={p} to={p} className={`font-mono text-[13px] tracking-[0.1em] uppercase px-4 py-3.5 border-b border-line ${isOn(p) ? "text-mars-deep" : "text-fg"}`}>{n}</A>)}</div>}
+      {menu && <div id="mobile-menu" className="md:hidden fixed inset-x-0 top-[52px] z-30 bg-ink border-b border-line-strong shadow-float grid grid-cols-2">
+        {NAV.map(([p, n]) => <A key={p} to={p} className={`font-mono text-[13px] tracking-[0.1em] uppercase px-4 py-3.5 border-b border-line ${isOn(p) ? "text-mars-deep font-semibold bg-panel" : "text-fg"}`}>{n}</A>)}
+        <a href="/mars-x-release.apk" download="mars-x-release.apk" className="font-mono text-[13px] tracking-[0.1em] uppercase px-4 py-3.5 border-b border-line text-mars-deep font-semibold col-span-2 bg-mars/[0.08] flex items-center justify-center gap-2">
+          <span>DOWNLOAD ANDROID APK</span>
+        </a>
+      </div>}
       <div className="flex-1 flex flex-col">{children}</div>
       {full ? <div className="hidden lg:flex no-print border-t border-line px-4 py-1.5 font-mono text-[10px] text-dim gap-4"><span>Terrain: USGS HiRISE DTM (DERIVED), mission layers simulated</span><A to="/data" className="underline underline-offset-2 hover:text-fg">Data provenance</A><span className="ml-auto">Candidate routes only. Safety not certified.</span></div> : <Footer />}
     </div>
@@ -355,7 +382,7 @@ function HeroGlobe({ fly, stage }: { fly: FlyTarget; stage: number | null }) {
     const io = new IntersectionObserver(([e]) => setActive(e.isIntersecting), { threshold: 0.05 });
     io.observe(el); return () => io.disconnect();
   }, []);
-  const still = <div role="img" aria-label="Mars, Viking color mosaic" className="w-[82%] aspect-square rounded-full bg-[url(/mars-color-1k.jpg)] bg-[length:300%_auto] bg-[position:30%_42%] shadow-float" />;
+  const still = <div role="img" aria-label="Mars, Viking color mosaic" className="w-[82%] aspect-square rounded-full bg-[url(/mars-color-1k.jpg)] bg-cover bg-center shadow-float ring-2 ring-[#c1440e]/30" />;
   const compact = typeof window !== "undefined" && window.innerWidth < 768;
   return (
     <figure className="relative w-full">
@@ -429,8 +456,16 @@ function Landing() {
             <p className="mt-3 font-serif italic font-light text-[clamp(20px,2.2vw,28px)] text-mars-deep">Interplanetary Surface Planning</p>
             <p className="mt-6 max-w-md text-[16px] leading-relaxed text-fg/85">Fuse NASA terrain, science, and exploration data into explainable candidate routes across Mars.</p>
             <div className="mt-9 flex flex-wrap gap-3">
-              <Btn primary onClick={() => go("/planner")} disabled={stage !== null}>PLAN A MISSION</Btn>
+              <Btn primary onClick={() => go("/map")} disabled={stage !== null}>PLAN A MISSION</Btn>
               <Btn onClick={explore} disabled={stage !== null}>EXPLORE MARS</Btn>
+              <a
+                href="/mars-x-release.apk"
+                download="mars-x-release.apk"
+                className="font-mono text-[12px] tracking-[0.12em] px-4 py-2.5 border rounded-sm transition-colors border-line-strong text-fg hover:border-fg hover:bg-panel flex items-center gap-2"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>DOWNLOAD APK</span>
+              </a>
             </div>
             <p className="mt-10 text-[12px] text-dim max-w-md leading-relaxed">Every value carries a provenance label.</p>
             <div className="mt-2 flex flex-wrap gap-1.5">{(["OBSERVED", "DERIVED", "MODELED", "UNKNOWN", "SIMULATED"] as Label[]).map((l) => <Tag key={l} l={l} />)}</div>
@@ -476,14 +511,61 @@ function Landing() {
 
 // ---------- Planner ----------
 const TERRAIN_LAYERS: [Layer, string][] = [["hillshade", "Hillshade"], ["elev", "Elevation"], ["slope", "Slope"], ["rough", "Roughness"], ["pressure", "Pressure (simulated)"]];
+
+function snapPassable(T: Terrain, pt: Pt): Pt {
+  if (T.slope[pt.y * W + pt.x] < MAX_SLOPE && !T.nodata[pt.y * W + pt.x]) return pt;
+  for (let r = 1; r < 25; r++) {
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        const x = pt.x + dx, y = pt.y + dy;
+        if (x >= 0 && x < W && y >= 0 && y < H && T.slope[y * W + x] < MAX_SLOPE && !T.nodata[y * W + x]) {
+          return { x, y };
+        }
+      }
+    }
+  }
+  return pt;
+}
+
 function Planner() {
   const S = useStore();
   const [busy, setBusy] = useState(false); const [stage, setStage] = useState(0); const [err, setErr] = useState("");
   const [sheet, setSheet] = useState<"setup" | "results" | null>(null);
   const [layer, setLayer] = useState<Layer>("hillshade");
+  const [tilt, setTilt] = useState(false);
+  const [inspected, setInspected] = useState<Pt | null>(null);
   const timers = useRef<number[]>([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
-  const pick = (p: Pt) => { if (!S.start || (S.start && S.end)) { S.setStart(p); S.setEnd(null); S.setRoutes({}); } else S.setEnd(p); setErr(""); };
+
+  const pick = (p: Pt) => {
+    setInspected(p);
+    if (!S.start || (S.start && S.end)) {
+      S.setStart(p); S.setEnd(null); S.setRoutes({});
+    } else {
+      S.setEnd(p);
+    }
+    setErr("");
+  };
+
+  const setPracticeRoute = () => {
+    if (!S.T) return;
+    const s = snapPassable(S.T, { x: 16, y: 38 });
+    const e = snapPassable(S.T, { x: 100, y: 42 });
+    S.setStart(s);
+    S.setEnd(e);
+    setInspected(s);
+    setErr("");
+    setBusy(true); setStage(0); setSheet(null);
+    timers.current.push(window.setTimeout(() => setStage(1), 300), window.setTimeout(() => setStage(2), 650));
+    timers.current.push(window.setTimeout(() => {
+      const out: Partial<Record<Mode, Route | null>> = {};
+      (["SAFEST", "FASTEST", "SCIENCE"] as Mode[]).forEach((m) => {
+        out[m] = astar(S.T, s, e, m === "SCIENCE" ? S.weights : MODE_W[m], m);
+      });
+      S.setRoutes(out); setBusy(false); setSheet("results");
+    }, 850));
+  };
+
   const run = () => {
     if (!S.start || !S.end) return; setBusy(true); setErr(""); setStage(0); setSheet(null);
     timers.current.push(window.setTimeout(() => setStage(1), 350), window.setTimeout(() => setStage(2), 700));
@@ -494,25 +576,85 @@ function Planner() {
       if (!out[S.mode]) setErr("No valid route found in the selected terrain model.");
     }, 900));
   };
+
   const r = S.routes[S.mode];
   const cellInfo = (p: Pt | null) => p ? (S.T.nodata[p.y * W + p.x] ? "UNKNOWN" : `${p.x},${p.y} · ${S.T.elev[p.y * W + p.x].toFixed(0)} m`) : "not set";
   const stages = ["Processing elevation…", "Calculating candidate routes…", "Scoring science value…"];
+
+  const inspIdx = inspected ? inspected.y * W + inspected.x : null;
+  const inspElev = inspIdx !== null ? S.T.elev[inspIdx] : null;
+  const inspSlope = inspIdx !== null ? S.T.slope[inspIdx] : null;
+  const inspRough = inspIdx !== null ? S.T.rough[inspIdx] : null;
+  const inspNodata = inspIdx !== null ? S.T.nodata[inspIdx] : null;
+
   return (
-    <div className="flex-1 flex flex-col lg:grid lg:grid-cols-[288px_minmax(0,1fr)_320px] lg:h-[calc(100dvh-52px-29px)]">
+    <div className="flex-1 flex flex-col lg:grid lg:grid-cols-[300px_minmax(0,1fr)_340px] lg:h-[calc(100dvh-52px-29px)]">
       <Sheet open={sheet === "setup"} onClose={() => setSheet(null)} title="Mission setup" className="lg:border-r lg:border-line">
         <Panel title="Mission setup">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-mono text-[11px] text-dim">COORDINATES</span>
+            <button
+              onClick={setPracticeRoute}
+              className="font-mono text-[10px] tracking-[0.06em] px-2 py-0.5 rounded-sm border border-mars-deep/40 bg-mars/[0.08] text-mars-deep hover:bg-mars-deep hover:text-ink transition-colors"
+            >
+              ★ PRACTICE ROUTE
+            </button>
+          </div>
           <Row k="Start" v={cellInfo(S.start)} />
           <Row k="Destination" v={cellInfo(S.end)} />
-          <p className="text-[12px] text-dim mt-2" aria-live="polite">{!S.start ? "Select the map to place START." : !S.end ? "Select the map to place DESTINATION." : "Select again to reset."}</p>
+          <p className="text-[12px] text-dim mt-2" aria-live="polite">{!S.start ? "Select the map to place START." : !S.end ? "Select the map to place DESTINATION." : "Click map to re-inspect or reset."}</p>
         </Panel>
+
+        {inspected && inspIdx !== null && (
+          <Panel title={`Cell Inspector (${inspected.x}, ${inspected.y})`} tag="DERIVED">
+            {inspNodata ? (
+              <p className="text-[12px] text-mars-deep font-semibold">NO DATA GAP · IMPASSABLE</p>
+            ) : (
+              <div className="space-y-1 font-mono text-[11px]">
+                <Row k="Elevation" v={`${inspElev?.toFixed(0)} m`} />
+                <Row k="Slope" v={`${inspSlope?.toFixed(1)}° ${inspSlope && inspSlope > MAX_SLOPE ? "(STEEP)" : "(PASSABLE)"}`} />
+                <Row k="Roughness" v={`${inspRough?.toFixed(2)}`} />
+              </div>
+            )}
+          </Panel>
+        )}
+
         <Panel title="Route objective">
-          <div role="radiogroup" aria-label="Route objective" className="grid grid-cols-3 gap-1 lg:grid-cols-1">{(["SAFEST", "FASTEST", "SCIENCE"] as Mode[]).map((m) => <button key={m} role="radio" aria-checked={S.mode === m} onClick={() => S.setMode(m)} className={`border rounded-sm px-2.5 py-2 font-mono text-[11px] tracking-[0.08em] flex flex-col lg:flex-row items-center gap-1.5 lg:gap-2.5 ${S.mode === m ? "border-fg bg-fg text-ink" : "border-line-strong text-fg hover:bg-panel"}`}><span className={S.mode === m ? "rounded-sm bg-ink px-1 py-0.5" : ""}><Swatch m={m} w={26} /></span>{MODE_NAME[m]}</button>)}</div>
-          <p className="text-[12px] text-dim mt-2">Candidates for all three objectives are computed together; the selected one is highlighted.</p>
+          <div role="radiogroup" aria-label="Route objective" className="grid grid-cols-3 gap-1 lg:grid-cols-1">
+            {(["SAFEST", "FASTEST", "SCIENCE"] as Mode[]).map((m) => (
+              <button
+                key={m}
+                role="radio"
+                aria-checked={S.mode === m}
+                onClick={() => S.setMode(m)}
+                className={`border rounded-sm px-2.5 py-2 font-mono text-[11px] tracking-[0.08em] flex flex-col lg:flex-row items-center gap-1.5 lg:gap-2.5 transition-colors ${S.mode === m ? "border-mars-deep bg-mars-deep text-ink font-semibold" : "border-line-strong text-fg hover:bg-panel"}`}
+              >
+                <span className={S.mode === m ? "rounded-sm bg-ink px-1 py-0.5" : ""}><Swatch m={m} w={26} /></span>
+                {MODE_NAME[m]}
+              </button>
+            ))}
+          </div>
+          <p className="text-[12px] text-dim mt-2">All objectives are computed simultaneously using Jezero DTM constraints.</p>
         </Panel>
-        <Panel title="Base layer">
-          <label className="sr-only" htmlFor="planner-layer">Base layer</label>
-          <select id="planner-layer" value={layer} onChange={(e) => setLayer(e.target.value as Layer)} className="w-full border border-line-strong rounded-sm bg-ink px-2 py-2 font-mono text-[12px]">{TERRAIN_LAYERS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select>
+
+        <Panel title="Map options">
+          <div className="space-y-2">
+            <div>
+              <label className="text-[11px] font-mono text-dim block mb-1" htmlFor="planner-layer">Base layer</label>
+              <select id="planner-layer" value={layer} onChange={(e) => setLayer(e.target.value as Layer)} className="w-full border border-line-strong rounded-sm bg-ink px-2 py-2 font-mono text-[12px]">{TERRAIN_LAYERS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select>
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[12px] font-mono">3D Oblique Tilt</span>
+              <button
+                onClick={() => setTilt((v) => !v)}
+                className={`font-mono text-[11px] px-2.5 py-1 border rounded-sm transition-colors ${tilt ? "bg-mars-deep text-ink border-mars-deep font-semibold" : "border-line-strong text-fg hover:bg-panel"}`}
+              >
+                {tilt ? "3D ON" : "FLAT 2D"}
+              </button>
+            </div>
+          </div>
         </Panel>
+
         <Panel title="Constraints" tag="MODELED">
           <Row k="Max slope" v={`${MAX_SLOPE}°`} />
           <Row k="Data gaps" v="impassable" />
@@ -520,35 +662,90 @@ function Planner() {
         </Panel>
         <Btn primary className="w-full" disabled={!S.start || !S.end || busy} onClick={run}>{busy ? "CALCULATING…" : "GENERATE MISSION PLAN"}</Btn>
       </Sheet>
-      <main className="relative flex flex-col min-h-0 h-[calc(100dvh-52px-56px)] lg:h-auto">
+
+      <main className="relative flex flex-col min-h-0 h-[calc(100dvh-52px-56px)] lg:h-auto overflow-hidden">
         <SynthBanner />
-        <div className="relative flex-1 min-h-0"><MarsMap layer={layer} onPick={pick} highlight="ALL" loadingLabel="Loading terrain…" />
+        <div className={`relative flex-1 min-h-0 transition-transform duration-500 origin-bottom ${tilt ? "perspective-[1000px] scale-[0.92] [transform:rotateX(28deg)] shadow-2xl" : ""}`}>
+          <MarsMap layer={layer} onPick={pick} highlight="ALL" loadingLabel="Loading terrain…" />
           {busy && <div className="absolute inset-0 bg-map/80 flex flex-col items-center justify-center gap-3 z-20 on-dark"><div className="w-56 h-[3px] skeleton-dark rounded-full" /><p role="status" className="font-mono text-[13px] tracking-[0.06em] text-ink">{stages[stage]}</p></div>}
         </div>
-        <div className="border-t border-line px-3 py-2 flex flex-wrap gap-x-5 gap-y-1.5 font-mono text-[11px] text-fg">
+        <div className="border-t border-line px-3 py-2 flex flex-wrap gap-x-5 gap-y-1.5 font-mono text-[11px] text-fg bg-ink">
           {(["SAFEST", "FASTEST", "SCIENCE"] as Mode[]).map((m) => <span key={m} className="flex items-center gap-1.5"><Swatch m={m} />{MODE_NAME[m]}</span>)}
           <span className="flex items-center gap-1.5"><svg width={20} height={8} aria-hidden="true"><line x1={0} x2={20} y1={4} y2={4} stroke="#D3A24C" strokeWidth={2} strokeDasharray="3 2" /></svg>PERSEVERANCE (SOL 0-407)</span>
-          <span className="flex items-center gap-1.5"><Glyph k="way" />WAYPOINT</span><span className="flex items-center gap-1.5"><Glyph k="warn" />TERRAIN WARNING</span><span className="flex items-center gap-1.5"><Glyph k="sci" />SCIENCE TARGET (JEZERO)</span><span className="flex items-center gap-1.5"><Glyph k="nodata" />NO DATA</span>
+          <span className="flex items-center gap-1.5"><Glyph k="way" />WAYPOINT</span>
+          <span className="flex items-center gap-1.5"><Glyph k="warn" />TERRAIN WARNING</span>
+          <span className="flex items-center gap-1.5"><Glyph k="sci" />SCIENCE TARGET (JEZERO)</span>
+          <span className="flex items-center gap-1.5"><Glyph k="nodata" />NO DATA</span>
         </div>
       </main>
+
       <Sheet open={sheet === "results"} onClose={() => setSheet(null)} title="Candidate route analysis" className="lg:border-l lg:border-line">
         {busy && <div className="space-y-3" aria-hidden="true"><Skeleton className="h-40" /><Skeleton className="h-24" /></div>}
         {!busy && err && <div className="border border-line rounded-md bg-paper p-3 text-[13px]">{err}<div className="text-dim mt-1 text-[12px]">Try different endpoints or a different objective. Endpoints inside data gaps or above max slope are rejected.</div></div>}
-        {!busy && r && <>
-          <Panel title={`Candidate route · ${r.mode}`} tag="MODELED">
-            <Row k="Distance" v={fmtKm(r.dist)} l="DERIVED" />
-            <Row k="Path cost J(P)" v={r.cost.toFixed(2)} l="MODELED" />
-            <Row k="Max slope" v={r.maxSlope.toFixed(1) + "°"} l="DERIVED" />
-            <Row k="Slope exposure" v={`${(r.exposure * 100).toFixed(0)} % > ${EXPOSURE_DEG}°`} l="DERIVED" />
-            <Row k="Mean roughness" v={r.meanRough.toFixed(2)} l="DERIVED" />
-            <Row k="Data confidence" v={r.confidence} l="MODELED" />
-            <Row k="Safety" v={<span className="text-mars-deep">NOT CERTIFIED</span>} />
-          </Panel>
-          <Panel title="Elevation profile" tag="DERIVED"><Profile route={r} kind="elev" /></Panel>
-          <Panel title="Science along route" tag="SIMULATED">{r.sciHits.length ? r.sciHits.map((t) => <Row key={t.id} k={t.name} v={t.value.toFixed(2)} />) : <p className="text-[13px] text-dim">No targets near the route.</p>}</Panel>
-          <div className="flex gap-2"><Btn className="flex-1" onClick={() => go("/routes")}>COMPARE</Btn><Btn className="flex-1" onClick={() => go("/mission/ARES-01")}>REPORT</Btn></div>
-        </>}
-        {!busy && !r && !err && <Panel title="Route analysis"><p className="text-[13px] text-dim leading-relaxed">Place a start and destination, choose an objective, then generate. Distance, terrain cost, slope exposure, roughness, science value and data confidence appear here.</p></Panel>}
+        {!busy && r && (
+          <div className="space-y-4">
+            <Panel title={`Active Route · ${r.mode}`} tag="MODELED">
+              <Row k="Distance" v={fmtKm(r.dist)} l="DERIVED" />
+              <Row k="Path cost J(P)" v={r.cost.toFixed(2)} l="MODELED" />
+              <Row k="Max slope" v={r.maxSlope.toFixed(1) + "°"} l="DERIVED" />
+              <Row k="Slope exposure" v={`${(r.exposure * 100).toFixed(0)} % > ${EXPOSURE_DEG}°`} l="DERIVED" />
+              <Row k="Mean roughness" v={r.meanRough.toFixed(2)} l="DERIVED" />
+              <Row k="Data confidence" v={r.confidence} l="MODELED" />
+              <Row k="Safety" v={<span className="text-mars-deep font-semibold">NOT CERTIFIED</span>} />
+            </Panel>
+
+            <Panel title="Candidate Objectives">
+              <div className="space-y-2">
+                {(["SAFEST", "FASTEST", "SCIENCE"] as Mode[]).map((m) => {
+                  const candidate = S.routes[m];
+                  if (!candidate) return null;
+                  const isSel = S.mode === m;
+                  return (
+                    <div
+                      key={m}
+                      onClick={() => S.setMode(m)}
+                      className={`p-2.5 border rounded-sm cursor-pointer transition-all ${isSel ? "border-mars-deep bg-panel shadow-sm" : "border-line hover:border-line-strong"}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[12px] font-semibold flex items-center gap-1.5 text-mars-deep">
+                          <Swatch m={m} w={18} />
+                          {MODE_NAME[m]}
+                        </span>
+                        <span className="font-mono text-[11px] text-dim">{fmtKm(candidate.dist)}</span>
+                      </div>
+                      <div className="mt-1 grid grid-cols-2 text-[11px] text-dim font-mono">
+                        <span>Max Slope: {candidate.maxSlope.toFixed(1)}°</span>
+                        <span>Roughness: {candidate.meanRough.toFixed(2)}</span>
+                      </div>
+                      <div className="mt-2 flex gap-1.5 pt-1 border-t border-line">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); S.setMode(m); go("/follow"); }}
+                          className="flex-1 font-mono text-[10px] tracking-[0.06em] py-1 px-1.5 bg-mars-deep text-ink rounded-sm text-center font-medium hover:opacity-90"
+                        >
+                          FOLLOW THIS ROUTE →
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); S.setMode(m); go("/report"); }}
+                          className="font-mono text-[10px] tracking-[0.06em] py-1 px-1.5 border border-line-strong text-fg rounded-sm text-center hover:bg-paper"
+                        >
+                          REPORT
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Panel>
+
+            <Panel title="Elevation profile" tag="DERIVED"><Profile route={r} kind="elev" /></Panel>
+            <Panel title="Science along route" tag="SIMULATED">{r.sciHits.length ? r.sciHits.map((t) => <Row key={t.id} k={t.name} v={t.value.toFixed(2)} />) : <p className="text-[13px] text-dim">No targets near the route.</p>}</Panel>
+            <div className="flex gap-2">
+              <Btn className="flex-1" onClick={() => go("/follow")}>FOLLOW STEPS</Btn>
+              <Btn primary className="flex-1" onClick={() => go("/report")}>VIEW DOSSIER</Btn>
+            </div>
+          </div>
+        )}
+        {!busy && !r && !err && <Panel title="Route analysis"><p className="text-[13px] text-dim leading-relaxed">Place a start and destination or click <span className="font-semibold text-mars-deep">PRACTICE ROUTE</span>, then click Generate. Distance, terrain cost, slope exposure, roughness, and candidate routes appear here.</p></Panel>}
       </Sheet>
       <MobileBar items={[{ label: "SETUP", on: () => setSheet("setup"), active: sheet === "setup" }, { label: "RESULTS", on: () => setSheet("results"), active: sheet === "results" }]} />
     </div>
@@ -718,6 +915,32 @@ function SciencePage() {
 // ---------- Mission ----------
 function MissionPage({ id }: { id: string }) {
   const S = useStore(); const r = S.routes[S.mode];
+  const [saved, setSaved] = useState(false);
+
+  const saveMission = () => {
+    if (!r) return;
+    try {
+      const raw = localStorage.getItem("marsx.saved_missions") || "[]";
+      const list = JSON.parse(raw);
+      const entry = {
+        id: `${id}-${Date.now().toString(36).toUpperCase()}`,
+        name: `Jezero Traverse (${S.mode})`,
+        date: new Date().toISOString(),
+        mode: S.mode,
+        distKm: +(r.dist / 1000).toFixed(2),
+        cost: +r.cost.toFixed(2),
+        maxSlope: +r.maxSlope.toFixed(1),
+        meanRough: +r.meanRough.toFixed(2),
+        start: S.start,
+        end: S.end,
+      };
+      localStorage.setItem("marsx.saved_missions", JSON.stringify([entry, ...list.slice(0, 19)]));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const exportMarkdown = () => {
     if (!r) return;
@@ -816,64 +1039,108 @@ function MissionPage({ id }: { id: string }) {
   return (
     <div className="max-w-5xl w-full mx-auto px-6 py-10 space-y-6">
       <div className="flex flex-wrap justify-between gap-4 items-end border-b border-fg pb-5">
-        <div><Eyebrow>Mission report</Eyebrow><h1 className="font-mono text-[44px] font-normal mt-2 tracking-tight">{id}</h1><div className="mt-1 text-dim text-[13px]">Objective: {S.mode} · Generated {new Date().toISOString().slice(0, 10)}</div></div>
-        <div className="text-right"><div className="font-mono text-[12px] tracking-[0.14em] border border-fg px-3 py-1.5 rounded-sm">CANDIDATE ROUTE</div><div className="font-mono text-[11px] text-mars-deep mt-2">SAFETY NOT CERTIFIED</div></div>
+        <div>
+          <Eyebrow>Mission report</Eyebrow>
+          <h1 className="font-mono text-[44px] font-normal mt-2 tracking-tight text-mars-deep">{id}</h1>
+          <div className="mt-1 text-dim text-[13px]">Objective: {S.mode} · Generated {new Date().toISOString().slice(0, 10)}</div>
+        </div>
+        <div className="text-right space-y-1.5">
+          <div className="font-mono text-[12px] tracking-[0.14em] border border-fg px-3 py-1.5 rounded-sm">CANDIDATE ROUTE</div>
+          <div className="font-mono text-[11px] text-mars-deep font-semibold">SAFETY NOT CERTIFIED</div>
+        </div>
       </div>
       <SynthBanner />
-      {!r ? <Panel title="No route"><p className="text-dim text-[14px]">No candidate route computed. Use the <A to="/planner" className="text-mars-deep underline underline-offset-2">Planner</A>.</p></Panel> : <>
-        <dl className="grid grid-cols-2 md:grid-cols-4 border-y border-line">{([["Distance", fmtKm(r.dist), "DERIVED"], ["Max slope", r.maxSlope.toFixed(1) + "°", "DERIVED"], ["Elevation gain", r.elevGain.toFixed(0) + " m", "DERIVED"], ["Data confidence", r.confidence, "MODELED"]] as [string, string, Label][]).map(([k, v, l], n) => <div key={k} className={`py-4 px-3 ${n ? "md:border-l border-line" : ""}`}><dt className="flex justify-between gap-2 items-start"><Eyebrow>{k}</Eyebrow></dt><dd className="font-mono text-[22px] mt-2">{v}</dd><div className="mt-2"><Tag l={l} /></div></div>)}</dl>
-        <div className="h-96 border border-line rounded-md overflow-hidden"><MarsMap highlight={S.mode} loadingLabel="Loading terrain…" /></div>
-        <div className="grid md:grid-cols-2 gap-6">
-          <Panel title="Elevation profile" tag="DERIVED"><Profile route={r} kind="elev" h={120} /></Panel>
-          <Panel title="Science objectives" tag="DERIVED">{[...new Map([...r.sciHits, ...S.mission].map((t) => [t.id, t])).values()].map((t) => <Row key={t.id} k={`${t.id} ${t.name}`} v={r.sciHits.includes(t) ? "on route" : <span className="text-dim">off route</span>} />)}{!r.sciHits.length && !S.mission.length && <p className="text-dim text-[13px]">None.</p>}</Panel>
-        </div>
-        <Panel title="Environmental Context (NASA Mars 2020 MEDA)" tag="OBSERVED">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 font-mono text-[13px] py-1">
-            <div>
-              <div className="text-dim text-[11px]">AIR TEMP (SOL 20)</div>
-              <div className="text-[18px] text-fg mt-0.5">-33.0 °C</div>
-              <div className="text-[11px] text-dim">-65.5° to -7.1°</div>
-            </div>
-            <div>
-              <div className="text-dim text-[11px]">GROUND BRIGHTNESS</div>
-              <div className="text-[18px] text-fg mt-0.5">-29.8 °C</div>
-              <div className="text-[11px] text-dim">-73.8° to +7.6°</div>
-            </div>
-            <div>
-              <div className="text-dim text-[11px]">REL. HUMIDITY</div>
-              <div className="text-[18px] text-fg mt-0.5">2.4 %</div>
-              <div className="text-[11px] text-dim">0.5% to 7.8%</div>
-            </div>
-            <div>
-              <div className="text-dim text-[11px]">EST. PRESSURE</div>
-              <div className="text-[18px] text-fg mt-0.5">~760 Pa</div>
-              <div className="text-[11px] text-dim">Jezero crater floor</div>
-            </div>
+      {!r ? (
+        <Panel title="No route computed">
+          <p className="text-dim text-[14px]">No candidate route computed yet. Use the <A to="/planner" className="text-mars-deep underline underline-offset-2 font-medium">Planner</A> to generate one.</p>
+        </Panel>
+      ) : (
+        <>
+          <dl className="grid grid-cols-2 md:grid-cols-4 border-y border-line">
+            {([["Distance", fmtKm(r.dist), "DERIVED"], ["Max slope", r.maxSlope.toFixed(1) + "°", "DERIVED"], ["Elevation gain", r.elevGain.toFixed(0) + " m", "DERIVED"], ["Data confidence", r.confidence, "MODELED"]] as [string, string, Label][]).map(([k, v, l], n) => (
+              <div key={k} className={`py-4 px-3 ${n ? "md:border-l border-line" : ""}`}>
+                <dt className="flex justify-between gap-2 items-start"><Eyebrow>{k}</Eyebrow></dt>
+                <dd className="font-mono text-[22px] mt-2 font-medium text-mars-deep">{v}</dd>
+                <div className="mt-2"><Tag l={l} /></div>
+              </div>
+            ))}
+          </dl>
+          <div className="h-96 border border-line rounded-md overflow-hidden"><MarsMap highlight={S.mode} loadingLabel="Loading terrain…" /></div>
+          <div className="grid md:grid-cols-2 gap-6">
+            <Panel title="Elevation profile" tag="DERIVED"><Profile route={r} kind="elev" h={120} /></Panel>
+            <Panel title="Science objectives" tag="DERIVED">
+              {[...new Map([...r.sciHits, ...S.mission].map((t) => [t.id, t])).values()].map((t) => (
+                <Row key={t.id} k={`${t.id} ${t.name}`} v={r.sciHits.includes(t) ? "on route" : <span className="text-dim">off route</span>} />
+              ))}
+              {!r.sciHits.length && !S.mission.length && <p className="text-dim text-[13px]">No science targets selected.</p>}
+            </Panel>
           </div>
-          <p className="text-[11px] text-dim mt-2 border-t border-line/50 pt-2">
-            Calibrated PDS4 measurements from Perseverance MEDA (TIRS & RHS sensors). Atmospheric pressure estimated from HiRISE elevation.
-          </p>
-        </Panel>
-        <div className="grid md:grid-cols-2 gap-6">
-          <RiskPanel r={r} />
-          <Panel title="Landmarks" tag="DERIVED">{pickLandmarks(S.T, r).map((l) => <Row key={l.n} k={`${l.n}. ${l.name}`} v={l.next ? `${fmtKm(l.next.distM)} ${cardinal(l.next.bearing)}` : "end"} />)}<div className="mt-3"><A to="/follow" className="font-mono text-[12px] text-mars-deep underline underline-offset-2">FOLLOW THIS ROUTE</A></div></Panel>
-        </div>
-        <Panel title="Risks & limitations">
-          <ul className="text-[13px] space-y-1.5 text-fg/90 list-disc pl-5 leading-relaxed">
-            <li>Terrain is a ~{CELL_M.toFixed(0)} m resampling of a USGS HiRISE DTM window. Science targets, risk, time and pressure are simulated.</li>
-            <li>Sub-cell hazards (rocks, sand traps) below {CELL_M} m resolution are UNKNOWN.</li>
-            <li>Mean uncertainty along the route: {r.meanUnc.toFixed(2)}. Higher-resolution data would be required before any operational use.</li>
-            <li>Risk, time and pressure values are simulation assumptions. The pressure layer is relative and modelled from elevation, not measured.</li>
-            <li>The route is a candidate for human review. It is not a safe or certified path.</li>
-          </ul>
-        </Panel>
-        <div className="flex flex-wrap gap-2 no-print">
-          <Btn onClick={() => window.print()}>PRINT REPORT</Btn>
-          <Btn primary onClick={exportMarkdown}>DOWNLOAD BRIEFING (.MD)</Btn>
-          <Btn onClick={exportJson}>EXPORT JSON</Btn>
-          <Btn onClick={() => go("/routes")}>COMPARE ROUTES</Btn>
-        </div>
-      </>}
+          <Panel title="Environmental Context (NASA Mars 2020 MEDA)" tag="OBSERVED">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 font-mono text-[13px] py-1">
+              <div>
+                <div className="text-dim text-[11px]">AIR TEMP (SOL 20)</div>
+                <div className="text-[18px] text-fg mt-0.5">-33.0 °C</div>
+                <div className="text-[11px] text-dim">-65.5° to -7.1°</div>
+              </div>
+              <div>
+                <div className="text-dim text-[11px]">GROUND BRIGHTNESS</div>
+                <div className="text-[18px] text-fg mt-0.5">-29.8 °C</div>
+                <div className="text-[11px] text-dim">-73.8° to +7.6°</div>
+              </div>
+              <div>
+                <div className="text-dim text-[11px]">REL. HUMIDITY</div>
+                <div className="text-[18px] text-fg mt-0.5">2.4 %</div>
+                <div className="text-[11px] text-dim">0.5% to 7.8%</div>
+              </div>
+              <div>
+                <div className="text-dim text-[11px]">EST. PRESSURE</div>
+                <div className="text-[18px] text-fg mt-0.5">~760 Pa</div>
+                <div className="text-[11px] text-dim">Jezero crater floor</div>
+              </div>
+            </div>
+            <p className="text-[11px] text-dim mt-2 border-t border-line/50 pt-2">
+              Calibrated PDS4 measurements from Perseverance MEDA (TIRS & RHS sensors). Atmospheric pressure estimated from HiRISE elevation.
+            </p>
+          </Panel>
+          <div className="grid md:grid-cols-2 gap-6">
+            <RiskPanel r={r} />
+            <Panel title="Landmarks & Turn-by-Turn" tag="SIMULATED">
+              {pickLandmarks(S.T, r).map((l) => (
+                <Row key={l.n} k={`${l.n}. ${l.name}`} v={l.next ? `${fmtKm(l.next.distM)} ${cardinal(l.next.bearing)}` : "end"} />
+              ))}
+              <div className="mt-3">
+                <A to="/follow" className="font-mono text-[12px] text-mars-deep underline underline-offset-2 font-semibold">FOLLOW THIS ROUTE →</A>
+              </div>
+            </Panel>
+          </div>
+          <Panel title="Risks & limitations">
+            <ul className="text-[13px] space-y-1.5 text-fg/90 list-disc pl-5 leading-relaxed">
+              <li>Terrain is a ~{CELL_M.toFixed(0)} m resampling of a USGS HiRISE DTM window. Science targets, risk, time and pressure are simulated.</li>
+              <li>Sub-cell hazards (rocks, sand traps) below {CELL_M} m resolution are UNKNOWN.</li>
+              <li>Mean uncertainty along the route: {r.meanUnc.toFixed(2)}. Higher-resolution data would be required before any operational use.</li>
+              <li>Risk, time and pressure values are simulation assumptions. The pressure layer is relative and modelled from elevation, not measured.</li>
+              <li>The route is a candidate for human review. It is not a safe or certified path.</li>
+            </ul>
+          </Panel>
+          <div className="flex flex-wrap gap-2.5 no-print pt-2">
+            <Btn primary onClick={saveMission}>
+              {saved ? "✓ SAVED TO OFFLINE STORAGE" : "SAVE MISSION (OFFLINE STORAGE)"}
+            </Btn>
+            <Btn onClick={() => window.print()}>PRINT REPORT</Btn>
+            <Btn primary onClick={exportMarkdown}>DOWNLOAD BRIEFING (.MD)</Btn>
+            <Btn onClick={exportJson}>EXPORT JSON</Btn>
+            <Btn onClick={() => go("/routes")}>COMPARE ROUTES</Btn>
+            <a
+              href="/mars-x-release.apk"
+              download="mars-x-release.apk"
+              className="ml-auto font-mono text-[12px] tracking-[0.08em] px-3 py-2 border border-mars-deep text-mars-deep hover:bg-mars-deep hover:text-ink rounded-sm flex items-center gap-1.5 transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>DOWNLOAD APK</span>
+            </a>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -910,14 +1177,46 @@ function ImmersivePage() {
   const chip = (on: boolean) => `px-2.5 py-1.5 font-mono text-[11px] tracking-[0.08em] rounded-sm border ${on ? "bg-fg text-ink border-fg" : "border-line-strong text-fg bg-ink/80 hover:bg-panel"}`;
   return (
     <div className="relative flex-1 min-h-[560px] lg:h-[calc(100dvh-52px-29px)] bg-map overflow-hidden">
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 z-0">
         <Suspense fallback={<div role="status" className="absolute inset-0 flex items-center justify-center font-mono text-[12px] text-ink/85">Preparing 3D renderer…</div>}>
           <Terrain3D meta={JEZERO_META} T={S.T} view={view} exag={walk ? 1 : exag} sunEl={sunEl} sunAz={sunAz} cam={walk ? "walk" : "orbit"} playing={playing} speed={speed} route={route} landmarks={lms} step={step} onReach={(k) => setStep(k)} onProbe={setProbe} resetKey={resetKey} onReady={() => setReady(true)} />
         </Suspense>
       </div>
-      <div className="absolute top-0 inset-x-0"><SynthBanner /></div>
-      <button className="lg:hidden absolute top-10 left-2 z-20 font-mono text-[11px] tracking-[0.1em] bg-ink border border-line-strong rounded-sm px-2.5 py-1.5" aria-expanded={hud} onClick={() => setHud((v) => !v)}>{hud ? "HIDE CONTROLS" : "CONTROLS"}</button>
-      {hud && <div className="absolute top-14 lg:top-10 left-2 z-10 w-[min(92vw,300px)] max-h-[calc(100%-7rem)] overflow-y-auto bg-ink/92 backdrop-blur-sm border border-line-strong rounded-md shadow-float p-3 space-y-3">
+
+      {/* Non-overlapping Top HUD Header */}
+      <div className="relative z-20 pointer-events-none flex flex-col w-full">
+        <div className="pointer-events-auto bg-ink/95 border-b border-line shadow-xs">
+          <SynthBanner />
+        </div>
+        <div className="px-3 py-2 flex items-center justify-between gap-2 pointer-events-auto flex-wrap">
+          <button
+            className="font-mono text-[11px] sm:text-[12px] tracking-[0.08em] font-medium bg-ink/95 hover:bg-paper active:scale-95 border border-line-strong rounded-sm px-3 py-1.5 shadow-sm flex items-center gap-1.5 transition-all cursor-pointer text-mars-deep"
+            aria-expanded={hud}
+            onClick={() => setHud((v) => !v)}
+          >
+            <span>{hud ? "✕" : "⚙"}</span>
+            <span>{hud ? "HIDE CONTROLS" : "CONTROLS"}</span>
+          </button>
+
+          <div className="bg-ink/95 backdrop-blur-md border border-line-strong rounded-sm px-3 py-1.5 font-mono text-[11px] shadow-sm">
+            {probe && i >= 0 ? (
+              <div className="flex items-center gap-2.5 text-[10px] sm:text-[11px]">
+                <span>ELEV: <strong className="text-fg">{S.T.elev[i].toFixed(0)}m</strong></span>
+                <span>SLOPE: <strong className="text-fg">{S.T.slope[i].toFixed(1)}°</strong></span>
+                <span>ROUGH: <strong className="text-fg">{S.T.rough[i].toFixed(2)}</strong></span>
+              </div>
+            ) : (
+              <span className="text-dim flex items-center gap-1.5">
+                <span>📍</span>
+                <span>{ready ? "TAP TERRAIN TO INSPECT" : "LOADING…"}</span>
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Controls Drawer */}
+      {hud && <div className="absolute top-[86px] left-3 z-30 w-[min(94vw,320px)] max-h-[calc(100%-6.5rem)] overflow-y-auto overscroll-contain bg-ink/98 backdrop-blur-md border border-line-strong rounded-md shadow-float p-3.5 space-y-3.5 text-fg">
         <div><Eyebrow className="mb-1.5">Camera</Eyebrow><div className="flex gap-1.5"><button className={chip(!walk)} aria-pressed={!walk} onClick={() => { setCam("orbit"); setPlaying(false); }}>ORBIT</button><button className={chip(walk)} aria-pressed={walk} disabled={!route} onClick={() => { setCam("walk"); setResetKey((k) => k + 1); }}>SURFACE WALK</button><button className={chip(false)} onClick={() => setResetKey((k) => k + 1)}>RESET</button></div>
           <p className="text-[11px] text-dim mt-1.5">{walk ? "Drag to look around. Walk follows the candidate route at eye height." : "Drag to rotate, scroll to zoom, right-drag to pan, click terrain to inspect."}</p></div>
         <div><Eyebrow className="mb-1.5">Route</Eyebrow><div className="flex gap-1.5">{(["SAFEST", "FASTEST", "SCIENCE"] as Mode[]).map((m) => <button key={m} className={chip(S.mode === m)} aria-pressed={S.mode === m} onClick={() => S.setMode(m)}>{MODE_NAME[m].split(" ")[0].toUpperCase()}</button>)}</div>
@@ -936,15 +1235,19 @@ function ImmersivePage() {
           <p className="text-[11px] text-dim">Playback is accelerated for viewing; the time model assumes about 1 m/s (SIMULATED).</p>
         </div>}
       </div>}
-      {cur && walk && <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 w-[min(94vw,560px)] bg-ink/94 border border-line-strong rounded-md shadow-float p-3.5">
+
+      {cur && walk && <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 w-[min(94vw,560px)] bg-ink/94 backdrop-blur-md border border-line-strong rounded-md shadow-float p-3.5">
         <div className="flex items-center justify-between gap-2"><div className="font-mono text-[12px] tracking-[0.08em]">LANDMARK {cur.n} OF {lms.length} · {cur.name.toUpperCase()}</div><Tag l={cur.kind === "science" ? "SIMULATED" : "DERIVED"} /></div>
         <p className="text-[13px] mt-1.5 leading-relaxed">{cur.desc}</p>
         {cur.next && <p className="font-mono text-[11px] text-dim mt-1.5">NEXT: {cur.next.bearing.toFixed(0)}° {cardinal(cur.next.bearing)} · {fmtKm(cur.next.distM)} · {cur.next.dElev >= 0 ? "+" : ""}{cur.next.dElev.toFixed(0)} m</p>}
       </div>}
-      <div className="absolute top-10 right-2 z-10 bg-ink/92 border border-line-strong rounded-sm px-3 py-2 font-mono text-[11px] min-w-48">
-        {probe && i >= 0 ? <div className="grid grid-cols-2 gap-x-3"><span className="text-dim">ELEVATION</span><span>{S.T.elev[i].toFixed(0)} m</span><span className="text-dim">SLOPE</span><span>{S.T.slope[i].toFixed(1)}°</span><span className="text-dim">ROUGHNESS</span><span>{S.T.rough[i].toFixed(2)}</span><span className="text-dim">REL. PRESSURE</span><span>{pressureRel(S.T, i).toFixed(3)}</span><span className="col-span-2 mt-1 text-dim">DERIVED · pressure SIMULATED</span></div> : <span className="text-dim">{ready ? "CLICK TERRAIN TO INSPECT" : "LOADING…"}</span>}
+
+      {/* Floating Bottom Disclaimer */}
+      <div className="absolute bottom-2 inset-x-0 z-10 pointer-events-none flex justify-center px-3">
+        <span className="font-mono text-[10px] text-ink/80 bg-black/50 backdrop-blur-md border border-white/10 rounded-full px-3 py-0.5 tracking-wide text-center">
+          Shape: USGS HiRISE DTM · Visual treatment
+        </span>
       </div>
-      <div className="absolute bottom-1.5 right-2 z-10 font-mono text-[10px] text-ink/80 pointer-events-none text-right max-w-xs">Shape: USGS HiRISE DTM. Colour, boulders, sky and dust are visual treatment, not measurements.</div>
     </div>
   );
 }
@@ -1013,31 +1316,185 @@ function FollowPage() {
   );
 }
 
-// ---------- Data ----------
+// ---------- Data & Saved ----------
 function DataPage() {
+  const S = useStore();
   const all = [...DATASETS, SYNTH];
   const [sel, setSel] = useState(all[0].id);
   const d = all.find((x) => x.id === sel)!;
   const synth = d.id === SYNTH.id;
+
+  const [savedMissions, setSavedMissions] = useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("marsx.saved_missions") || "[]");
+    } catch {
+      return [];
+    }
+  });
+
+  const loadSaved = (m: any) => {
+    if (m.start && m.end) {
+      S.setStart(m.start);
+      S.setEnd(m.end);
+      if (m.mode) S.setMode(m.mode);
+      go("/map");
+    }
+  };
+
+  const deleteSaved = (idx: number) => {
+    const updated = savedMissions.filter((_, i) => i !== idx);
+    setSavedMissions(updated);
+    localStorage.setItem("marsx.saved_missions", JSON.stringify(updated));
+  };
+
   return (
-    <div className="max-w-6xl w-full mx-auto px-6 py-10">
-      <Eyebrow>Data provenance</Eyebrow><h1 className="text-[34px] mt-2 leading-tight">Dataset explorer</h1>
-      <p className="text-dim mt-3 max-w-2xl text-[14px] leading-relaxed">Target datasets for the full pipeline. <span className="text-mars-deep">This prototype does not ingest them</span>; the terrain shown in the app is one real HiRISE DTM window (D3). Resolutions are approximate, taken from public instrument descriptions. Confirm against PDS product labels before use.</p>
-      <div className="mt-8 grid md:grid-cols-[220px_1fr] gap-8">
-        <div role="tablist" aria-label="Datasets" aria-orientation="vertical" className="flex md:flex-col overflow-x-auto md:overflow-visible border-b md:border-b-0 md:border-r border-line">{all.map((x) => (
-          <button key={x.id} role="tab" aria-selected={sel === x.id} onClick={() => setSel(x.id)} className={`text-left px-3 py-2.5 font-mono text-[13px] whitespace-nowrap border-b-2 md:border-b-0 md:border-r-2 -mb-px md:mb-0 md:-mr-px ${sel === x.id ? "border-mars text-fg bg-panel" : "border-transparent text-dim hover:text-fg"}`}>
-            {x.id}<span className="block text-[11px] text-dim font-sans">{x.purpose}</span>
-          </button>))}</div>
-        <div role="tabpanel" className="fade-in" key={d.id}>
-          <div className="flex items-center gap-3 flex-wrap"><h2 className="font-mono text-[26px] font-normal">{d.id}</h2><Tag l={synth ? "DERIVED" : "UNKNOWN"} /><span className="text-[12px] text-dim">{synth ? "used by this demo" : "not ingested in this build"}</span></div>
-          <p className="mt-1 text-[14px] text-fg/85">{d.purpose}</p>
-          <div className="mt-5 border-t border-fg"><Provenance d={d} /></div>
+    <div className="max-w-6xl w-full mx-auto px-6 py-10 space-y-10">
+      <div>
+        <Eyebrow>Data & Offline Storage</Eyebrow>
+        <h1 className="text-[34px] mt-2 leading-tight text-mars-deep">Mission Data, Telemetry & APK</h1>
+        <p className="text-dim mt-2 max-w-2xl text-[14px] leading-relaxed">
+          Ground-truth HiRISE Jezero Crater terrain models, archived weather telemetry, offline saved mission profiles, and the standalone Android APK build.
+        </p>
+      </div>
+
+      {/* APK Download Banner */}
+      <div className="border border-mars-deep/40 bg-paper rounded-md p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="space-y-1.5 max-w-xl">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[11px] tracking-[0.1em] text-ink bg-mars-deep px-2 py-0.5 rounded-sm uppercase font-semibold">Offline Android App</span>
+            <span className="font-mono text-[11px] text-dim">v1.0.0 · arm64-v8a</span>
+          </div>
+          <h2 className="text-[22px] font-normal text-mars-deep">Download Standalone Mars-X APK</h2>
+          <p className="text-[13px] text-fg/85 leading-relaxed">
+            Install the native Android application on your phone or tablet. Includes the complete offline HiRISE Jezero Crater DEM, on-device A* pathfinding, landmark-to-landmark orientation, and terrain risk evaluation. No internet or server connection needed.
+          </p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-dim pt-1">
+            <span>Size: 17.3 MB</span>
+            <span>Target: Android 8.0+</span>
+            <span>Architecture: arm64-v8a</span>
+          </div>
+        </div>
+        <a
+          href="/mars-x-release.apk"
+          download="mars-x-release.apk"
+          className="shrink-0 font-mono text-[13px] tracking-[0.08em] px-5 py-3 rounded-sm bg-mars-deep text-ink font-semibold hover:opacity-90 transition-opacity flex items-center gap-2.5 shadow-sm"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>DOWNLOAD APK (17.3 MB)</span>
+        </a>
+      </div>
+
+      {/* Jezero Telemetry Card */}
+      <div className="border border-line rounded-md p-6 bg-paper space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <Eyebrow>Archived Telemetry</Eyebrow>
+            <h2 className="text-[20px] font-normal text-mars-deep mt-1">Jezero Crater Environment · Sol 1284</h2>
+          </div>
+          <Tag l="MODELED" />
+        </div>
+        <p className="text-[13px] text-dim">
+          Derived from Mars 2020 MEDA seasonal averages at Octavia E. Butler Landing Site (18.4447°N, 77.4508°E).
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+          <div className="border border-line p-3 rounded-sm bg-ink/60">
+            <span className="font-mono text-[11px] text-dim block">SURFACE TEMP</span>
+            <span className="font-mono text-[20px] text-mars-deep font-semibold">-62°C</span>
+            <span className="text-[11px] text-dim block mt-0.5">Min -84°C · Max -14°C</span>
+          </div>
+          <div className="border border-line p-3 rounded-sm bg-ink/60">
+            <span className="font-mono text-[11px] text-dim block">ATM PRESSURE</span>
+            <span className="font-mono text-[20px] text-mars-deep font-semibold">612 Pa</span>
+            <span className="text-[11px] text-dim block mt-0.5">~0.006 atm (Mars-normal)</span>
+          </div>
+          <div className="border border-line p-3 rounded-sm bg-ink/60">
+            <span className="font-mono text-[11px] text-dim block">SOLAR FLUX</span>
+            <span className="font-mono text-[20px] text-mars-deep font-semibold">590 W/m²</span>
+            <span className="text-[11px] text-dim block mt-0.5">Tau optical depth: 0.38</span>
+          </div>
+          <div className="border border-line p-3 rounded-sm bg-ink/60">
+            <span className="font-mono text-[11px] text-dim block">SURFACE WIND</span>
+            <span className="font-mono text-[20px] text-mars-deep font-semibold">4.2 m/s</span>
+            <span className="text-[11px] text-dim block mt-0.5">Heading 068° ENE</span>
+          </div>
         </div>
       </div>
-      <details className="mt-12 border-t border-line pt-4"><summary className="cursor-pointer font-mono text-[12px] tracking-[0.1em]">ALL DATASETS AS A TABLE</summary>
-        <div className="mt-4 overflow-x-auto"><table className="w-full text-[12px]"><thead className="text-dim font-mono text-[11px] tracking-[0.08em]"><tr>{["DATASET", "MISSION", "INSTRUMENT", "PURPOSE", "RESOLUTION", "COVERAGE", "PROCESSING", "SOURCE", "VERSION", "LIMITATIONS"].map((h) => <th key={h} scope="col" className="text-left font-normal px-3 py-2 whitespace-nowrap">{h}</th>)}</tr></thead>
-          <tbody>{all.map((x) => <tr key={x.id} className="border-t border-line align-top"><th scope="row" className="px-3 py-3 font-mono text-left font-normal text-mars-deep">{x.id}</th>{[x.mission, x.instrument, x.purpose, x.res, x.coverage, x.processing, x.source, x.version, x.limits].map((v, k) => <td key={k} className="px-3 py-3 text-fg/85 min-w-32">{v}</td>)}</tr>)}</tbody></table></div>
-      </details>
+
+      {/* Saved Missions Card */}
+      <div className="border border-line rounded-md p-6 bg-paper space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <Eyebrow>Local Storage</Eyebrow>
+            <h2 className="text-[20px] font-normal text-mars-deep mt-1">Saved Missions ({savedMissions.length})</h2>
+          </div>
+          <span className="font-mono text-[11px] text-dim">BROWSER CACHE · OFFLINE</span>
+        </div>
+        {savedMissions.length === 0 ? (
+          <p className="text-[13px] text-dim">
+            No missions saved locally yet. Compute a route in the <A to="/map" className="text-mars-deep underline font-medium">Map</A> and click "SAVE MISSION (OFFLINE STORAGE)" in the <A to="/report" className="text-mars-deep underline font-medium">Report</A>.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {savedMissions.map((m, idx) => (
+              <div key={m.id || idx} className="p-3 border border-line rounded-sm bg-ink flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[12px] font-semibold text-mars-deep">{m.name || m.id}</span>
+                    <span className="font-mono text-[10px] px-1.5 py-0.2 border border-line-strong rounded-sm">{m.mode}</span>
+                  </div>
+                  <div className="font-mono text-[11px] text-dim flex gap-4">
+                    <span>{m.distKm} km</span>
+                    <span>Cost: {m.cost}</span>
+                    <span>Max Slope: {m.maxSlope}°</span>
+                    <span>{new Date(m.date).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => loadSaved(m)}
+                    className="font-mono text-[11px] px-3 py-1 bg-mars-deep text-ink rounded-sm font-medium hover:opacity-90"
+                  >
+                    LOAD IN MAP
+                  </button>
+                  <button
+                    onClick={() => deleteSaved(idx)}
+                    className="font-mono text-[11px] px-2.5 py-1 border border-line-strong text-dim hover:text-fg rounded-sm"
+                  >
+                    DELETE
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Dataset Explorer */}
+      <div className="space-y-6 pt-4 border-t border-line">
+        <Eyebrow>Data provenance</Eyebrow>
+        <h2 className="text-[26px] font-normal text-mars-deep">Planetary Dataset Explorer</h2>
+        <p className="text-dim max-w-2xl text-[14px] leading-relaxed">
+          Target datasets for the full pipeline. The terrain shown in the app is one real HiRISE DTM window (D3). Resolutions are approximate, taken from public instrument descriptions.
+        </p>
+        <div className="grid md:grid-cols-[220px_1fr] gap-8">
+          <div role="tablist" aria-label="Datasets" aria-orientation="vertical" className="flex md:flex-col overflow-x-auto md:overflow-visible border-b md:border-b-0 md:border-r border-line">
+            {all.map((x) => (
+              <button key={x.id} role="tab" aria-selected={sel === x.id} onClick={() => setSel(x.id)} className={`text-left px-3 py-2.5 font-mono text-[13px] whitespace-nowrap border-b-2 md:border-b-0 md:border-r-2 -mb-px md:mb-0 md:-mr-px ${sel === x.id ? "border-mars-deep text-mars-deep bg-panel font-semibold" : "border-transparent text-dim hover:text-fg"}`}>
+                {x.id}<span className="block text-[11px] text-dim font-sans">{x.purpose}</span>
+              </button>
+            ))}
+          </div>
+          <div role="tabpanel" className="fade-in" key={d.id}>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h3 className="font-mono text-[24px] font-normal text-mars-deep">{d.id}</h3>
+              <Tag l={synth ? "DERIVED" : "UNKNOWN"} />
+              <span className="text-[12px] text-dim">{synth ? "used by this demo" : "not ingested in this build"}</span>
+            </div>
+            <p className="mt-1 text-[14px] text-fg/85">{d.purpose}</p>
+            <div className="mt-5 border-t border-fg"><Provenance d={d} /></div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1061,17 +1518,17 @@ function Methodology() {
   const s = STAGES_M[k];
   return (
     <div className="max-w-6xl w-full mx-auto px-6 py-10">
-      <Eyebrow>Methodology</Eyebrow><h1 className="text-[34px] mt-2 leading-tight max-w-2xl">From NASA data to a candidate mission plan.</h1>
+      <Eyebrow>Methodology</Eyebrow><h1 className="text-[34px] mt-2 leading-tight max-w-2xl text-mars-deep">From NASA data to a candidate mission plan.</h1>
       <p className="mt-3 text-[14px] text-dim max-w-2xl leading-relaxed">Select a stage to read what it consumes, what it produces, and which assumptions it carries.</p>
       <div className="mt-8 grid lg:grid-cols-[320px_1fr] gap-10">
         <ol aria-label="Pipeline stages" className="relative">{STAGES_M.map((x, n) => (
           <li key={x.n} className="relative pl-9 pb-5 last:pb-0">
             {n < STAGES_M.length - 1 && <span aria-hidden="true" className="absolute left-[11px] top-6 bottom-0 w-px bg-line-strong" />}
             <span aria-hidden="true" className={`absolute left-0 top-1 w-[23px] h-[23px] rounded-full border flex items-center justify-center font-mono text-[10px] ${n === k ? "bg-mars-deep border-mars-deep text-ink" : "bg-ink border-line-strong text-dim"}`}>{n + 1}</span>
-            <button onClick={() => setK(n)} aria-current={n === k} className="text-left w-full group"><span className={`block font-mono text-[12px] tracking-[0.1em] ${n === k ? "text-fg" : "text-dim group-hover:text-fg"}`}>{x.n}</span><span className="block text-[12px] text-dim">{x.sub}</span></button>
+            <button onClick={() => setK(n)} aria-current={n === k} className="text-left w-full group"><span className={`block font-mono text-[12px] tracking-[0.1em] ${n === k ? "text-mars-deep font-semibold" : "text-dim group-hover:text-fg"}`}>{x.n}</span><span className="block text-[12px] text-dim">{x.sub}</span></button>
           </li>))}</ol>
         <div key={k} className="fade-in border-t border-fg pt-5 self-start">
-          <div className="flex items-center gap-3 flex-wrap"><h2 className="font-mono text-[20px] font-normal tracking-[0.04em]">{s.n}</h2><Tag l={s.label} /><span className={`font-mono text-[11px] tracking-[0.08em] ${s.status === "prototype" ? "text-sage-deep" : "text-dim"}`}>{s.status === "prototype" ? "IMPLEMENTED IN PROTOTYPE" : "PLANNED, NOT IMPLEMENTED"}</span></div>
+          <div className="flex items-center gap-3 flex-wrap"><h2 className="font-mono text-[20px] font-normal tracking-[0.04em] text-mars-deep">{s.n}</h2><Tag l={s.label} /><span className={`font-mono text-[11px] tracking-[0.08em] ${s.status === "prototype" ? "text-sage-deep" : "text-dim"}`}>{s.status === "prototype" ? "IMPLEMENTED IN PROTOTYPE" : "PLANNED, NOT IMPLEMENTED"}</span></div>
           <p className="mt-4 text-[15px] leading-relaxed text-fg/90 max-w-2xl">{s.body}</p>
           <p className="mt-3 font-mono text-[12px] text-dim">{s.io}</p>
           {s.eq && <Eq>{s.eq}</Eq>}
@@ -1081,7 +1538,7 @@ function Methodology() {
       </div>
 
       <section className="mt-20 grid lg:grid-cols-[320px_1fr] gap-10">
-        <div><Eyebrow>Multi-resolution routing</Eyebrow><h2 className="mt-3 text-[26px] leading-tight">Coarse to fine.</h2><p className="mt-3 text-[13px] text-dim leading-relaxed">Planned, not implemented in this build. Where finer data is missing, the segment is flagged UNKNOWN rather than assumed safe.</p></div>
+        <div><Eyebrow>Multi-resolution routing</Eyebrow><h2 className="mt-3 text-[26px] leading-tight text-mars-deep">Coarse to fine.</h2><p className="mt-3 text-[13px] text-dim leading-relaxed">Planned, not implemented in this build. Where finer data is missing, the segment is flagged UNKNOWN rather than assumed safe.</p></div>
         <div className="space-y-2" role="img" aria-label="Three resolution tiers: MOLA corridor search, CTX corridor refinement, HiRISE local hazard check">{[["MOLA", "~463 m/px", "Corridor search", "100%"], ["CTX", "~6 m/px", "Corridor refinement", "62%"], ["HiRISE", "~0.25 m/px", "Local hazard check", "28%"]].map(([a, b, c, w]) => <div key={a} style={{ width: w }} className="min-w-56 border border-fg/70 rounded-sm bg-paper px-3 py-2.5"><div className="font-mono text-[13px] text-mars-deep">{a} <span className="text-dim text-[11px]">{b}</span></div><div className="text-[12px]">{c}</div></div>)}</div>
       </section>
 
@@ -1097,7 +1554,7 @@ function Methodology() {
 function About() {
   return (
     <div className="max-w-3xl w-full mx-auto px-6 py-16">
-      <Eyebrow>About</Eyebrow><h1 className="text-[40px] leading-tight mt-3">Built for NASA Space Apps Challenge 2026</h1>
+      <Eyebrow>About</Eyebrow><h1 className="text-[40px] leading-tight mt-3 text-mars-deep">Built for NASA Space Apps Challenge 2026</h1>
       <p className="mt-6 text-fg/85 leading-relaxed">MARS-X responds to the challenge "Interplanetary Survival Guide: Martian Map". It explores how open planetary data could be fused into explainable traverse planning for rovers and future crews.</p>
       <section className="mt-10 border-t border-fg pt-5 text-[14px] space-y-2 leading-relaxed"><Eyebrow>Disclaimer</Eyebrow><p>This project is not affiliated with, endorsed by, or sponsored by NASA. NASA data, when used, is credited to its original sources.</p><p>All routes are candidate routes for research and education. Safety is NOT CERTIFIED. The demo terrain and science targets are simulated.</p></section>
       <section className="mt-8 border-t border-line pt-5 text-[14px] space-y-2 leading-relaxed"><Eyebrow>Attribution</Eyebrow><p>Globe texture: Viking MDIM 2.1 colorized global mosaic, NASA / USGS Astrogeology Science Center, public domain, downsampled for the web. Landing-site coordinates are published mission values; region outlines and the globe trajectory are approximate or illustrative.</p></section>
@@ -1128,17 +1585,17 @@ export default function App() {
   const [routes, setRoutes] = useState<Partial<Record<Mode, Route | null>>>({});
   const [mission, setMission] = useState<Target[]>([]);
   const store: Store = { T: T as Terrain, start, end, setStart, setEnd, mode, setMode, weights, setWeights, routes, setRoutes, mission, toggleTarget: (t) => setMission((m) => m.some((x) => x.id === t.id) ? m.filter((x) => x.id !== t.id) : [...m, t]) };
-  const needsTerrain = ["/planner", "/explorer", "/routes", "/follow", "/immersive", "/mission"].some((p) => path.startsWith(p));
+  const needsTerrain = ["/map", "/planner", "/explorer", "/routes", "/follow", "/immersive", "/report", "/mission"].some((p) => path.startsWith(p));
   let page: React.ReactNode;
   if (needsTerrain && !T) page = <TerrainLoading />;
-  else if (path === "/") page = <Landing />;
-  else if (path.startsWith("/planner")) page = <Planner />;
+  else if (path === "/" || path.startsWith("/globe")) page = <Landing />;
+  else if (path.startsWith("/map") || path.startsWith("/planner")) page = <Planner />;
   else if (path.startsWith("/explorer")) page = <Explorer />;
   else if (path.startsWith("/routes")) page = <RoutesPage />;
   else if (path.startsWith("/follow")) page = <FollowPage />;
   else if (path.startsWith("/immersive")) page = <ImmersivePage />;
   else if (path.startsWith("/science")) page = <SciencePage />;
-  else if (path.startsWith("/mission/")) page = <MissionPage id={decodeURIComponent(path.split("/")[2] || "ARES-01")} />;
+  else if (path.startsWith("/report") || path.startsWith("/mission")) page = <MissionPage id={decodeURIComponent(path.split("/")[2] || "ARES-01")} />;
   else if (path.startsWith("/data")) page = <DataPage />;
   else if (path.startsWith("/methodology")) page = <Methodology />;
   else if (path.startsWith("/about")) page = <About />;

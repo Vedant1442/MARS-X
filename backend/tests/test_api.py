@@ -3,8 +3,8 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 c = TestClient(app)
-S = {"lon": 77.405, "lat": 18.385}
-G = {"lon": 77.435, "lat": 18.365}
+S = {"lon": 77.40672, "lat": 18.38200}
+G = {"lon": 77.42689, "lat": 18.37400}
 
 
 def test_health_real_terrain():

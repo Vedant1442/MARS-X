@@ -1,0 +1,24 @@
+{
+  "name": "MARS-X · Interplanetary Excursion Planner",
+  "short_name": "MARS-X",
+  "description": "Offline Mars surface excursion planner for Jezero Crater using NASA HiRISE DTM terrain data.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#181210",
+  "theme_color": "#964630",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

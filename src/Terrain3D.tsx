@@ -60,11 +60,16 @@ function Sky({ sunDir }: { sunDir: THREE.Vector3 }) {
 }
 
 function Dust({ follow }: { follow: React.MutableRefObject<THREE.Vector3> }) {
-  const N = 900, ref = useRef<THREE.Points>(null);
-  const pos = useMemo(() => { const a = new Float32Array(N * 3); for (let i = 0; i < N; i++) { a[i * 3] = (Math.random() - 0.5) * 900; a[i * 3 + 1] = Math.random() * 90; a[i * 3 + 2] = (Math.random() - 0.5) * 900; } return a; }, []);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const N = isMobile ? 180 : 800, ref = useRef<THREE.Points>(null);
+  const skip = useRef(0);
+  const pos = useMemo(() => { const a = new Float32Array(N * 3); for (let i = 0; i < N; i++) { a[i * 3] = (Math.random() - 0.5) * 900; a[i * 3 + 1] = Math.random() * 90; a[i * 3 + 2] = (Math.random() - 0.5) * 900; } return a; }, [N]);
   useFrame(({ clock }, dt) => {
-    const p = ref.current; if (!p) return; const t = clock.elapsedTime, a = p.geometry.attributes.position as THREE.BufferAttribute;
-    for (let i = 0; i < N; i++) { let x = a.getX(i) + dt * (6 + Math.sin(t * 0.3 + i) * 2), z = a.getZ(i) + dt * 2; if (x > 450) x -= 900; if (z > 450) z -= 900; a.setXYZ(i, x, a.getY(i) + Math.sin(t + i) * dt * 0.8, z); }
+    const p = ref.current; if (!p) return;
+    if (isMobile && (++skip.current % 2 !== 0)) return; // throttle particle update on mobile
+    const t = clock.elapsedTime, a = p.geometry.attributes.position as THREE.BufferAttribute;
+    const factor = isMobile ? dt * 2 : dt;
+    for (let i = 0; i < N; i++) { let x = a.getX(i) + factor * (6 + Math.sin(t * 0.3 + i) * 2), z = a.getZ(i) + factor * 2; if (x > 450) x -= 900; if (z > 450) z -= 900; a.setXYZ(i, x, a.getY(i) + Math.sin(t + i) * factor * 0.8, z); }
     a.needsUpdate = true; p.position.set(follow.current.x, follow.current.y - 5, follow.current.z);
   });
   return <points ref={ref} frustumCulled={false}><bufferGeometry><bufferAttribute attach="attributes-position" args={[pos, 3]} /></bufferGeometry><pointsMaterial color="#e3b48a" size={0.7} sizeAttenuation transparent opacity={0.3} depthWrite={false} /></points>;
@@ -99,16 +104,17 @@ function Scene(p: SceneProps) {
   scene.fog = new THREE.Fog("#c79a74", walk ? 250 : 1800, walk ? 3800 : 14000);
   scene.background = new THREE.Color("#c79a74");
 
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   const rocks = useMemo(() => { // scattered boulders on gentle ground (visual only)
-    const N = 2600, mesh = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshStandardMaterial({ color: "#7a5a48", roughness: 1, flatShading: true }), N), d = new THREE.Object3D(), col = new THREE.Color();
+    const N = isMobile ? 500 : 2200, mesh = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshStandardMaterial({ color: "#7a5a48", roughness: 1, flatShading: true }), N), d = new THREE.Object3D(), col = new THREE.Color();
     let s = 99; const r = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
     for (let i = 0; i < N; i++) {
       const fx = 0.03 + r() * 0.94, fy = 0.03 + r() * 0.94, size = 0.25 + Math.pow(r(), 3) * 2.2;
       d.position.set((fx - 0.5) * m.widthM, yAt(fx, fy, size * 0.25), (fy - 0.5) * m.heightM); d.rotation.set(r() * 6, r() * 6, r() * 6); d.scale.set(size * (0.8 + r() * 0.6), size * (0.5 + r() * 0.4), size * (0.8 + r() * 0.6)); d.updateMatrix();
       mesh.setMatrixAt(i, d.matrix); mesh.setColorAt(i, col.setHSL(0.05 + r() * 0.03, 0.3, 0.18 + r() * 0.2));
     }
-    mesh.castShadow = mesh.receiveShadow = true; return mesh;
-  }, [hi, m, p.exag]); // eslint-disable-line react-hooks/exhaustive-deps
+    mesh.castShadow = !isMobile; mesh.receiveShadow = !isMobile; return mesh;
+  }, [hi, m, p.exag, isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const path = p.route?.path ?? [];
   const routePts = useMemo(() => path.map((q) => new THREE.Vector3(...toW(q, 1.4))), [path, p.exag, hi]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -149,7 +155,7 @@ function Scene(p: SceneProps) {
       <Sky sunDir={sunDir} />
       <ambientLight intensity={0.55} color="#e8c8aa" />
       <hemisphereLight args={["#d9b08c", "#6b4636", 0.45]} />
-      <directionalLight ref={light} intensity={3.1} color="#fff0dc" castShadow shadow-mapSize={[4096, 4096]} shadow-bias={-0.0004} shadow-normalBias={0.6}>
+      <directionalLight ref={light} intensity={3.1} color="#fff0dc" castShadow={!isMobile} shadow-mapSize={isMobile ? [1024, 1024] : [2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.6}>
         <orthographicCamera attach="shadow-camera" args={[-2600, 2600, 2600, -2600, 100, 9000]} />
       </directionalLight>
       <mesh geometry={geo} scale={[1, p.exag, 1]} receiveShadow castShadow onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); p.onProbe({ fx: e.point.x / m.widthM + 0.5, fy: e.point.z / m.heightM + 0.5 }); }}>
@@ -173,12 +179,13 @@ function Scene(p: SceneProps) {
 
 export default function Terrain3D(props: Omit<SceneProps, "hi" | "meta"> & { meta: Meta; onReady?: () => void }) {
   const [hi, setHi] = useState<Float32Array | null>(null), [err, setErr] = useState("");
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   useEffect(() => { fetch(`${import.meta.env.BASE_URL}jezero-dem.bin`).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.arrayBuffer(); }).then((b) => setHi(makeHeights(b, props.meta))).catch((e) => setErr(String(e))); }, [props.meta]);
   useEffect(() => { if (hi) props.onReady?.(); }, [hi]); // eslint-disable-line react-hooks/exhaustive-deps
   if (err) return <div role="alert" className="absolute inset-0 flex items-center justify-center font-mono text-[12px] text-ink bg-map">Could not load terrain data ({err}).</div>;
   if (!hi) return <div role="status" className="absolute inset-0 flex items-center justify-center font-mono text-[12px] tracking-[0.08em] text-ink/85 bg-map">Loading HiRISE terrain model…</div>;
   return (
-    <Canvas id="t3d-canvas" shadows="percentage" dpr={[1, 1.75]} camera={{ fov: 52, near: 0.5, far: 40000, position: [500, 2200, 3400] }} gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}>
+    <Canvas id="t3d-canvas" shadows={isMobile ? false : "percentage"} dpr={isMobile ? [1, 1.25] : [1, 1.75]} camera={{ fov: 52, near: 0.5, far: 40000, position: [500, 2200, 3400] }} gl={{ antialias: !isMobile, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}>
       <Scene {...props} hi={hi} />
     </Canvas>
   );

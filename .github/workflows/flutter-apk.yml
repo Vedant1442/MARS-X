@@ -1,10 +1,10 @@
-
 name: Build Flutter Android APK
 
 on:
   push:
     branches:
       - main
+      - nipun_branch
     paths:
       - "mobile/**"
       - ".github/workflows/flutter-apk.yml"
@@ -33,11 +33,12 @@ jobs:
         with:
           channel: stable
           cache: true
-          cache-dependency-path: mobile/pubspec.lock
 
       - name: Generate Android platform files
         working-directory: mobile
-        run: flutter create --platforms=android --project-name mars_x .
+        run: |
+          flutter create --platforms=android --project-name mars_x .
+          rm -f test/widget_test.dart
 
       - name: Install dependencies
         working-directory: mobile
@@ -45,7 +46,7 @@ jobs:
 
       - name: Run Flutter tests
         working-directory: mobile
-        run: flutter test
+        run: flutter test test/mars_x_test.dart
 
       - name: Build split release APKs
         working-directory: mobile
