@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
+import '../../domain/terrain/terrain_grid.dart';
 import '../../shared/widgets/data_badge.dart';
 
 class MarsSite {
