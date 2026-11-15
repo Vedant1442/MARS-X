@@ -1,6 +1,6 @@
 {
   "reportVersion": 1,
-  "createdUtc": "2026-11-15T04:13:35.522639+00:00",
+  "createdUtc": "2026-11-15T04:53:19.729785+00:00",
   "repositoryRoot": "F:\\MARS-X-main\\MARS-X-main",
   "demBoundsEastLat": [
     76.99743706146005,
@@ -20,16 +20,16 @@
     "geojsonFiles": 19,
     "geojsonFeatures": 9820,
     "geopackageFiles": 2,
-    "manifestPaths": 43,
+    "manifestPaths": 49,
     "manifestPathsMissing": 0,
     "manifestChecksumComparisons": 19,
     "checksumMismatches": 0,
     "landmarkRegisterRows": 29,
-    "landmarkRegisterMissingCoordinates": 22,
+    "landmarkRegisterMissingCoordinates": 18,
     "geojsonParseFailures": 0,
     "invalidGeometries": 0,
     "duplicateFeatureIds": 0,
-    "missingGeoJsonCoordinates": 20
+    "missingGeoJsonCoordinates": 14
   },
   "rasters": [
     {
@@ -289,23 +289,23 @@
     },
     {
       "path": "data/processed/jezero/landmarks.geojson",
-      "bytes": 675914,
+      "bytes": 2465310,
       "jsonValid": true,
       "featureCount": 29,
       "duplicateIds": [],
-      "missingCoordinates": 20,
+      "missingCoordinates": 14,
       "geometryCounts": {
         "GeometryCollection": 2,
-        "Point": 7
+        "MultiLineString": 3,
+        "Polygon": 1,
+        "Point": 8,
+        "MultiPoint": 1
       },
       "invalidGeometryCount": 0,
       "outOfMarsCoordinateRange": 0,
       "outsideDeclaredBounds": 0,
       "marsCrsDeclared": true,
-      "errors": [
-        "feature[0] geometry has no coordinates",
-        "feature[1] geometry has no coordinates"
-      ]
+      "errors": []
     },
     {
       "path": "data/processed/jezero/perseverance_rover_stops.geojson",
@@ -974,17 +974,17 @@
     {
       "path": "data/processed/jezero/landmarks.csv",
       "exists": true,
-      "bytes": 170708
+      "bytes": 871198
     },
     {
       "path": "data/processed/jezero/landmarks.geojson",
       "exists": true,
-      "bytes": 675914
+      "bytes": 2465310
     },
     {
       "path": "data/processed/jezero/landmarks.json",
       "exists": true,
-      "bytes": 675882
+      "bytes": 2465278
     },
     {
       "path": "data/processed/jezero/perseverance_rover_stops.geojson",
@@ -1040,6 +1040,36 @@
       "path": "data/raw/D3/DTEEC_045994_1985_046060_1985_U01.IMG",
       "exists": true,
       "bytes": 380814764
+    },
+    {
+      "path": "data/raw/JezeroLandmarks/FUBerlin/channel-labels.geojson",
+      "exists": true,
+      "bytes": 9002
+    },
+    {
+      "path": "data/raw/JezeroLandmarks/FUBerlin/channel-lines.geojson",
+      "exists": true,
+      "bytes": 966490
+    },
+    {
+      "path": "data/raw/JezeroLandmarks/FUBerlin/lake.geojson",
+      "exists": true,
+      "bytes": 219719
+    },
+    {
+      "path": "data/raw/JezeroLandmarks/FUBerlin/landingellipse.geojson",
+      "exists": true,
+      "bytes": 2192
+    },
+    {
+      "path": "data/raw/JezeroLandmarks/FUBerlin/panoramas.geojson",
+      "exists": true,
+      "bytes": 45505
+    },
+    {
+      "path": "data/raw/JezeroLandmarks/FUBerlin/poi.geojson",
+      "exists": true,
+      "bytes": 1863
     },
     {
       "path": "data/raw/JezeroLandmarks/ThreeForks/sample_drop_timestamps.csv",
@@ -1257,8 +1287,8 @@
       "geojson": [],
       "csv": []
     },
-    "missingCoordinatesInGeojson": 22,
-    "csvMissingCoordinates": 22
+    "missingCoordinatesInGeojson": 18,
+    "csvMissingCoordinates": 18
   },
   "checksAndLimits": [
     "GeoJSON syntax and geometry structure checked; Shapely validity checked where geometries were present.",

@@ -54,7 +54,7 @@
     {
       "id": "ctx_jezero_dem_20m",
       "name": "USGS Mars 2020 Jezero CTX DEM mosaic",
-      "paths": ["data/raw/JezeroWide/M20_JezeroCrater_CTXDEM_20m.tif", "data/raw/JezeroWide/M20_JezeroCrater_CTXDEM_20m_metadata.xml"],
+      "paths": ["data/raw/JezeroWide/M20_JezeroCrater_CTXDEM_20m.tif", "data/raw/JezeroWide/M20_JezeroCrater_CTXDEM_20m_metadata.xml", "mobile/assets/terrain/jezero-ctx-100m-elevation.bin", "mobile/assets/terrain/jezero-ctx-100m-elevation.json"],
       "kind": "raster_continuous_elevation",
       "format": "GeoTIFF, 4456 x 5067, 1 band, Float32",
       "source": "USGS Astrogeology Science Center / PDS; see data/metadata/jezero_wide_manifest.json",
@@ -63,14 +63,14 @@
       "resolution": "20 x 20 m pixels",
       "units": "metres elevation; valid range in manifest -3504.6453 to -475.8408 m",
       "nodata": "-3.4028235e+38; manifest reports 99.94% valid pixels",
-      "integration": {"flutter": "not_integrated", "web": "not_integrated", "backend": "not_integrated"},
-      "consumerReady": "backend/frontend can build readers/package pipeline now after an explicit Mars CRS adapter; not ready as an already integrated route surface",
-      "limitations": ["20 m terrain cannot resolve all small hazards", "stereo-derived elevation, some extended areas localized to MOLA", "seam, overlap and HiRISE alignment validation still required", "whole-crater route planning pending"]
+      "integration": {"flutter": "integrated_100m_grid_loaded_by_provider_and_used_by_map_and_route_planner", "web": "not_integrated; web terrain remains local HiRISE", "backend": "not_integrated; backend loads local HiRISE"},
+      "consumerReady": "Flutter loads the packaged 100 m CTX grid with its Mars transform and NoData mask; source CTX raster remains available for higher-resolution processing",
+      "limitations": ["20 m source and 100 m aggregated route grid cannot resolve all small hazards", "stereo-derived elevation, some extended areas localized to MOLA", "seam, overlap and HiRISE alignment validation still required", "not integrated in web or backend runtime"]
     },
     {
       "id": "ctx_jezero_ortho_5m",
       "name": "USGS Mars 2020 Jezero CTX orthomosaic",
-      "paths": ["data/raw/JezeroWide/M20_JezeroCrater_CTXortho_mosaic_5m.tif", "data/raw/JezeroWide/M20_JezeroCrater_CTXortho_mosaic_5m_metadata.xml"],
+      "paths": ["data/raw/JezeroWide/M20_JezeroCrater_CTXortho_mosaic_5m.tif", "data/raw/JezeroWide/M20_JezeroCrater_CTXortho_mosaic_5m_metadata.xml", "mobile/assets/terrain/jezero-ctx-overview.png"],
       "kind": "raster_grayscale_imagery",
       "format": "GeoTIFF, 17766 x 20234, 1 band, Byte",
       "source": "USGS Astrogeology Science Center / PDS; see data/metadata/jezero_wide_manifest.json",
@@ -79,9 +79,9 @@
       "resolution": "approximately 5.002 m/pixel",
       "units": "8-bit grayscale DN; not elevation",
       "nodata": "NoData not established from raster tag in this handover; preserve source mask/metadata and do not fill uncovered DEM margins",
-      "integration": {"flutter": "not_integrated", "web": "not_integrated", "backend": "not_integrated"},
-      "consumerReady": "available as source imagery; requires tiled/windowed offline reader and explicit co-registration with CTX DEM",
-      "limitations": ["Large raster; do not decode as a single mobile texture", "NoData/uncovered image margin must remain unknown/transparent", "Not used for elevation or route costs"]
+      "integration": {"flutter": "integrated_resampled_overview_aligned_to_100m_ctx_grid", "web": "not_integrated", "backend": "not_integrated"},
+      "consumerReady": "Flutter displays the 100 m aligned grayscale overview; the original full-resolution image remains a source file",
+      "limitations": ["Large source raster; not packaged whole in the app", "NoData/uncovered image margin remains transparent", "Imagery is not used for elevation or route costs"]
     },
     {
       "id": "themis_d6_rasters",
@@ -164,6 +164,22 @@
       "limitations": ["USGS mapped layers are not exhaustive outside coverage polygon", "Label anchors are text positions, not feature centers", "Not yet in Flutter assets"]
     },
     {
+      "id": "fu_berlin_jezero_wfs_raw",
+      "name": "FU Berlin Jezero WFS reference layers",
+      "paths": ["data/raw/JezeroLandmarks/FUBerlin/panoramas.geojson", "data/raw/JezeroLandmarks/FUBerlin/lake.geojson", "data/raw/JezeroLandmarks/FUBerlin/channel-lines.geojson", "data/raw/JezeroLandmarks/FUBerlin/channel-labels.geojson", "data/raw/JezeroLandmarks/FUBerlin/landingellipse.geojson", "data/raw/JezeroLandmarks/FUBerlin/poi.geojson"],
+      "kind": "projected WFS vector source layers",
+      "format": "GeoJSON-formatted WFS responses; coordinates remain projected metres and are not RFC 7946 longitude/latitude despite the extension",
+      "source": "ESA/Freie Universität Berlin Jezero interactive map WFS; https://maps.planet.fu-berlin.de/jezero/",
+      "crs": "EPSG:49911, Mars 2015 Ographic / Equirectangular, central meridian 0, Mars sphere radius 3396190 m; raw files use projected x/y metres",
+      "coverage": "Map layer coverage varies; lake/channel/panorama subset is used by requested_landmark_register",
+      "resolution": "Vector source geometry; not applicable",
+      "units": "Projected metres in raw files; derived register uses east-positive degrees and planetocentric latitude",
+      "nodata": "Source layers have sparse/empty attributes; channel lines are unnamed",
+      "integration": {"flutter": "not_integrated", "web": "not_integrated", "backend": "not_integrated"},
+      "consumerReady": "Use only through the build_landmark_register.py conversion or reproject with the Mars CRS definition; do not parse raw projected coordinates as degrees",
+      "limitations": ["WFS layer schema and source coverage vary", "Channel lines lack name attributes", "Paleo-lake polygon is one possible level reconstruction", "Panorama points are observation viewpoints"]
+    },
+    {
       "id": "requested_landmark_register",
       "name": "29-name requested landmark register",
       "paths": ["data/processed/jezero/landmarks.json", "data/processed/jezero/landmarks.geojson", "data/processed/jezero/landmarks.csv"],
@@ -174,10 +190,10 @@
       "coverage": "Jezero requested names within or potentially near DEM; null coordinates mean location is unresolved",
       "resolution": "Not applicable",
       "units": "Degrees when coordinates available; scientific significance textual, separate from route safety",
-      "nodata": "Null coordinates/geometries deliberately indicate unresolved location; 7 point records (including three PDS rover visit localizations) and 2 mapped geometry collections are present, while 20 records have null geometry",
+      "nodata": "Null coordinates/geometries deliberately indicate unresolved location; 15 of 29 records have geometry and 14 remain null, including two mapped regions with no representative point",
       "integration": {"flutter": "not_integrated", "web": "not_integrated", "backend": "not_integrated"},
-      "consumerReady": "Backend can parse as a Mars-aware catalogue now; frontend can prototype the 9 non-null geometries after CRS handling and null filtering",
-      "limitations": ["20 of 29 names have null geometry", "Two mapped regions have no representative point", "Geology geometry is clipped to SIM 3464/DEM coverage", "Some informal names remain incompletely verified", "No terrain-hazard features are supplied"]
+      "consumerReady": "Backend can parse as a Mars-aware catalogue now; frontend can prototype the 15 non-null geometries after CRS handling, GeometryCollection support, and null filtering",
+      "limitations": ["14 of 29 names have null geometry", "Two mapped regions have no representative point", "Geology geometry is clipped to SIM 3464/DEM coverage", "FU Berlin channel attribution is spatial because WFS line features are unnamed", "Panorama and rover/sample positions are not necessarily feature centers", "Some informal names remain incompletely verified", "No terrain-hazard features are supplied"]
     },
     {
       "id": "landmark_point_index",
@@ -191,8 +207,8 @@
       "resolution": "Point locations; map-label anchors are annotation centroids, not feature centers",
       "units": "Degrees",
       "nodata": "Not applicable",
-      "integration": {"flutter": "integrated_asset; provider parses and map screen renders in local HiRISE window", "web": "not_integrated_as_this_geojson", "backend": "not_integrated_as_this_geojson"},
-      "consumerReady": "Flutter can consume for point display; filter by georeference footprint",
+      "integration": {"flutter": "integrated_asset; provider parses and crater-wide map renders within CTX grid", "web": "not_integrated_as_this_geojson", "backend": "not_integrated_as_this_geojson"},
+      "consumerReady": "Flutter displays point and label-anchor features in the Mars-aware crater-wide map",
       "limitations": ["Only 10 points", "No full requested landmark coverage", "Belva and valley anchors must not be treated as feature centers/boundaries"]
     },
     {
@@ -203,7 +219,7 @@
       "format": "PDS CSV source; GeoJSON 531 unique per-sol points in CTX footprint",
       "source": "PDS Mars 2020 Rover PLACES Release 16, best_interp.csv",
       "crs": "Mars longitude east-positive and planetocentric latitude; GeoJSON custom Mars extension",
-      "coverage": "531 sols (0–1897) with positions in CTX DEM footprint; Flutter displays only points falling in the HiRISE patch",
+      "coverage": "531 sols (0–1897) with positions in CTX DEM footprint; Flutter displays these in the crater-wide CTX view",
       "resolution": "Per-sol archived positions; source does not provide numeric positional error",
       "units": "Longitude/latitude degrees; elevation in metres in properties",
       "nodata": "Not applicable; omitted PDS localization rows mean gaps",

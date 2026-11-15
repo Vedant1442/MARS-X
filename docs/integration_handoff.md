@@ -1,6 +1,6 @@
 # Jezero data handoff for parallel integration
 
-**Status:** Crater-wide CTX is the primary map target. Integration should start on the CTX base now, in parallel with D6/D8 review. Spatial science sign-off remains pending for transformations and derived layers.
+**Status:** The Flutter prototype now opens on crater-wide CTX imagery and uses a CTX-derived 100 m grid for route calculations. Data processing and app integration are implemented; independent alignment/NoData review and Flutter build verification remain pending before scientific sign-off.
 
 This handoff separates facts recorded in the files from checks the teams still need to perform. It is intended to let backend and frontend work proceed without treating an unchecked overlay as scientifically validated.
 
@@ -12,8 +12,8 @@ The machine-readable inventory, file sizes, checksums, sources and known limitat
 |---|---|---|---|
 | D6 THEMIS thermal inertia | Source-grid TIFF, Mars TM TIFF, app-EQC TIFF, metadata and source citation in `data/MARSX_D6_THEMIS_CLEANED/` | Build a continuous-raster layer reader and legend using the app-EQC raster. Display its units and NoData. | Obtain the teammate's processing script/source download record; audit valid mask and values; validate spatial alignment independently. Never label it temperature. |
 | D8 SIM 3464 geology | Mars TM and app-EQC GeoPackages; Mars lon/lat GeoJSON; categorical TIFFs; unit lookup and blank science-weight template in `data/MARSX_D8_GEOLOGY_CLEANED/` | Build a categorical layer reader using the app-EQC unit-ID raster and its lookup. Build vector queries from the GeoPackage with its declared CRS. | Obtain processing code; document the Mars CRS on lon/lat GeoJSON; validate geometries, rasterization, map coverage and alignment. Do not use the blank weights for routing. |
-| CTX crater-wide base (PRIMARY MAP) | 20 m DEM and 5 m grayscale orthoimage under `data/raw/JezeroWide/` | Start the offline tile/package pipeline, crater-wide coverage overlay, and viewer integration immediately. This is the base map for the whole crater. | Confirm georeferencing/NoData/seams and viewer transformation before claiming scientific alignment. Not yet used by the Flutter map. |
-| Current HiRISE and rover points | Small HiRISE patch and point GeoJSON are declared Flutter assets. | Keep the existing screen working while adding a separate layer/package interface. | Do not assume the custom HiRISE grid is in the D6/D8 app-EQC CRS. Verify its transform before overlaying. |
+| CTX crater-wide base (PRIMARY MAP) | 20 m DEM, 5 m grayscale orthoimage, and source labels under `data/raw/JezeroWide/` | Flutter now bundles a 100 m route grid, aligned 100 m overview image, and mapped crater-rim line segments. `data/build_crater_wide_app_assets.py` reproduces the package. | Independently compare the warp and bounds against control points; inspect NoData and seams; confirm route endpoint conversion and Android build before scientific sign-off. |
+| HiRISE and rover points | Landing-site HiRISE DTM; 10 point/label features; 531 PLACES localizations | Existing points are transformed into the crater-wide map; the HiRISE product is retained for local-detail support and migration of saved missions. | Confirm the local HiRISE-to-CTX coordinate overlay before presenting its elevation as a zoomed CTX detail layer. PDS localizations remain points, not camera poses or a complete wheel track. |
 
 ## 2. Coordinate and raster contract
 
@@ -83,10 +83,11 @@ The coordinate API passed between UI and data layer should use a named Mars coor
 
 ### Route-planning team
 
-1. Stub against the repository API now. Build the route grid across the crater-wide CTX DEM footprint as soon as its coordinate-aware window reader is available; until then use only a clearly labeled synthetic fixture.
-2. Do not route from the geology category IDs or thermal-inertia layer until the data meanings, resolution, coverage, and weighting policy are reviewed.
-3. Keep hard constraints separate from optimization costs; show modeled route metrics and unknown coverage. Never label an output route “safe.”
-4. Do not advertise scientific route metrics until CTX transforms, NoData handling, and route-grid sampling pass validation. Route UI and data flow can be developed in parallel against the crater-wide footprint.
+1. Review the current full-extent CTX A* integration and test long routes across multiple parts of the crater once Flutter tooling is available.
+2. Report route resolution honestly: 100 m terrain cells cannot resolve small rocks, sand traps, or suit-scale hazards.
+3. Do not route from geology category IDs or thermal inertia until data meanings, coverage, and weighting policy are scientifically reviewed.
+4. Keep hard constraints separate from optimization costs; show modeled metrics and unknown coverage. Never label an output route “safe.”
+5. Keep the science-priority candidate labeled as a terrain-weighted demonstration while the verified science-target layer is empty.
 
 ## 4. Gated integration order
 
@@ -99,8 +100,11 @@ Now, in parallel:
 Also in parallel:
   D6/D8 preview + provenance/alignment QA ───> supplemental regional layers
 
-After CTX transform/NoData/seam QA:
-  enable validated crater-wide elevation/imagery and terrain route sampling
+Current prototype:
+  crater-wide imagery/elevation and 100 m route sampling are integrated
+
+After CTX transform/NoData/seam QA and Android build verification:
+  approve the integrated layers for the hackathon demonstration
 
 After rover image + camera geometry QA:
   enable only panoramas with verified pose/location
@@ -113,4 +117,4 @@ After rover image + camera geometry QA:
 - Do not treat the 100 m THEMIS layer as temperature or a real-time forecast.
 - Do not treat geology IDs as priority values or the regional geologic map as a small-rock hazard survey.
 - Do not treat the current 531 per-sol PDS localizations as a complete rover track or camera/panorama poses.
-- Do not confuse the tiny current HiRISE planner window with the crater-wide target. Do not advertise scientific route metrics until the crater-wide CTX terrain is loaded and validated.
+- Do not confuse the local HiRISE detail product with crater-wide coverage. The app currently uses a 100 m CTX planning grid; do not advertise scientific route metrics until its coordinate transform, NoData handling, and long-route behavior are independently validated.

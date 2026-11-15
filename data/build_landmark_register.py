@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +27,9 @@ NASA_PANORAMA = "https://science.nasa.gov/resource/perseverances-mid-climb-view-
 PAPER = "https://doi.org/10.1126/sciadv.abo4856"
 FUB = "https://maps.planet.fu-berlin.de/jezero/"
 PDS_PLACES = "https://pds-geosciences.wustl.edu/m2020/urn-nasa-pds-mars2020_rover_places/data_localizations/best_interp.csv"
+PDS_SAMPLE_REPORTS = "https://pds-geosciences.wustl.edu/missions/mars2020/Mars%202020%20Initial%20Reports%20Volume%202%20Release%202.pdf"
+FUB_WFS = "https://maps.planet.fu-berlin.de/jez-bin/wms?service=WFS&version=2.0.0&request=GetFeature&outputFormat=geojson&typeNames=ms%3A"
+FUB_RAW = ROOT / "data" / "raw" / "JezeroLandmarks" / "FUBerlin"
 
 # id, name, category, subcategory, geometry, confidence, status, description,
 # significance, exploration, source title, source URL, source geometry note
@@ -61,7 +65,7 @@ ROWS = [
  ("faraway-rock","Faraway Rock","points_of_interest","informal waypoint / outcrop","Point","high","name_confirmed_location_join_required","Named group of rocks near the inner crater rim, encountered at the start of the crater-rim campaign.","Rim campaign explores older crustal materials and stratigraphy.","Perseverance reached the area around Sol 1282 and began the rim ascent campaign.","LPSC 2025 abstract","https://www.hou.usra.edu/meetings/lpsc2025/pdf/2189.pdf","Named regional location confirmed; rover stop/localization join required for coordinate."),
 ]
 
-FIELDS = ["id","name","category","subcategory","geometryType","geometry","longitudeEastDeg","latitudePlanetocentricDeg","coordinateSystem","locationConfidence","verificationStatus","insideDemExtent","sourceExtentEastLat","geometryNote","geologicalDescription","scientificSignificance","perseveranceHistory","sourceName","sourceUrl","coordinateSource","imageryUrl","layerId"]
+FIELDS = ["id","name","category","subcategory","geometryType","geometry","longitudeEastDeg","latitudePlanetocentricDeg","coordinateSystem","locationConfidence","verificationStatus","insideDemExtent","sourceExtentEastLat","geometryNote","geometrySourceLayer","panoramaId","panoramaTitle","panoramaTitles","sampleName","sampleDesignation","sampleSol","roverVisitSol","roverVisitSite","roverVisitDrive","geologicalDescription","scientificSignificance","perseveranceHistory","sourceName","sourceUrl","coordinateSource","imageryUrl","layerId"]
 
 def source_geometry(filename, predicate, output_type):
     """Collect source feature geometry without deriving or guessing coordinates."""
@@ -85,6 +89,20 @@ def source_geometry(filename, predicate, output_type):
     # share boundaries, which would make an undissolved MultiPolygon invalid.
     return {"type": "GeometryCollection", "geometries": components}
 
+def fub_mars_geometry(geometry):
+    """Convert FU Berlin WFS EPSG:49911 (Mars equirectangular) to Mars lon/lat."""
+    if geometry["type"] == "GeometryCollection":
+        return {"type": "GeometryCollection", "geometries": [fub_mars_geometry(g) for g in geometry["geometries"]]}
+    def convert(value):
+        if isinstance(value[0], (int, float)):
+            x, y = value[:2]
+            return [math.degrees(x / CRS["sphereRadiusMetres"]), math.degrees(y / CRS["sphereRadiusMetres"]), *value[2:]]
+        return [convert(child) for child in value]
+    return {"type": geometry["type"], "coordinates": convert(geometry["coordinates"])}
+
+def fub_layer(name):
+    return json.loads((FUB_RAW / f"{name}.geojson").read_text(encoding="utf-8"))["features"]
+
 def main():
     points = json.loads((OUT / "jezero_landmarks.geojson").read_text(encoding="utf-8"))["features"]
     published = {"landing": points[0]}
@@ -101,7 +119,37 @@ def main():
     )
     if mapped["jezero-rim"] and rim_crest:
         mapped["jezero-rim"]["geometries"].extend(rim_crest["geometries"])
-    visit_sols = {"enchanted-lake": 426, "jurabi-point": 958, "gnaraloo-bay": 959}
+    # FU Berlin's WFS supplies a possible lake-level polygon and unnamed
+    # channel lines. The three primary channels are joined by inclusion of the
+    # corresponding official Gazetteer center in the source line envelope.
+    lake_features = fub_layer("lake")
+    mapped["ancient-lake-basin"] = fub_mars_geometry(lake_features[0]["geometry"])
+    channel_features = fub_layer("channel-lines")
+    channel_matches = {"eastern-outlet": 0, "sava-vallis": 6, "neretva-vallis": 13}
+    for landmark_id, index in channel_matches.items():
+        mapped[landmark_id] = fub_mars_geometry(channel_features[index]["geometry"])
+    # These are explicit, named Mastcam-Z panorama viewpoints in the FU WFS.
+    panorama_names = {
+        "enchanted-lake": ["Enchanted Lake"],
+        "belva-crater": ["Belva Crater"],
+        "bunsen-peak": ["Bunsen Peak and Neretva Vallis"],
+    }
+    panorama_features = fub_layer("panoramas")
+    panorama_points = {}
+    for landmark_id, names in panorama_names.items():
+        candidates = [f for f in panorama_features if f["properties"].get("name") in names]
+        if len(candidates) != 1:
+            raise ValueError(f"Expected one FU Berlin panorama point for {landmark_id}, found {len(candidates)}")
+        panorama_points[landmark_id] = candidates[0]
+    three_forks_views = [f for f in panorama_features if f["properties"].get("name") in {"Three Forks Sample Depot #1", "Three Forks Sample Depot #2"}]
+    if len(three_forks_views) != 2:
+        raise ValueError(f"Expected two Three Forks depot panorama points, found {len(three_forks_views)}")
+    sample_points = {
+        # Coordinates reported for sample acquisition locations in PDS initial reports.
+        "cape-nukshak": (77.40143171, 18.45068954, "Shuyak", "M2020-575-16", 575),
+        "hawksbill-gap": (77.40588851, 18.45863707, "Hazeltop", "M2020-509-14", 509),
+    }
+    visit_sols = {"jurabi-point": 958, "gnaraloo-bay": 959}
     # Use the last archived ROVER localization on a mission-linked arrival/visit
     # sol. Keep its site/drive keys so the selected record is auditable.
     places = list(csv.DictReader((ROOT / "data/raw/JezeroLandmarks/best_interp.csv").open(encoding="utf-8-sig")))
@@ -124,10 +172,48 @@ def main():
             g=published["landing"]["geometry"]; lon,lat=g["coordinates"]; geom=g; inside=True
         elif fid in mapped and mapped[fid]:
             geom=mapped[fid]; inside="intersects_dem_extent"
-            status="mapped_source_geometry_clipped_to_dem"
-            coordinate_note = "Actual USGS SIM 3464 mapped geometry, transformed to Mars east longitude / planetocentric latitude and clipped to DEM footprint; see source feature properties for map coverage caveat. No point coordinate substituted."
-            source_name="USGS SIM 3464 geologic unit polygons"
-            source_url=USGS
+            if fid in {"neretva-vallis", "sava-vallis", "eastern-outlet"}:
+                lon,lat=representative[fid]
+                status="FU_channel_line_spatially_joined_to_official_gazetteer_center"
+                source_name="FU Berlin Jezero WFS channel-lines; USGS Planetary Nomenclature center"
+                source_url=FUB
+                coordinate_note="Line geometry is the FU Berlin WFS channel feature whose envelope contains the corresponding official USGS Gazetteer center; WFS channel features have no name attribute. Point coordinate fields remain the official Gazetteer representative center, not a feature center or endpoint."
+                inside="intersects_dem_extent"
+            elif fid == "ancient-lake-basin":
+                status="possible_paleolake_level_polygon_from_FU_WFS"
+                source_name="FU Berlin Jezero WFS possible paleo lake-level"
+                source_url=FUB
+                coordinate_note="Polygon is the FU Berlin map's single possible paleo lake-level reconstruction. It documents one mapped interpretation, not a definitive or time-invariant lake-basin boundary. Source layer coverage is limited to the published map."
+            else:
+                status="mapped_source_geometry_clipped_to_dem"
+                coordinate_note = "Actual USGS SIM 3464 mapped geometry, transformed to Mars east longitude / planetocentric latitude and clipped to DEM footprint; see source feature properties for map coverage caveat. No point coordinate substituted."
+                source_name="USGS SIM 3464 geologic unit polygons"
+                source_url=USGS
+        elif fid in panorama_points:
+            feature=panorama_points[fid]
+            geom=fub_mars_geometry(feature["geometry"])
+            lon,lat=geom["coordinates"]
+            inside=BOUNDS[0] <= lon <= BOUNDS[2] and BOUNDS[1] <= lat <= BOUNDS[3]
+            status="FU_Berlin_named_panorama_viewpoint"
+            coordinate_note=f"Named FU Berlin Mastcam-Z panorama viewpoint '{feature['properties']['name']}' (pano_id {feature['properties'].get('pano_id')}); projected coordinates transformed from source EPSG:49911. This is the rover observation position, not a geological feature center or boundary."
+            source_name="FU Berlin Jezero interactive map WFS panoramas"
+            source_url=FUB
+        elif fid == "three-forks":
+            coords=[fub_mars_geometry(f["geometry"])["coordinates"] for f in three_forks_views]
+            geom={"type":"MultiPoint","coordinates":coords}
+            inside=all(BOUNDS[0] <= x <= BOUNDS[2] and BOUNDS[1] <= y <= BOUNDS[3] for x,y in coords)
+            status="FU_Berlin_depot_panorama_viewpoints_tube_coordinates_unavailable"
+            coordinate_note="The two MultiPoint coordinates are FU Berlin Mastcam-Z viewpoints named Three Forks Sample Depot #1 and #2, transformed from EPSG:49911. They identify rover observation positions only; they are not the depot boundary or any of the ten individual sample-tube drop coordinates."
+            source_name="FU Berlin Jezero interactive map WFS panoramas"
+            source_url=FUB
+        elif fid in sample_points:
+            lon,lat,sample_name,sample_id,sample_sol=sample_points[fid]
+            geom={"type":"Point","coordinates":[lon,lat]}
+            inside=BOUNDS[0] <= lon <= BOUNDS[2] and BOUNDS[1] <= lat <= BOUNDS[3]
+            status="PDS_sample_acquisition_location"
+            coordinate_note=f"PDS Initial Report for {sample_name} ({sample_id}), sample core sealing localization on Sol {sample_sol}; report identifies Region of Interest as {name}. This is the sample/rover location, not the named region's center or boundary."
+            source_name="NASA PDS Mars 2020 Initial Reports, Volume 2"
+            source_url=PDS_SAMPLE_REPORTS
         elif fid in visit_points:
             lon,lat,visit_sol,visit_site,visit_drive=visit_points[fid]
             geom={"type":"Point","coordinates":[lon,lat]}
@@ -144,9 +230,37 @@ def main():
           "imageryUrl":NASA_PANORAMA if fid in {"hawksbill-gap","three-forks","tuff-cliff"} else None,
           "layerId":category}
         if geom and fid in mapped:
-            props["geometryType"] = "GeometryCollection"
-            props["geometrySourceLayer"] = ["sim3464_geologic_units.geojson", "sim3464_linear_landforms.geojson"] if fid == "jezero-rim" else ["sim3464_geologic_units.geojson"]
-            props["geometryNote"] = "GeometryCollection of individually valid USGS SIM 3464 mapped components; source geometries are clipped to DEM bounds and the geologic map's own smaller coverage. Rim includes mapped rim-unit polygons and interpreted rim-crest line segments. Not a complete feature footprint outside mapped coverage."
+            if fid == "jezero-rim":
+                props["geometryType"] = "GeometryCollection"
+                props["geometrySourceLayer"] = ["sim3464_geologic_units.geojson", "sim3464_linear_landforms.geojson"]
+                props["geometryNote"] = "GeometryCollection of individually valid USGS SIM 3464 mapped components; source geometries are clipped to DEM bounds and the geologic map's own smaller coverage. Rim includes mapped rim-unit polygons and interpreted rim-crest line segments. Not a complete feature footprint outside mapped coverage."
+            elif fid == "western-delta":
+                props["geometryType"] = "GeometryCollection"
+                props["geometrySourceLayer"] = ["sim3464_geologic_units.geojson"]
+                props["geometryNote"] = "GeometryCollection of USGS SIM 3464 western fan unit polygons clipped to the DEM and map coverage; not a complete outline outside mapped coverage."
+            elif fid in {"neretva-vallis", "sava-vallis", "eastern-outlet"}:
+                props["geometryType"] = geom["type"]
+                props["geometrySourceLayer"] = "FU Berlin WFS channel-lines"
+                props["geometryNote"] = "Source channel geometry retains its full mapped extent and may cross DEM bounds; official Gazetteer representative-center coordinates are stored separately in the point-coordinate fields."
+            elif fid == "ancient-lake-basin":
+                props["geometryType"] = geom["type"]
+                props["geometrySourceLayer"] = "FU Berlin WFS lake"
+                props["geometryNote"] = "One possible reconstructed lake-level polygon, not a definitive basin boundary."
+        if fid in panorama_points:
+            props["geometryType"] = "Point"
+            props["panoramaId"] = panorama_points[fid]["properties"].get("pano_id")
+            props["panoramaTitle"] = panorama_points[fid]["properties"].get("name")
+            props["geometryNote"] = "Point is the source-georeferenced Mastcam-Z panorama viewpoint; it is not a geological feature center or boundary."
+        if fid == "three-forks":
+            props["geometryType"] = "MultiPoint"
+            props["panoramaTitles"] = [f["properties"]["name"] for f in three_forks_views]
+            props["geometryNote"] = "Two named Mastcam-Z viewpoints at Three Forks, not the depot boundary and not the individual sample-tube locations."
+        if fid in sample_points:
+            props["geometryType"] = "Point"
+            props["sampleName"] = sample_points[fid][2]
+            props["sampleDesignation"] = sample_points[fid][3]
+            props["sampleSol"] = sample_points[fid][4]
+            props["geometryNote"] = "Point is the PDS-reported rover/sample acquisition localization associated with the named outcrop/region. It is not the region center or boundary."
         if fid in visit_points:
             props["geometryType"] = "Point"
             props["coordinateSource"] = coordinate_note
@@ -157,7 +271,7 @@ def main():
         if fid in {"neretva-vallis","sava-vallis","eastern-outlet"}:
             extents={"neretva-vallis":[77.00,18.50,77.30,18.60],"sava-vallis":[76.69,18.74,77.56,19.43],"eastern-outlet":[78.09,18.52,78.60,18.81]}
             props["sourceExtentEastLat"] = extents[fid]
-            props["geometryNote"] = "Geometry is the official gazetteer center point for catalog display; the named landform is linear and its source extent is recorded separately."
+            props["geometryNote"] = "Line geometry is an unnamed FU Berlin WFS channel component spatially matched by the official Gazetteer representative point; source geometry has no name attribute. Gazetteer point fields are representative centers."
         records.append({"type":"Feature","id":fid,"geometry":geom,"properties":props})
     doc={"title":"Jezero requested landmark register","version":1,"status":"evidence-triage; unresolved coordinates are intentionally null","coordinateSystem":CRS,
       "demBoundsEastLat":BOUNDS,"layers":["geological_features","rover_exploration","scientific_interest","terrain_hazards","points_of_interest"],

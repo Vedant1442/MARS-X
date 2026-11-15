@@ -46,6 +46,44 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def inspect_geometry_object(geom: dict, bounds=None) -> dict:
+    """Validate one geometry recursively, including GeometryCollection children."""
+    result = {"errors": [], "invalid": 0, "outOfRange": 0, "outsideBounds": 0}
+    if geom.get("type") == "GeometryCollection":
+        for child in geom.get("geometries", []):
+            part = inspect_geometry_object(child, bounds)
+            result["errors"].extend(part["errors"])
+            result["invalid"] += part["invalid"]
+            result["outOfRange"] += part["outOfRange"]
+            result["outsideBounds"] += part["outsideBounds"]
+        return result
+    coords = geom.get("coordinates")
+    if coords is None:
+        result["errors"].append("geometry has no coordinates")
+        return result
+    stack = [coords]
+    positions = []
+    while stack:
+        value = stack.pop()
+        if isinstance(value, list) and value and isinstance(value[0], (int, float)):
+            if len(value) >= 2:
+                positions.append((float(value[0]), float(value[1])))
+        elif isinstance(value, list):
+            stack.extend(value)
+    for x, y in positions:
+        if not (0 <= x <= 360 and -90 <= y <= 90):
+            result["outOfRange"] += 1
+        if bounds and len(bounds) == 4 and not (bounds[0] - 1e-5 <= x <= bounds[2] + 1e-5 and bounds[1] - 1e-5 <= y <= bounds[3] + 1e-5):
+            result["outsideBounds"] += 1
+    if to_shape:
+        try:
+            if not to_shape(geom).is_valid:
+                result["invalid"] += 1
+        except Exception as ex:
+            result["errors"].append(f"geometry construction failed: {type(ex).__name__}: {str(ex)[:120]}")
+    return result
+
+
 def check_geojson(path: Path) -> dict:
     result = {"path": str(path.relative_to(ROOT)).replace("\\", "/"), "bytes": path.stat().st_size,
               "jsonValid": False, "featureCount": None, "duplicateIds": [], "missingCoordinates": 0,
@@ -71,6 +109,13 @@ def check_geojson(path: Path) -> dict:
                 result["missingCoordinates"] += 1
                 continue
             geom_counts[geom.get("type", "UNKNOWN")] += 1
+            if geom.get("type") == "GeometryCollection":
+                checked = inspect_geometry_object(geom, bounds)
+                result["errors"].extend(f"feature[{i}] {e}" for e in checked["errors"])
+                invalid += checked["invalid"]
+                result["outOfMarsCoordinateRange"] += checked["outOfRange"]
+                result["outsideDeclaredBounds"] += checked["outsideBounds"]
+                continue
             coords = geom.get("coordinates")
             if coords is None:
                 result["errors"].append(f"feature[{i}] geometry has no coordinates")
@@ -213,6 +258,7 @@ def main() -> None:
         j = json.loads(register_json.read_text(encoding="utf-8"))
         g = json.loads(register_geojson.read_text(encoding="utf-8"))
         with register_csv.open("r", encoding="utf-8-sig", newline="") as f:
+            csv.field_size_limit(10_000_000)
             c = list(csv.DictReader(f))
         ids = {
             "json": [str(x.get("id")) for x in j.get("features", [])],

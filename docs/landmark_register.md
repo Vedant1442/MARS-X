@@ -22,13 +22,19 @@ geologic layers: the mapped crater-rim unit polygons and crater-rim crest
 segments, plus Jezero fan units 1 and 2 (western delta). They are clipped to
 the DEM footprint and to the published
 geologic-map coverage, so they are not complete outlines beyond that coverage.
-Seven records have sourced point coordinates: the published Octavia E. Butler
-touchdown point, the official Gazetteer centers of Neretva Vallis, Sava Vallis,
-and Pliva Vallis, plus PDS PLACES rover visit localizations for Enchanted Lake
-(Sol 426), Jurabi Point (Sol 958), and Gnaraloo Bay (Sol 959). Visit points are not outcrop centers or
-boundaries. The valley points are explicitly representative
-centers, with official source extents recorded separately; Sava and Pliva only
-partially overlap the DEM. The existing Belva and Neretva map-label anchors remain in
+The register now includes named point locations, a two-viewpoint MultiPoint
+for Three Forks, three channel line geometries, a possible paleo-lake polygon,
+and the two existing SIM 3464 GeometryCollections (rim and western fan). Named
+points include the touchdown site, FU Berlin panorama viewpoints for Belva
+Crater, Enchanted Lake, and Bunsen Peak, PDS sample localizations associated
+with Hawksbill Gap and Cape Nukshak, and PDS PLACES rover visit localizations
+for Jurabi Point (Sol 958) and Gnaraloo Bay (Sol 959). These are rover/sample
+viewpoints or visit localizations, not necessarily feature centers or
+boundaries. The Three Forks MultiPoint represents two named panorama
+viewpoints, not tube-drop coordinates. The Neretva, Sava, and Pliva lines come
+from an unnamed FU Berlin WFS channel layer; their matching to official
+Gazetteer centers is spatial and documented as such, rather than an explicit
+name attribute in the WFS. The existing Belva and Neretva map-label anchors remain in
 `jezero_landmarks.geojson`; neither is promoted to a feature center. Rover
 localizations remain separate in `perseverance_rover_stops.geojson`.
 
@@ -46,11 +52,38 @@ targets. Several informal names were absent from the sources currently
 bundled in the repository. The register records those as unresolved rather
 than silently treating them as verified or assigning guessed positions.
 
+The FU Berlin interactive map WFS was queried and cached in
+`data/raw/JezeroLandmarks/FUBerlin/`. Its EPSG:49911 Mars equirectangular
+coordinates were converted using the Mars 2000 sphere radius (3,396,190 m) to
+east-positive longitude and planetocentric latitude. The register uses the
+WFS lake-level polygon, channel line components, and named panorama viewpoints.
+Channel lines have no names in their attributes; the three assignments are
+spatial matches to USGS Gazetteer representative points and should be treated
+as medium-confidence attribution. The lake polygon represents one possible
+reconstructed level, not the entire ancient basin. Panorama locations are
+observation points, not feature centers.
+
+An additional authoritative geomorphology dataset is available online:
+[Ovchinnikova & Jaumann (2024), Valleys and deltas in Jezero crater](https://refubium.fu-berlin.de/handle/fub188/45321), DOI
+[10.17169/refubium-45033](https://doi.org/10.17169/refubium-45033). Its published
+description says the downloadable geodatabase contains mapped western and
+northern delta extents and initial/last-incision geometries for the western
+inlet, northern inlet, and outlet. It could support several currently null
+regional features. It is not yet included in this repository: an attempted
+download from the repository endpoint returned an anti-bot HTML page rather
+than the advertised 257.4 KB ZIP, so no geometry was extracted or represented
+as validated. On successful retrieval, verify the published MD5
+`dbd7656954975ca8128c22179231f60e`, inspect the Mars CRS and source coverage,
+then integrate the geometries without substituting centroids.
+
 In particular, the USGS map-label point for Belva is a text anchor only. The
 PDS Three Forks sample-drop table in this checkout has event names/times but no tube
-coordinates. PDS documentation says a separate depot sample-location table
-records rover positions during drops and tube positions; that authoritative
-table remains to be joined. Bunsen Peak, Beehive Geyser, Pelican Point,
+coordinates. The [PDS Analyst's Notebook depot documentation](https://an.rsl.wustl.edu/help/Content/About%20the%20mission/M20/Return%20sample%20science/Three%20Forks%20Depot.htm)
+describes tube-location and sample-in-image tables, including rover positions
+and per-image sample pixel coordinates. Those need to be joined with the
+archived Navcam mosaics/DEMs or returned as mission-localization visit points;
+the local timestamp CSV alone is insufficient for individual tube points.
+Bunsen Peak, Beehive Geyser, Pelican Point,
 Mandu Wall, and Faraway Rock are confirmed by NASA/mission science references,
 but their exact target geometries still need to be joined to mission waypoint,
 PLACES, or sample localization records. Bunsen Peak
@@ -87,7 +120,7 @@ empty pending validated derivation from terrain data.
 ## Status
 
 These files provide a complete **requested-name register**, but not a fully
-georeferenced final landmark database. Twenty names still have null
+georeferenced final landmark database. Fourteen names still have null
 geometry pending authoritative feature boundaries or waypoint/sample-location
 joins. Two mapped geologic entries have geometry but no representative point.
 Imagery references are selective, and the terrain-hazard layer is not derived.

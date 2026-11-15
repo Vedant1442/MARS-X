@@ -1,0 +1,14 @@
+{
+"type": "FeatureCollection",
+"name": "poi",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::49911" } },
+"features": [
+{ "type": "Feature", "properties": { "id": "6", "name": "Mars 2020 Rover landing site", "link": "", "content": "", "zoom": "14", "panorama": "sphere.jpg" }, "geometry": { "type": "Point", "coordinates": [ 4594922.748865967616439, 1090552.745337738888338 ] } },
+{ "type": "Feature", "properties": { "id": "5", "name": "Volcano in SE", "link": "", "content": "", "zoom": "13", "panorama": "sphere2.jpg" }, "geometry": { "type": "Point", "coordinates": [ 4632435.372358404099941, 1074713.385083825560287 ] } },
+{ "type": "Feature", "properties": { "id": "1", "name": "Delta", "link": "", "content": "", "zoom": "12", "panorama": "sphere3.jpg" }, "geometry": { "type": "Point", "coordinates": [ 4587144.211553155444562, 1096919.854509113589302 ] } },
+{ "type": "Feature", "properties": { "id": "0", "name": "Outflow channel", "link": "", "content": "", "zoom": "10", "panorama": "sphere3.jpg" }, "geometry": { "type": "Point", "coordinates": [ 4629487.055796289816499, 1098394.012790170963854 ] } },
+{ "type": "Feature", "properties": { "id": "3", "name": "inlet1", "link": "", "content": "", "zoom": "10", "panorama": "sphere3.jpg" }, "geometry": { "type": "Point", "coordinates": [ 4580337.991404444910586, 1096543.473671396728605 ] } },
+{ "type": "Feature", "properties": { "id": "2", "name": "inlet2", "link": "", "content": "", "zoom": "10", "panorama": "sphere3.jpg" }, "geometry": { "type": "Point", "coordinates": [ 4595361.859843303449452, 1113480.611368650337681 ] } },
+{ "type": "Feature", "properties": { "id": "4", "name": "crater", "link": "", "content": "", "zoom": "10", "panorama": "sphere3.jpg" }, "geometry": { "type": "Point", "coordinates": [ 4606935.570603094063699, 1098174.457301502581686 ] } }
+]
+}
