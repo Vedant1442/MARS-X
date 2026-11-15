@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Html, OrbitControls, useTexture } from "@react-three/drei";
+import { Html, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 
 export type GlobeApi = { zoom: (factor: number) => void };
@@ -100,19 +100,39 @@ function Atmosphere() {
 }
 
 function Planet({ reduce, onReady, planetRef, compact }: { reduce: boolean; onReady: () => void; planetRef: React.RefObject<THREE.Mesh | null>; compact?: boolean }) {
+  const [texture, setTexture] = useState<THREE.Texture | null>(null);
   const texPath = compact ? `${import.meta.env.BASE_URL}mars-color-1k.jpg` : `${import.meta.env.BASE_URL}mars-color-2k.jpg`;
-  const tex = useTexture(texPath);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = compact ? 4 : 8;
 
   useEffect(() => {
-    onReady();
-  }, [onReady]);
+    let active = true;
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      texPath,
+      (tex) => {
+        if (!active) return;
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = compact ? 4 : 8;
+        setTexture(tex);
+        onReady();
+      },
+      undefined,
+      (err) => {
+        console.warn("Mars texture load warning, rendering procedural surface:", err);
+        if (active) onReady();
+      }
+    );
+    return () => { active = false; };
+  }, [texPath, onReady, compact]);
 
   return (<>
     <mesh ref={planetRef}>
       <sphereGeometry args={[R, compact ? 64 : 96, compact ? 48 : 64]} />
-      <meshStandardMaterial map={tex} roughness={0.88} metalness={0.02} />
+      <meshStandardMaterial
+        map={texture}
+        color={texture ? "#ffffff" : "#c14f2e"}
+        roughness={0.88}
+        metalness={0.02}
+      />
     </mesh>
     <Graticule />
     {REGIONS.map((b, i) => <Region key={i} box={b} />)}

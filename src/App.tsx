@@ -499,51 +499,98 @@ function HeroGlobe({ fly, stage }: { fly: FlyTarget; stage: number | null }) {
   const [gl] = useState(hasWebGL);
   const box = useRef<HTMLDivElement>(null);
   const api = useRef<GlobeApi | null>(null);
+
   useEffect(() => {
     const el = box.current; if (!el || !("IntersectionObserver" in window)) return;
     const io = new IntersectionObserver(([e]) => setActive(e.isIntersecting), { threshold: 0.05 });
     io.observe(el); return () => io.disconnect();
   }, []);
-  const still = <div role="img" aria-label="Mars, Viking color mosaic" className="w-[82%] aspect-square rounded-full bg-[url(/mars-color-1k.jpg)] bg-cover bg-center shadow-float ring-2 ring-[#c1440e]/30" />;
+
+  // Safe timeout so loading state never hangs
+  useEffect(() => {
+    const timer = window.setTimeout(() => setReady(true), 1200);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const still = (
+    <div
+      role="img"
+      aria-label="Mars, Viking color mosaic"
+      className="w-[82%] aspect-square rounded-full shadow-float ring-2 ring-[#c1440e]/40 relative overflow-hidden flex items-center justify-center"
+      style={{
+        background: "radial-gradient(circle at 35% 35%, #e26f47 0%, #b84b28 45%, #6a2512 85%, #2a0c05 100%)",
+        boxShadow: "inset -25px -25px 40px rgba(0,0,0,0.8), 0 0 35px rgba(224,109,68,0.25)",
+      }}
+    >
+      <div className="absolute inset-0 opacity-40 mix-blend-overlay bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-200 via-transparent to-black" />
+    </div>
+  );
+
   const compact = typeof window !== "undefined" && window.innerWidth < 768;
+
   return (
     <figure className="relative w-full">
-      <div ref={box} className="relative aspect-square max-h-[52vh] sm:max-h-[76vh] w-full max-w-[540px] mx-auto">
-        {["top-0 left-0 border-t border-l", "top-0 right-0 border-t border-r", "bottom-0 left-0 border-b border-l", "bottom-0 right-0 border-b border-r"].map((c) => <span key={c} aria-hidden="true" className={`absolute w-4 h-4 border-line-strong ${c}`} />)}
+      <div ref={box} className="relative aspect-square max-h-[54vh] sm:max-h-[74vh] w-full max-w-[540px] mx-auto">
+        {["top-0 left-0 border-t border-l", "top-0 right-0 border-t border-r", "bottom-0 left-0 border-b border-l", "bottom-0 right-0 border-b border-r"].map((c) => (
+          <span key={c} aria-hidden="true" className={`absolute w-4 h-4 border-line-strong ${c}`} />
+        ))}
         <div className="absolute inset-2 sm:inset-3 flex items-center justify-center">
           {gl ? (
             <GlobeBoundary fallback={still}>
-              <Suspense fallback={null}>
+              <Suspense fallback={still}>
                 <MarsGlobe active={active} reduce={reduce} fly={fly} apiRef={api} onReady={() => setReady(true)} compact={compact} />
               </Suspense>
             </GlobeBoundary>
           ) : still}
-          {gl && !ready && <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none"><div className="skeleton rounded-full w-[70%] aspect-square" /><LoadingNote>Loading orbital imagery…</LoadingNote></div>}
+          {gl && !ready && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none bg-ink/40 backdrop-blur-2xs rounded-full">
+              <LoadingNote>Initializing 3D orbital renderer…</LoadingNote>
+            </div>
+          )}
         </div>
-        
-        {/* On desktop/tablet, display corner annotations. On mobile (<sm), hide inside canvas to avoid cluttering Mars */}
-        <div className="hidden sm:block absolute top-4 left-5 pointer-events-none"><div className={ANNOT}>MOLA</div><div className="text-[11px] text-dim">Global elevation, ~463 m/px</div></div>
-        <div className="hidden sm:block absolute top-4 right-5 text-right pointer-events-none"><div className={ANNOT}>CTX</div><div className="text-[11px] text-dim">Context imagery, ~6 m/px</div></div>
-        <div className="hidden sm:block absolute bottom-10 left-5 pointer-events-none"><div className={ANNOT}>ROVER DATA</div><div className="text-[11px] text-dim">Jezero, Gale</div></div>
-        <div className="hidden sm:block absolute bottom-10 right-5 text-right pointer-events-none"><div className={ANNOT}>SCIENCE TARGETS</div><div className="text-[11px] text-dim">Simulated in this build</div></div>
-        
-        {gl && !stage && stage !== 0 && <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 no-print bg-ink/80 backdrop-blur-xs px-2 py-0.5 rounded-sm border border-line-strong/60 shadow-xs">
-          <button aria-label="Zoom out" onClick={() => api.current?.zoom(1.25)} className="w-7 h-7 font-mono text-[14px] border border-line-strong rounded-xs bg-ink/90 hover:bg-panel flex items-center justify-center cursor-pointer">−</button>
-          <span className="font-mono text-[9px] sm:text-[10px] tracking-[0.1em] text-dim px-2 whitespace-nowrap">DRAG TO ROTATE</span>
-          <button aria-label="Zoom in" onClick={() => api.current?.zoom(0.8)} className="w-7 h-7 font-mono text-[14px] border border-line-strong rounded-xs bg-ink/90 hover:bg-panel flex items-center justify-center cursor-pointer">+</button>
-        </div>}
-        {stage !== null && <div role="status" aria-live="polite" className="absolute bottom-3 inset-x-6 fade-in">
-          <ol className="flex justify-between gap-2 font-mono text-[11px] tracking-[0.12em]">{STAGES.map(([n], k) => <li key={n} className={`flex-1 border-t-2 pt-1.5 ${k <= stage ? "border-mars text-fg" : "border-line text-dim"}`}>{String(k + 1).padStart(2, "0")} {n}</li>)}</ol>
-          <p className="mt-2 text-[12px] text-dim">{STAGES[stage][1]}</p>
-        </div>}
+
+        {gl && !stage && stage !== 0 && (
+          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 no-print bg-ink/90 backdrop-blur-md px-2.5 py-1 rounded-sm border border-line-strong shadow-md z-10">
+            <button aria-label="Zoom out" onClick={() => api.current?.zoom(1.25)} className="w-7 h-7 font-mono text-[14px] border border-line-strong rounded-xs bg-ink/90 hover:bg-panel flex items-center justify-center cursor-pointer text-fg">−</button>
+            <span className="font-mono text-[9px] sm:text-[10px] tracking-[0.1em] text-dim px-2 whitespace-nowrap">DRAG TO ROTATE</span>
+            <button aria-label="Zoom in" onClick={() => api.current?.zoom(0.8)} className="w-7 h-7 font-mono text-[14px] border border-line-strong rounded-xs bg-ink/90 hover:bg-panel flex items-center justify-center cursor-pointer text-fg">+</button>
+          </div>
+        )}
+
+        {stage !== null && (
+          <div role="status" aria-live="polite" className="absolute bottom-3 inset-x-6 fade-in">
+            <ol className="flex justify-between gap-2 font-mono text-[11px] tracking-[0.12em]">
+              {STAGES.map(([n], k) => (
+                <li key={n} className={`flex-1 border-t-2 pt-1.5 ${k <= stage ? "border-mars text-fg" : "border-line text-dim"}`}>
+                  {String(k + 1).padStart(2, "0")} {n}
+                </li>
+              ))}
+            </ol>
+            <p className="mt-2 text-[12px] text-dim">{STAGES[stage][1]}</p>
+          </div>
+        )}
       </div>
-      
-      {/* Mobile-only clean metadata chips below globe */}
-      <div className="sm:hidden mt-2 grid grid-cols-2 gap-2 font-mono text-[10px] text-dim text-center">
-        <div className="p-1 border border-line/60 rounded-xs bg-panel/40">MOLA: ~463 m/px</div>
-        <div className="p-1 border border-line/60 rounded-xs bg-panel/40">CTX: ~6 m/px</div>
+
+      {/* 4 Orbital & Exploration Data Cards - Cleanly separated below the globe */}
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px]">
+        <div className="p-2 border border-line rounded-sm bg-panel/50 space-y-0.5">
+          <div className="font-bold text-fg text-[11px]">MOLA</div>
+          <div className="text-[10px] text-dim">Global elevation, ~463 m/px</div>
+        </div>
+        <div className="p-2 border border-line rounded-sm bg-panel/50 space-y-0.5">
+          <div className="font-bold text-fg text-[11px]">CTX</div>
+          <div className="text-[10px] text-dim">Context imagery, ~6 m/px</div>
+        </div>
+        <div className="p-2 border border-line rounded-sm bg-panel/50 space-y-0.5">
+          <div className="font-bold text-fg text-[11px]">ROVER DATA</div>
+          <div className="text-[10px] text-dim">Jezero & Gale traverse</div>
+        </div>
+        <div className="p-2 border border-line rounded-sm bg-panel/50 space-y-0.5">
+          <div className="font-bold text-fg text-[11px]">SCIENCE TARGETS</div>
+          <div className="text-[10px] text-dim">Simulated in this build</div>
+        </div>
       </div>
-      
+
       <figcaption className="mt-3 text-[11px] leading-relaxed text-dim max-w-md">
         <span className="font-mono text-fg">FIG. 1</span> Viking MDIM 2.1 color mosaic (NASA / USGS) on a sphere. Gold dots are published landing sites; gold outlines are approximate regions; the thin arc is an illustrative trajectory, not a real traverse.
       </figcaption>
