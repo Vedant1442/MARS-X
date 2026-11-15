@@ -138,6 +138,7 @@ class MissionReportScreen extends ConsumerWidget {
           pw.Bullet(text: 'Oxygen Depletion: ${risk.consumables.oxygenKg.toStringAsFixed(2)} kg O2 total'),
           pw.Bullet(text: 'Suit Battery Draw: ${risk.consumables.batteryKwh.toStringAsFixed(2)} kWh total'),
           pw.Bullet(text: 'Sublimator Cooling Water: ${risk.consumables.coolingWaterKg.toStringAsFixed(2)} kg H2O'),
+          pw.Bullet(text: 'Modeled Radiation Exposure: ${(MedaWeatherModel.radiationDoseMicroSv(risk.consumables.totalEvaMin)).toStringAsFixed(1)} uSv (MSL RAD Baseline, Hassler et al. 2014)'),
 
           pw.SizedBox(height: 12),
 
@@ -283,6 +284,7 @@ class MissionReportScreen extends ConsumerWidget {
                         _MetricRow('Oxygen Depletion', '${risk.consumables.oxygenKg.toStringAsFixed(2)} kg O2', DataType.simulated),
                         _MetricRow('Suit System Power', '${risk.consumables.batteryKwh.toStringAsFixed(2)} kWh', DataType.simulated),
                         _MetricRow('Sublimator Cooling Water', '${risk.consumables.coolingWaterKg.toStringAsFixed(2)} kg H2O', DataType.simulated),
+                        _MetricRow('Estimated Radiation Dose', '${(MedaWeatherModel.radiationDoseMicroSv(risk.consumables.totalEvaMin)).toStringAsFixed(1)} µSv (MSL RAD Baseline)', DataType.modeled),
                       ],
                     ),
                   ),

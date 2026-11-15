@@ -2,6 +2,19 @@
 
 This page explains what the project’s data is, where it came from, what the app can use now, and what is still only a file on disk. The processing steps are described in more detail in [DATA_PIPELINE.md](DATA_PIPELINE.md).
 
+## Verified Multi-Mission NASA Datasets (Challenge P1 Integration)
+
+| Dataset | Mission | Instrument | Product ID / DOI | Data Type | Offline Asset | Current App Integration |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **HiRISE Stereo DTM** | Mars Reconnaissance Orbiter (MRO) | HiRISE (SOCET SET) | `DTEEC_045994_1985_046060_1985_U01` | `[DERIVED]` | `mobile/assets/terrain/jezero-dem.bin` (Int16 LE, 36 m grid, 9 m source) | **Active**: A* routing cost engine, slope calculation, directional ascent penalty. |
+| **HiRISE Orthoimage** | Mars Reconnaissance Orbiter (MRO) | HiRISE | `DTEEC_045994_1985_046060_1985_U01` | `[OBSERVED]` | `mobile/assets/images/jezero-hirise.jpg` (312 KB, 0.25 m/px source) | **Active**: Selectable optical base layer toggle in map view. |
+| **MEDA Weather Observations** | Mars 2020 Perseverance | MEDA (TIRS & RHS) | PDS4 Atmospheres Node, Rodriguez-Manfredi et al. (2021), DOI: 10.1007/s11214-021-00816-9 | `[OBSERVED]` & `[MODELED]` | `mobile/assets/terrain/meda-weather.json` (20 KB) | **Active**: Replaced simulated pressure in map inspector popup with real diurnal air/ground temperatures, atmospheric pressure lapse ($P(z) = P_0 e^{-(z-z_0)/H}$), and LMST time-of-day slider (Sols 10, 14, 20, 28). |
+| **Surface Radiation Dose** | Mars Science Laboratory (MSL Curiosity) | RAD | Hassler et al. (2014), Science 343:1244797; Zeitlin et al. (2019) | `[MODELED]` | Computed via `MedaWeatherModel.radiationDoseMicroSv` | **Active**: Cumulative astronaut EVA dose ($0.445\ \mu\text{Sv/min} = 26.7\ \mu\text{Sv/hr}$) shown on all candidate route profiles and mission report. |
+| **Perseverance Rover Traverse** | Mars 2020 Perseverance | Rover PLACES | NASA PDS Rover PLACES Release 16 (`best_interp.csv`) | `[OBSERVED]` | `assets/terrain/perseverance-rover-stops.geojson` & `data/processed/jezero/perseverance_rover_traverse.geojson` | **Active**: Mapped on terrain with empirical comparison in `docs/VALIDATION.md`. |
+| **THEMIS Thermal Inertia** | 2001 Mars Odyssey | THEMIS | Edwards & Buz (2021), DOI: 10.5281/zenodo.4931348 | `[DERIVED]` | `data/MARSX_D6_THEMIS_CLEANED/` (LFS pointer stubs) | **Excluded**: Pursuant to Hard Rule 1 (no fabricated data), left out of runtime map layers because binary TIFF payload is not cached offline in this checkout. |
+
+---
+
 ## The short version
 
 The app uses two terrain scales:

@@ -60,6 +60,19 @@ final roverStopsProvider = FutureProvider<List<RoverStop>>((ref) async {
       .toList(growable: false);
 });
 
+final medaWeatherProvider = FutureProvider<Map<String, List<MedaReading>>>((ref) async {
+  final text = await rootBundle.loadString('assets/terrain/meda-weather.json');
+  final data = jsonDecode(text) as Map<String, dynamic>;
+  final solsMap = data['sols'] as Map<String, dynamic>;
+  final result = <String, List<MedaReading>>{};
+  solsMap.forEach((solKey, list) {
+    result[solKey] = (list as List<dynamic>)
+        .map((e) => MedaReading.fromJson(e as Map<String, dynamic>))
+        .toList(growable: false);
+  });
+  return result;
+});
+
 class PlannerState {
   final GridPoint? start;
   final GridPoint? end;
@@ -74,6 +87,11 @@ class PlannerState {
   final int landmarkStep;
   final String? statusMessage;
   final bool isPlanning;
+  final int selectedSol;
+  final int selectedHour;
+  final bool compareTraverse;
+  final String scienceObjective;
+  final bool showHazardCorridor;
 
   const PlannerState({
     this.start,
@@ -89,6 +107,11 @@ class PlannerState {
     this.landmarkStep = 0,
     this.statusMessage,
     this.isPlanning = false,
+    this.selectedSol = 20,
+    this.selectedHour = 12,
+    this.compareTraverse = false,
+    this.scienceObjective = 'Delta Lacustrine & Biosignature Sampling',
+    this.showHazardCorridor = false,
   });
 
   RouteResult? get activeRoute => routes[activeMode];
@@ -110,6 +133,11 @@ class PlannerState {
     String? statusMessage,
     bool clearStatus = false,
     bool? isPlanning,
+    int? selectedSol,
+    int? selectedHour,
+    bool? compareTraverse,
+    String? scienceObjective,
+    bool? showHazardCorridor,
   }) {
     return PlannerState(
       start: clearStart ? null : (start ?? this.start),
@@ -125,6 +153,11 @@ class PlannerState {
       landmarkStep: landmarkStep ?? this.landmarkStep,
       statusMessage: clearStatus ? null : (statusMessage ?? this.statusMessage),
       isPlanning: isPlanning ?? this.isPlanning,
+      selectedSol: selectedSol ?? this.selectedSol,
+      selectedHour: selectedHour ?? this.selectedHour,
+      compareTraverse: compareTraverse ?? this.compareTraverse,
+      scienceObjective: scienceObjective ?? this.scienceObjective,
+      showHazardCorridor: showHazardCorridor ?? this.showHazardCorridor,
     );
   }
 }
@@ -248,6 +281,11 @@ class PlannerNotifier extends StateNotifier<PlannerState> {
   void toggleTilt3D() => state = state.copyWith(tilt3D: !state.tilt3D);
   void setExag(double v) => state = state.copyWith(verticalExag: v);
   void setStep(int step) => state = state.copyWith(landmarkStep: step);
+  void setSol(int sol) => state = state.copyWith(selectedSol: sol);
+  void setHour(int hour) => state = state.copyWith(selectedHour: hour);
+  void toggleCompareTraverse() => state = state.copyWith(compareTraverse: !state.compareTraverse);
+  void setScienceObjective(String obj) => state = state.copyWith(scienceObjective: obj);
+  void toggleHazardCorridor() => state = state.copyWith(showHazardCorridor: !state.showHazardCorridor);
 }
 
 final plannerProvider = StateNotifierProvider<PlannerNotifier, PlannerState>((ref) {

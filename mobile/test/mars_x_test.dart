@@ -4,6 +4,7 @@ import 'package:mars_x/domain/geo/mars_geodesy.dart';
 import 'package:mars_x/domain/routing/astar.dart';
 import 'package:mars_x/domain/terrain/terrain_grid.dart';
 import 'package:mars_x/domain/track/landmark_selector.dart';
+import 'package:mars_x/domain/track/mission_config.dart';
 import 'package:mars_x/domain/track/risk.dart';
 import 'package:mars_x/features/report/mission_report_screen.dart';
 
@@ -172,5 +173,77 @@ void main() {
           safest.distanceM != fastest.distanceM;
       expect(isDifferent, isTrue);
     }
+  });
+
+  test('MedaWeatherModel computes authentic barometric lapse and MSL RAD dose (P1)', () {
+    // Reference landing elevation is -2560 m; at -2560 m, pressure should match base 750.0 Pa
+    final pBase = MedaWeatherModel.barometricPressurePa(-2560.0, 750.0);
+    expect(pBase, closeTo(750.0, 1e-3));
+
+    // Higher elevation (e.g. crater rim at -1500 m) should have lower pressure
+    final pRim = MedaWeatherModel.barometricPressurePa(-1500.0, 750.0);
+    expect(pRim, lessThan(pBase));
+
+    // Lower elevation (e.g. crater floor at -2700 m) should have higher pressure
+    final pFloor = MedaWeatherModel.barometricPressurePa(-2700.0, 750.0);
+    expect(pFloor, greaterThan(pBase));
+
+    // MSL RAD radiation dose: 60 min at 0.445 uSv/min = 26.7 uSv
+    final dose60 = MedaWeatherModel.radiationDoseMicroSv(60.0);
+    expect(dose60, closeTo(26.7, 0.1));
+  });
+
+  test('CorridorProfile extracts elevation cross-section and detects steep scarps (P2)', () {
+    const w = 30;
+    const h = 20;
+    final elev = Float32List(w * h);
+    // Steep scarp at x=10
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        elev[y * w + x] = x >= 10 ? 100.0 : 0.0;
+      }
+    }
+    final grid = TerrainGrid.fromElevation(w: w, h: h, cellM: 35.99, elev: elev);
+    final path = [for (var x = 0; x < 20; x++) GridPoint(x, 10)];
+
+    final profile = grid.extractCorridorProfile(path);
+    expect(profile.points.length, equals(20));
+    expect(profile.totalDistanceM, greaterThan(0.0));
+    expect(profile.maxSlopeDeg, greaterThan(15.0));
+    expect(profile.hazardScarpCount, greaterThan(0));
+  });
+
+  test('Scientific campaign objectives produce explainable scores with target breakdowns (P4)', () {
+    const w = 40;
+    const h = 30;
+    final grid = TerrainGrid.fromElevation(w: w, h: h, cellM: 35.99, elev: Float32List(w * h));
+    final route = MarsRouter.findRoute(
+      grid,
+      const GridPoint(2, 15),
+      const GridPoint(38, 15),
+      RouteWeights.defaultScience,
+      RouteMode.science,
+    )!;
+
+    for (final obj in ScienceCampaignObjective.values) {
+      final breakdown = MarsRouter.explainScienceScore(grid, route, objective: obj);
+      expect(breakdown.objective, equals(obj));
+      expect(breakdown.totalScore, inInclusiveRange(0, 100));
+      expect(breakdown.unvisitedTargets.length + breakdown.contributions.length, equals(kDemoTargets.length));
+      for (final c in breakdown.contributions) {
+        expect(c.points, greaterThan(0.0));
+        expect(c.justification, isNotEmpty);
+      }
+    }
+  });
+
+  test('MissionConfig ground safety parameters are strictly configured (P5)', () {
+    expect(MissionConfig.maxPassableSlopeDeg, equals(25.0));
+    expect(MissionConfig.crewSize, equals(2));
+    expect(MissionConfig.oxygenConsumptionKgPerMinPerCrew, equals(0.00133));
+    expect(MissionConfig.batteryConsumptionKwhPerMinPerCrew, equals(0.005));
+    expect(MissionConfig.coolingWaterConsumptionKgPerMinPerCrew, equals(0.00667));
+    expect(MissionConfig.scienceDetourCapRatio, equals(1.5));
+    expect(MissionConfig.surfaceRadiationDoseRateMicroSvPerMin, equals(0.445));
   });
 }

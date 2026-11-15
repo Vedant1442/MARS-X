@@ -91,7 +91,9 @@ class _TerrainMapScreenState extends ConsumerState<TerrainMapScreen> {
                         fit: StackFit.expand,
                         children: [
                           Image.asset(
-                            'assets/terrain/jezero-ctx-overview.png',
+                            grid.terrainSource.contains('HiRISE')
+                                ? 'assets/images/jezero-hirise.jpg'
+                                : 'assets/terrain/jezero-ctx-overview.png',
                             fit: BoxFit.fill,
                             filterQuality: FilterQuality.medium,
                             errorBuilder: (context, error, stack) => const ColoredBox(color: MarsTheme.mapBg),
@@ -279,7 +281,7 @@ class _TerrainMapScreenState extends ConsumerState<TerrainMapScreen> {
                 Positioned(
                   top: 90,
                   right: 8,
-                  child: _FloatingInspector(grid: grid, pt: st.inspected!),
+                  child: _FloatingInspector(grid: grid, pt: st.inspected!, st: st, notifier: notifier),
                 ),
 
               // 4. BOTTOM FLOATING ACTION DRAWER / ROUTE SELECTOR
@@ -386,36 +388,52 @@ class _LandmarkMapCard extends StatelessWidget {
   }
 }
 
-class _FloatingInspector extends StatelessWidget {
+class _FloatingInspector extends ConsumerWidget {
   final TerrainGrid grid;
   final GridPoint pt;
+  final PlannerState st;
+  final PlannerNotifier notifier;
 
-  const _FloatingInspector({required this.grid, required this.pt});
+  const _FloatingInspector({
+    required this.grid,
+    required this.pt,
+    required this.st,
+    required this.notifier,
+  });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final i = pt.y * grid.w + pt.x;
     final passable = grid.nodata[i] == 0 && grid.slope[i] <= MarsRouter.defaultMaxSlopeDeg;
+    final medaAsync = ref.watch(medaWeatherProvider);
+    final readings = medaAsync.valueOrNull?[st.selectedSol.toString()];
+    final reading = readings != null && st.selectedHour >= 0 && st.selectedHour < readings.length
+        ? readings[st.selectedHour]
+        : null;
+
+    final basePres = reading?.basePressurePa ?? 750.0;
+    final presPa = grid.pressurePa(i, basePressurePa: basePres);
+    final isObserved = reading?.status == 'OBSERVED';
 
     return Container(
+      width: 250,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF191316).withOpacity(0.90),
+        color: const Color(0xFF191316).withOpacity(0.92),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: passable ? const Color(0xFF7FA99B) : const Color(0xFFC3423F)),
-        boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 6)],
+        boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 6)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('POINT (${pt.x}, ${pt.y})', style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white)),
-              const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                 decoration: BoxDecoration(
                   color: passable ? const Color(0xFF395B50) : const Color(0xFF8B2624),
                   borderRadius: BorderRadius.circular(3),
@@ -424,12 +442,65 @@ class _FloatingInspector extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 3),
-          Text(
-            'Elev: ${grid.elev[i].toStringAsFixed(1)} m · Slope: ${grid.slope[i].toStringAsFixed(1)}°\n'
-            'Rough: ${grid.rough[i].toStringAsFixed(2)} · Pres: ${grid.pressureRel(i).toStringAsFixed(2)} (SIM)',
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: Color(0xFFD6CBC7)),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Elev: ${grid.elev[i].toStringAsFixed(1)} m · Slope: ${grid.slope[i].toStringAsFixed(1)}°',
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 9.5, color: Color(0xFFD6CBC7)),
+              ),
+              DataBadge(DataType.derived),
+            ],
           ),
+          const Divider(height: 10, color: Colors.white12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('MEDA WEATHER', style: TextStyle(fontFamily: 'monospace', fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF789BA8))),
+              DataBadge(isObserved ? DataType.observed : DataType.modeled),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Atmosphere: ${presPa.toStringAsFixed(1)} Pa (Lapse)\n'
+            'Air: ${reading?.airTempC.toStringAsFixed(1) ?? "--"}°C · Ground: ${reading?.groundTempC.toStringAsFixed(1) ?? "--"}°C',
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 9.5, color: Colors.white70),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Text('${st.selectedHour.toString().padLeft(2, "0")}:00 LMST', style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: Color(0xFFD3A24C))),
+              Expanded(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 2,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+                  ),
+                  child: Slider(
+                    min: 0,
+                    max: 23,
+                    divisions: 23,
+                    value: st.selectedHour.toDouble(),
+                    onChanged: (v) => notifier.setHour(v.round()),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (st.activeRoute != null) ...[
+            const Divider(height: 8, color: Colors.white12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'EVA Dose: ${(MedaWeatherModel.radiationDoseMicroSv(RiskModel.assess(grid, st.activeRoute!).estimatedTimeMin)).toStringAsFixed(1)} µSv',
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: Color(0xFFE07A5F)),
+                ),
+                DataBadge(DataType.modeled),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -553,6 +624,36 @@ class _BottomRouteSheet extends ConsumerWidget {
                 style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: MarsTheme.dim),
               ),
             ),
+            const SizedBox(height: 6),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  FilterChip(
+                    label: const Text('HAZARD PROFILE', style: TextStyle(fontFamily: 'monospace', fontSize: 9.5)),
+                    selected: st.showHazardCorridor,
+                    onSelected: (_) => notifier.toggleHazardCorridor(),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  const SizedBox(width: 6),
+                  FilterChip(
+                    label: const Text('PERSEVERANCE TRAVERSE', style: TextStyle(fontFamily: 'monospace', fontSize: 9.5)),
+                    selected: st.compareTraverse,
+                    onSelected: (_) => notifier.toggleCompareTraverse(),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+            ),
+            if (st.showHazardCorridor && st.activeRoute != null)
+              _CorridorHazardView(grid: grid, route: st.activeRoute!),
+            if (st.activeMode == RouteMode.science && st.activeRoute != null)
+              _ScienceBreakdownView(
+                grid: grid,
+                route: st.activeRoute!,
+                currentObjective: st.scienceObjective,
+                onSelectObjective: (obj) => notifier.setScienceObjective(obj),
+              ),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -602,6 +703,233 @@ class _BottomRouteSheet extends ConsumerWidget {
                 ),
               ],
             ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CorridorHazardView extends StatelessWidget {
+  final TerrainGrid grid;
+  final RouteResult route;
+
+  const _CorridorHazardView({required this.grid, required this.route});
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = grid.extractCorridorProfile(route.path);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: MarsTheme.ink,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: MarsTheme.lineStrong),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.terrain, size: 14, color: MarsTheme.mars),
+                  SizedBox(width: 5),
+                  Text('CORRIDOR HAZARD PROFILE (9 m/px HiRISE)', style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              DataBadge(DataType.derived),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Distance: ${(profile.totalDistanceM / 1000).toStringAsFixed(2)} km · '
+            'Elev: ${profile.minElevationM.toStringAsFixed(0)} to ${profile.maxElevationM.toStringAsFixed(0)} m · '
+            'Max Slope: ${profile.maxSlopeDeg.toStringAsFixed(1)}°',
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 9.5, color: MarsTheme.dim),
+          ),
+          if (profile.hazardScarpCount > 0) ...[
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0x22C3423F),
+                borderRadius: BorderRadius.circular(3),
+                border: Border.all(color: const Color(0xFFC3423F)),
+              ),
+              child: Text(
+                '⚠️ Local Scarp Warning: ${profile.hazardScarpCount} corridor points exceed 15° slope cutoff.',
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: Color(0xFFC3423F), fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+          const SizedBox(height: 6),
+          SizedBox(
+            height: 36,
+            child: CustomPaint(
+              size: const Size(double.infinity, 36),
+              painter: _ProfileChartPainter(profile: profile),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileChartPainter extends CustomPainter {
+  final CorridorProfile profile;
+
+  _ProfileChartPainter({required this.profile});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (profile.points.length < 2) return;
+    final pts = profile.points;
+    final eSpan = (profile.maxElevationM - profile.minElevationM) == 0 ? 1.0 : (profile.maxElevationM - profile.minElevationM);
+
+    final linePath = Path();
+    final fillPath = Path();
+
+    for (var i = 0; i < pts.length; i++) {
+      final x = (i / (pts.length - 1)) * size.width;
+      final normE = (pts[i].elevationM - profile.minElevationM) / eSpan;
+      final y = size.height - (normE * (size.height - 8) + 4);
+
+      if (i == 0) {
+        linePath.moveTo(x, y);
+        fillPath.moveTo(x, size.height);
+        fillPath.lineTo(x, y);
+      } else {
+        linePath.lineTo(x, y);
+        fillPath.lineTo(x, y);
+      }
+    }
+    fillPath.lineTo(size.width, size.height);
+    fillPath.close();
+
+    canvas.drawPath(
+      fillPath,
+      Paint()
+        ..color = MarsTheme.mars.withOpacity(0.18)
+        ..style = PaintingStyle.fill,
+    );
+
+    canvas.drawPath(
+      linePath,
+      Paint()
+        ..color = MarsTheme.mars
+        ..strokeWidth = 2.0
+        ..style = PaintingStyle.stroke,
+    );
+
+    final scarpPaint = Paint()..color = const Color(0xFFC3423F);
+    for (var i = 0; i < pts.length; i++) {
+      if (pts[i].isHazardScarp) {
+        final x = (i / (pts.length - 1)) * size.width;
+        final normE = (pts[i].elevationM - profile.minElevationM) / eSpan;
+        final y = size.height - (normE * (size.height - 8) + 4);
+        canvas.drawCircle(Offset(x, y), 3.0, scarpPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ProfileChartPainter oldDelegate) => true;
+}
+
+class _ScienceBreakdownView extends StatelessWidget {
+  final TerrainGrid grid;
+  final RouteResult route;
+  final String currentObjective;
+  final ValueChanged<String> onSelectObjective;
+
+  const _ScienceBreakdownView({
+    required this.grid,
+    required this.route,
+    required this.currentObjective,
+    required this.onSelectObjective,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final activeObj = ScienceCampaignObjective.values.firstWhere(
+      (o) => o.name == currentObjective,
+      orElse: () => ScienceCampaignObjective.deltaLacustrine,
+    );
+    final breakdown = MarsRouter.explainScienceScore(grid, route, objective: activeObj);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: MarsTheme.ink,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: MarsTheme.mars.withOpacity(0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'SCIENCE SCORE: ${breakdown.totalScore} / 100',
+                style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 11, color: MarsTheme.mars),
+              ),
+              DataBadge(DataType.modeled),
+            ],
+          ),
+          const SizedBox(height: 4),
+          DropdownButton<String>(
+            value: activeObj.name,
+            isDense: true,
+            isExpanded: true,
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold, color: MarsTheme.fg),
+            items: [
+              for (final obj in ScienceCampaignObjective.values)
+                DropdownMenuItem(
+                  value: obj.name,
+                  child: Text(obj.name),
+                ),
+            ],
+            onChanged: (val) {
+              if (val != null) onSelectObjective(val);
+            },
+          ),
+          const SizedBox(height: 2),
+          Text(
+            activeObj.description,
+            style: const TextStyle(fontSize: 9.5, color: MarsTheme.dim),
+          ),
+          const Divider(height: 10),
+          if (breakdown.contributions.isEmpty)
+            const Text(
+              'No mapped science targets intercepted within 6 cells (~216 m) along this path.',
+              style: TextStyle(fontFamily: 'monospace', fontSize: 9.5, color: MarsTheme.dim),
+            )
+          else ...[
+            const Text('INTERCEPTED TARGETS:', style: TextStyle(fontFamily: 'monospace', fontSize: 9, fontWeight: FontWeight.bold)),
+            for (final c in breakdown.contributions)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('+${c.points.toStringAsFixed(0)} pts', style: const TextStyle(fontFamily: 'monospace', fontSize: 9.5, fontWeight: FontWeight.bold, color: MarsTheme.mars)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '${c.target.name} (${c.distanceM.toStringAsFixed(0)} m away) · ${c.justification}',
+                        style: const TextStyle(fontSize: 9.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ],
       ),
@@ -1003,6 +1331,29 @@ class _TerrainPainter extends CustomPainter {
           }
         }
         canvas.drawPath(path, rimPaint);
+      }
+
+      if (st.compareTraverse && roverStops.length > 1) {
+        final traversePath = Path();
+        var first = true;
+        for (final stop in roverStops) {
+          final cell = georef.cellFor(stop.longitudeEastDeg, stop.latitudePlanetocentricDeg, grid.w, grid.h);
+          if (cell == null) continue;
+          final pos = Offset((cell.x + 0.5) * cw, (cell.y + 0.5) * ch);
+          if (first) {
+            traversePath.moveTo(pos.dx, pos.dy);
+            first = false;
+          } else {
+            traversePath.lineTo(pos.dx, pos.dy);
+          }
+        }
+        canvas.drawPath(
+          traversePath,
+          Paint()
+            ..color = const Color(0xFFFFB703)
+            ..strokeWidth = 2.2
+            ..style = PaintingStyle.stroke,
+        );
       }
 
       for (final stop in roverStops) {

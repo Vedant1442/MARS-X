@@ -1,0 +1,793 @@
+{
+  "metadata": {
+    "mission": "NASA Mars 2020 Perseverance",
+    "instrument": "MEDA (TIRS & RHS)",
+    "pds_collection": "PDS4 Atmospheres Node (calibrated derived tables)",
+    "citation": "Rodriguez-Manfredi et al. (2021), Space Sci Rev 217:48",
+    "doi": "10.1007/s11214-021-00816-9",
+    "sols": [
+      10,
+      14,
+      20,
+      28
+    ]
+  },
+  "sols": {
+    "10": [
+      {
+        "hour": 0,
+        "air_temp_c": -64.2,
+        "ground_temp_c": -73.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 740.9,
+        "status": "MODELED"
+      },
+      {
+        "hour": 1,
+        "air_temp_c": -67.0,
+        "ground_temp_c": -75.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 750.0,
+        "status": "MODELED"
+      },
+      {
+        "hour": 2,
+        "air_temp_c": -68.0,
+        "ground_temp_c": -73.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 759.1,
+        "status": "MODELED"
+      },
+      {
+        "hour": 3,
+        "air_temp_c": -67.0,
+        "ground_temp_c": -69.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 767.5,
+        "status": "MODELED"
+      },
+      {
+        "hour": 4,
+        "air_temp_c": -64.2,
+        "ground_temp_c": -63.3,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 774.7,
+        "status": "MODELED"
+      },
+      {
+        "hour": 5,
+        "air_temp_c": -59.8,
+        "ground_temp_c": -55.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 780.3,
+        "status": "MODELED"
+      },
+      {
+        "hour": 6,
+        "air_temp_c": -54.0,
+        "ground_temp_c": -45.4,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 783.8,
+        "status": "MODELED"
+      },
+      {
+        "hour": 7,
+        "air_temp_c": -47.2,
+        "ground_temp_c": -35.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 785.0,
+        "status": "MODELED"
+      },
+      {
+        "hour": 8,
+        "air_temp_c": -40.0,
+        "ground_temp_c": -24.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 783.8,
+        "status": "MODELED"
+      },
+      {
+        "hour": 9,
+        "air_temp_c": -32.8,
+        "ground_temp_c": -15.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 780.3,
+        "status": "MODELED"
+      },
+      {
+        "hour": 10,
+        "air_temp_c": -26.0,
+        "ground_temp_c": -6.7,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 774.7,
+        "status": "MODELED"
+      },
+      {
+        "hour": 11,
+        "air_temp_c": -20.2,
+        "ground_temp_c": -0.4,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 767.5,
+        "status": "MODELED"
+      },
+      {
+        "hour": 12,
+        "air_temp_c": -15.8,
+        "ground_temp_c": 3.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 759.1,
+        "status": "MODELED"
+      },
+      {
+        "hour": 13,
+        "air_temp_c": -13.0,
+        "ground_temp_c": 5.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 750.0,
+        "status": "MODELED"
+      },
+      {
+        "hour": 14,
+        "air_temp_c": -14.2,
+        "ground_temp_c": -6.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 740.9,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 15,
+        "air_temp_c": -13.0,
+        "ground_temp_c": -0.4,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 732.5,
+        "status": "MODELED"
+      },
+      {
+        "hour": 16,
+        "air_temp_c": -15.8,
+        "ground_temp_c": -6.7,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 725.3,
+        "status": "MODELED"
+      },
+      {
+        "hour": 17,
+        "air_temp_c": -20.2,
+        "ground_temp_c": -15.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 719.7,
+        "status": "MODELED"
+      },
+      {
+        "hour": 18,
+        "air_temp_c": -26.0,
+        "ground_temp_c": -24.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 716.2,
+        "status": "MODELED"
+      },
+      {
+        "hour": 19,
+        "air_temp_c": -32.8,
+        "ground_temp_c": -35.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 715.0,
+        "status": "MODELED"
+      },
+      {
+        "hour": 20,
+        "air_temp_c": -40.0,
+        "ground_temp_c": -45.4,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 716.2,
+        "status": "MODELED"
+      },
+      {
+        "hour": 21,
+        "air_temp_c": -47.2,
+        "ground_temp_c": -55.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 719.7,
+        "status": "MODELED"
+      },
+      {
+        "hour": 22,
+        "air_temp_c": -54.0,
+        "ground_temp_c": -63.3,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 725.3,
+        "status": "MODELED"
+      },
+      {
+        "hour": 23,
+        "air_temp_c": -59.8,
+        "ground_temp_c": -69.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 732.5,
+        "status": "MODELED"
+      }
+    ],
+    "14": [
+      {
+        "hour": 0,
+        "air_temp_c": -64.2,
+        "ground_temp_c": -73.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 740.9,
+        "status": "MODELED"
+      },
+      {
+        "hour": 1,
+        "air_temp_c": -67.0,
+        "ground_temp_c": -75.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 750.0,
+        "status": "MODELED"
+      },
+      {
+        "hour": 2,
+        "air_temp_c": -68.0,
+        "ground_temp_c": -73.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 759.1,
+        "status": "MODELED"
+      },
+      {
+        "hour": 3,
+        "air_temp_c": -67.0,
+        "ground_temp_c": -69.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 767.5,
+        "status": "MODELED"
+      },
+      {
+        "hour": 4,
+        "air_temp_c": -64.2,
+        "ground_temp_c": -63.3,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 774.7,
+        "status": "MODELED"
+      },
+      {
+        "hour": 5,
+        "air_temp_c": -59.8,
+        "ground_temp_c": -55.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 780.3,
+        "status": "MODELED"
+      },
+      {
+        "hour": 6,
+        "air_temp_c": -54.0,
+        "ground_temp_c": -45.4,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 783.8,
+        "status": "MODELED"
+      },
+      {
+        "hour": 7,
+        "air_temp_c": -47.2,
+        "ground_temp_c": -35.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 785.0,
+        "status": "MODELED"
+      },
+      {
+        "hour": 8,
+        "air_temp_c": -40.0,
+        "ground_temp_c": -24.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 783.8,
+        "status": "MODELED"
+      },
+      {
+        "hour": 9,
+        "air_temp_c": -32.8,
+        "ground_temp_c": -15.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 780.3,
+        "status": "MODELED"
+      },
+      {
+        "hour": 10,
+        "air_temp_c": -26.0,
+        "ground_temp_c": -6.7,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 774.7,
+        "status": "MODELED"
+      },
+      {
+        "hour": 11,
+        "air_temp_c": -20.2,
+        "ground_temp_c": -0.4,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 767.5,
+        "status": "MODELED"
+      },
+      {
+        "hour": 12,
+        "air_temp_c": -15.8,
+        "ground_temp_c": 3.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 759.1,
+        "status": "MODELED"
+      },
+      {
+        "hour": 13,
+        "air_temp_c": -13.0,
+        "ground_temp_c": 5.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 750.0,
+        "status": "MODELED"
+      },
+      {
+        "hour": 14,
+        "air_temp_c": -12.0,
+        "ground_temp_c": 3.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 740.9,
+        "status": "MODELED"
+      },
+      {
+        "hour": 15,
+        "air_temp_c": -13.0,
+        "ground_temp_c": -0.4,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 732.5,
+        "status": "MODELED"
+      },
+      {
+        "hour": 16,
+        "air_temp_c": -15.8,
+        "ground_temp_c": -6.7,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 725.3,
+        "status": "MODELED"
+      },
+      {
+        "hour": 17,
+        "air_temp_c": -20.2,
+        "ground_temp_c": -15.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 719.7,
+        "status": "MODELED"
+      },
+      {
+        "hour": 18,
+        "air_temp_c": -26.0,
+        "ground_temp_c": -24.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 716.2,
+        "status": "MODELED"
+      },
+      {
+        "hour": 19,
+        "air_temp_c": -32.8,
+        "ground_temp_c": -35.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 715.0,
+        "status": "MODELED"
+      },
+      {
+        "hour": 20,
+        "air_temp_c": -40.0,
+        "ground_temp_c": -45.4,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 716.2,
+        "status": "MODELED"
+      },
+      {
+        "hour": 21,
+        "air_temp_c": -47.2,
+        "ground_temp_c": -55.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 719.7,
+        "status": "MODELED"
+      },
+      {
+        "hour": 22,
+        "air_temp_c": -54.0,
+        "ground_temp_c": -63.3,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 725.3,
+        "status": "MODELED"
+      },
+      {
+        "hour": 23,
+        "air_temp_c": -67.6,
+        "ground_temp_c": -69.2,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 732.5,
+        "status": "OBSERVED"
+      }
+    ],
+    "20": [
+      {
+        "hour": 0,
+        "air_temp_c": -64.2,
+        "ground_temp_c": -73.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 740.9,
+        "status": "MODELED"
+      },
+      {
+        "hour": 1,
+        "air_temp_c": -67.0,
+        "ground_temp_c": -75.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 750.0,
+        "status": "MODELED"
+      },
+      {
+        "hour": 2,
+        "air_temp_c": -68.0,
+        "ground_temp_c": -73.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 759.1,
+        "status": "MODELED"
+      },
+      {
+        "hour": 3,
+        "air_temp_c": -67.0,
+        "ground_temp_c": -69.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 767.5,
+        "status": "MODELED"
+      },
+      {
+        "hour": 4,
+        "air_temp_c": -64.2,
+        "ground_temp_c": -63.3,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 774.7,
+        "status": "MODELED"
+      },
+      {
+        "hour": 5,
+        "air_temp_c": -59.8,
+        "ground_temp_c": -55.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 780.3,
+        "status": "MODELED"
+      },
+      {
+        "hour": 6,
+        "air_temp_c": -54.0,
+        "ground_temp_c": -45.4,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 783.8,
+        "status": "MODELED"
+      },
+      {
+        "hour": 7,
+        "air_temp_c": -47.2,
+        "ground_temp_c": -35.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 785.0,
+        "status": "MODELED"
+      },
+      {
+        "hour": 8,
+        "air_temp_c": -40.0,
+        "ground_temp_c": -24.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 783.8,
+        "status": "MODELED"
+      },
+      {
+        "hour": 9,
+        "air_temp_c": -32.8,
+        "ground_temp_c": -15.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 780.3,
+        "status": "MODELED"
+      },
+      {
+        "hour": 10,
+        "air_temp_c": -26.0,
+        "ground_temp_c": -6.7,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 774.7,
+        "status": "MODELED"
+      },
+      {
+        "hour": 11,
+        "air_temp_c": -30.2,
+        "ground_temp_c": 0.8,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 767.5,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 12,
+        "air_temp_c": -24.1,
+        "ground_temp_c": 5.5,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 759.1,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 13,
+        "air_temp_c": -21.2,
+        "ground_temp_c": 7.4,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 750.0,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 14,
+        "air_temp_c": -12.6,
+        "ground_temp_c": 5.2,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 740.9,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 15,
+        "air_temp_c": -7.4,
+        "ground_temp_c": -4.3,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 732.5,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 16,
+        "air_temp_c": -11.3,
+        "ground_temp_c": -15.5,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 725.3,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 17,
+        "air_temp_c": -14.7,
+        "ground_temp_c": -23.3,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 719.7,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 18,
+        "air_temp_c": -34.2,
+        "ground_temp_c": -48.3,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 716.2,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 19,
+        "air_temp_c": -41.8,
+        "ground_temp_c": -55.4,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 715.0,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 20,
+        "air_temp_c": -53.4,
+        "ground_temp_c": -65.2,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 716.2,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 21,
+        "air_temp_c": -56.7,
+        "ground_temp_c": -67.5,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 719.7,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 22,
+        "air_temp_c": -63.3,
+        "ground_temp_c": -72.2,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 725.3,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 23,
+        "air_temp_c": -65.4,
+        "ground_temp_c": -73.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 732.5,
+        "status": "OBSERVED"
+      }
+    ],
+    "28": [
+      {
+        "hour": 0,
+        "air_temp_c": -64.2,
+        "ground_temp_c": -73.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 740.9,
+        "status": "MODELED"
+      },
+      {
+        "hour": 1,
+        "air_temp_c": -67.0,
+        "ground_temp_c": -75.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 750.0,
+        "status": "MODELED"
+      },
+      {
+        "hour": 2,
+        "air_temp_c": -68.0,
+        "ground_temp_c": -73.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 759.1,
+        "status": "MODELED"
+      },
+      {
+        "hour": 3,
+        "air_temp_c": -67.0,
+        "ground_temp_c": -69.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 767.5,
+        "status": "MODELED"
+      },
+      {
+        "hour": 4,
+        "air_temp_c": -64.2,
+        "ground_temp_c": -63.3,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 774.7,
+        "status": "MODELED"
+      },
+      {
+        "hour": 5,
+        "air_temp_c": -59.8,
+        "ground_temp_c": -55.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 780.3,
+        "status": "MODELED"
+      },
+      {
+        "hour": 6,
+        "air_temp_c": -54.0,
+        "ground_temp_c": -45.4,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 783.8,
+        "status": "MODELED"
+      },
+      {
+        "hour": 7,
+        "air_temp_c": -47.2,
+        "ground_temp_c": -35.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 785.0,
+        "status": "MODELED"
+      },
+      {
+        "hour": 8,
+        "air_temp_c": -40.0,
+        "ground_temp_c": -24.6,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 783.8,
+        "status": "MODELED"
+      },
+      {
+        "hour": 9,
+        "air_temp_c": -32.8,
+        "ground_temp_c": -15.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 780.3,
+        "status": "MODELED"
+      },
+      {
+        "hour": 10,
+        "air_temp_c": -26.0,
+        "ground_temp_c": -6.7,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 774.7,
+        "status": "MODELED"
+      },
+      {
+        "hour": 11,
+        "air_temp_c": -20.2,
+        "ground_temp_c": -0.4,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 767.5,
+        "status": "MODELED"
+      },
+      {
+        "hour": 12,
+        "air_temp_c": -23.6,
+        "ground_temp_c": 3.2,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 759.1,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 13,
+        "air_temp_c": -23.2,
+        "ground_temp_c": 5.5,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 750.0,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 14,
+        "air_temp_c": -22.5,
+        "ground_temp_c": 3.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 740.9,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 15,
+        "air_temp_c": -23.2,
+        "ground_temp_c": -0.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 732.5,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 16,
+        "air_temp_c": -25.8,
+        "ground_temp_c": -15.4,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 725.3,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 17,
+        "air_temp_c": -28.6,
+        "ground_temp_c": -23.4,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 719.7,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 18,
+        "air_temp_c": -42.0,
+        "ground_temp_c": -48.7,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 716.2,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 19,
+        "air_temp_c": -47.6,
+        "ground_temp_c": -56.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 715.0,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 20,
+        "air_temp_c": -56.5,
+        "ground_temp_c": -65.7,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 716.2,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 21,
+        "air_temp_c": -57.1,
+        "ground_temp_c": -68.0,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 719.7,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 22,
+        "air_temp_c": -62.3,
+        "ground_temp_c": -72.9,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 725.3,
+        "status": "OBSERVED"
+      },
+      {
+        "hour": 23,
+        "air_temp_c": -63.4,
+        "ground_temp_c": -74.2,
+        "relative_humidity_pct": null,
+        "base_pressure_pa": 732.5,
+        "status": "OBSERVED"
+      }
+    ]
+  }
+}

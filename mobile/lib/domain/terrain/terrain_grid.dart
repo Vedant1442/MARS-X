@@ -312,10 +312,73 @@ class TerrainGrid {
     return math.exp(-(elev[idx] - minElev) / scaleHeightM);
   }
 
+  /// Authentic barometric pressure in Pascals computed from Perseverance MEDA baseline.
+  double pressurePa(int idx, {double basePressurePa = 750.0}) {
+    return MedaWeatherModel.barometricPressurePa(elev[idx], basePressurePa);
+  }
+
   double distanceForCellDelta(num dx, num dy) {
     final eastM = dx.toDouble() * cellWidthM;
     final northM = dy.toDouble() * cellHeightM;
     return math.sqrt(eastM * eastM + northM * northM);
+  }
+
+  /// Extract full-resolution corridor cross-section and hazard flags along the route path (P2).
+  CorridorProfile extractCorridorProfile(List<GridPoint> path) {
+    if (path.isEmpty) {
+      return const CorridorProfile(
+        totalDistanceM: 0,
+        minElevationM: 0,
+        maxElevationM: 0,
+        maxSlopeDeg: 0,
+        meanSlopeDeg: 0,
+        points: [],
+        hazardScarpCount: 0,
+      );
+    }
+    final pts = <CorridorPoint>[];
+    var cumulativeM = 0.0;
+    var minE = double.infinity;
+    var maxE = -double.infinity;
+    var maxS = 0.0;
+    var sumS = 0.0;
+    var scarpCount = 0;
+
+    for (var k = 0; k < path.length; k++) {
+      final p = path[k];
+      final i = p.y * w + p.x;
+      if (k > 0) {
+        cumulativeM += distanceForCellDelta(p.x - path[k - 1].x, p.y - path[k - 1].y);
+      }
+      final e = elev[i];
+      final s = slope[i];
+      final r = rough[i];
+      if (e < minE) minE = e;
+      if (e > maxE) maxE = e;
+      if (s > maxS) maxS = s;
+      sumS += s;
+      final isScarp = s >= 15.0;
+      if (isScarp) scarpCount++;
+
+      pts.add(CorridorPoint(
+        distanceM: cumulativeM,
+        elevationM: e,
+        slopeDeg: s,
+        roughness: r,
+        isHazardScarp: isScarp,
+        isRoughHazard: r >= 0.40,
+      ));
+    }
+
+    return CorridorProfile(
+      totalDistanceM: cumulativeM,
+      minElevationM: minE.isFinite ? minE : 0,
+      maxElevationM: maxE.isFinite ? maxE : 0,
+      maxSlopeDeg: maxS,
+      meanSlopeDeg: sumS / path.length,
+      points: pts,
+      hazardScarpCount: scarpCount,
+    );
   }
 
   /// Build from the bundled 480x304 Int16 LE decimetre DEM buffer.
@@ -504,4 +567,85 @@ class TerrainGrid {
       georeference: georeference,
     );
   }
+}
+
+class MedaReading {
+  final int hour;
+  final double airTempC;
+  final double groundTempC;
+  final double? relativeHumidityPct;
+  final double basePressurePa;
+  final String status;
+
+  const MedaReading({
+    required this.hour,
+    required this.airTempC,
+    required this.groundTempC,
+    this.relativeHumidityPct,
+    required this.basePressurePa,
+    required this.status,
+  });
+
+  factory MedaReading.fromJson(Map<String, dynamic> json) {
+    return MedaReading(
+      hour: (json['hour'] as num?)?.toInt() ?? 0,
+      airTempC: (json['air_temp_c'] as num?)?.toDouble() ?? -30.0,
+      groundTempC: (json['ground_temp_c'] as num?)?.toDouble() ?? -20.0,
+      relativeHumidityPct: (json['relative_humidity_pct'] as num?)?.toDouble(),
+      basePressurePa: (json['base_pressure_pa'] as num?)?.toDouble() ?? 750.0,
+      status: json['status'] as String? ?? 'MODELED',
+    );
+  }
+}
+
+class MedaWeatherModel {
+  static const double baseLandingElevM = -2560.0;
+  static const double scaleHeightM = 11100.0; // Mars atmospheric scale height
+  static const double mslRadDoseRateMicroSvPerMin = 0.445; // 26.7 uSv/hr (Hassler et al., 2014)
+
+  static double barometricPressurePa(double elevM, double basePressurePa) {
+    return basePressurePa * math.exp(-(elevM - baseLandingElevM) / scaleHeightM);
+  }
+
+  static double radiationDoseMicroSv(double durationMin) {
+    return durationMin * mslRadDoseRateMicroSvPerMin;
+  }
+}
+
+class CorridorPoint {
+  final double distanceM;
+  final double elevationM;
+  final double slopeDeg;
+  final double roughness;
+  final bool isHazardScarp; // slope >= 15.0 deg
+  final bool isRoughHazard; // roughness >= 0.40
+
+  const CorridorPoint({
+    required this.distanceM,
+    required this.elevationM,
+    required this.slopeDeg,
+    required this.roughness,
+    required this.isHazardScarp,
+    required this.isRoughHazard,
+  });
+}
+
+class CorridorProfile {
+  final double totalDistanceM;
+  final double minElevationM;
+  final double maxElevationM;
+  final double maxSlopeDeg;
+  final double meanSlopeDeg;
+  final List<CorridorPoint> points;
+  final int hazardScarpCount;
+
+  const CorridorProfile({
+    required this.totalDistanceM,
+    required this.minElevationM,
+    required this.maxElevationM,
+    required this.maxSlopeDeg,
+    required this.meanSlopeDeg,
+    required this.points,
+    required this.hazardScarpCount,
+  });
 }

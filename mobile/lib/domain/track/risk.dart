@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import '../routing/astar.dart';
 import '../terrain/terrain_grid.dart';
+import 'mission_config.dart';
 
 class RiskPart {
   final String key;
@@ -57,12 +58,12 @@ class RiskAssessment {
 class RiskModel {
   static const double cautionDeg = 10.0;
   static const double timeBudgetMin = 480.0; // 8-hour maximum NASA EVA budget
-  static const int defaultCrewSize = 2; // NASA 2-person buddy EVA standard
+  static const int defaultCrewSize = MissionConfig.crewSize;
   static const double equipmentLoadFactor = 0.92; // 8% walking speed penalty for 25kg sampling gear
 
   /// Speed-slope mobility curve with equipment load adjustment.
   static double speedMps(double slopeDeg, {bool withPayload = true}) {
-    final base = math.max(0.2, 1.4 * (1.0 - slopeDeg / (MarsRouter.defaultMaxSlopeDeg * 1.3)));
+    final base = math.max(0.2, 1.4 * (1.0 - slopeDeg / (MissionConfig.maxPassableSlopeDeg * 1.3)));
     return withPayload ? base * equipmentLoadFactor : base;
   }
 
@@ -81,7 +82,7 @@ class RiskModel {
     return sec / 60.0;
   }
 
-  /// Human exploration consumables model (SIMULATED per PLAN Section 6.4).
+  /// Human exploration consumables model (grounded in MissionConfig / NASA-STD-3001).
   /// Accounts for 10-min rest per 60-min walk, steep slope recovery, and 2-person buddy crew.
   static EvaConsumables computeConsumables(
     TerrainGrid grid,
@@ -90,30 +91,30 @@ class RiskModel {
   }) {
     final activeMin = activeTraverseMin(grid, path);
 
-    // Mandatory rest: 10 minutes for every 60 minutes of active walking
-    var restMin = (activeMin / 60.0).floor() * 10.0;
+    // Mandatory rest per walking hour
+    var restMin = (activeMin / 60.0).floor() * MissionConfig.restMinutesPerWalkingHour;
 
-    // Steep grade recovery: +5 min rest for steep ascents (> 15 deg)
+    // Steep grade recovery: +1 min rest for steep ascents (> 15 deg)
     for (var k = 1; k < path.length; k++) {
       final i = path[k].y * grid.w + path[k].x;
       if (grid.slope[i] > 15.0) {
-        restMin += 1.0; // 1 min fatigue penalty per cell above 15 deg
+        restMin += 1.0;
       }
     }
     restMin = math.min(120.0, restMin);
 
-    final totalHours = (activeMin + restMin) / 60.0;
+    final totalMin = activeMin + restMin;
 
-    // Simulated astronaut life support consumables (Apollo/Artemis baseline rates)
-    final o2Kg = totalHours * 0.060 * crewSize; // 60 g/hr per crew
-    final batteryKwh = totalHours * 0.220 * crewSize; // 220 W per suit system
-    final waterKg = totalHours * 0.350 * crewSize; // 350 g/hr sublimation cooling
+    // Astronaut life support consumables using MissionConfig burn rates
+    final o2Kg = totalMin * MissionConfig.oxygenConsumptionKgPerMinPerCrew * crewSize;
+    final batteryKwh = totalMin * MissionConfig.batteryConsumptionKwhPerMinPerCrew * crewSize;
+    final waterKg = totalMin * MissionConfig.coolingWaterConsumptionKgPerMinPerCrew * crewSize;
 
     return EvaConsumables(
       crewSize: crewSize,
       activeWalkingMin: activeMin,
       restStopsMin: restMin,
-      totalEvaMin: activeMin + restMin,
+      totalEvaMin: totalMin,
       oxygenKg: o2Kg,
       batteryKwh: batteryKwh,
       coolingWaterKg: waterKg,

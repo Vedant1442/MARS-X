@@ -1,10 +1,76 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 import '../terrain/terrain_grid.dart';
+import '../track/mission_config.dart';
 
 enum RouteMode { safest, fastest, science }
 
 enum SearchAlgorithm { astar, dijkstra }
+
+enum ScienceCampaignObjective {
+  deltaLacustrine(
+    id: 'delta_lacustrine',
+    name: 'Delta Lacustrine & Biosignature Sampling',
+    description: 'Target fine-grained clay/mudstone bottomsets and delta front strata optimal for organic preservation.',
+    targetIds: {'enchanted-lake', 'hawksbill-gap', 'three-forks', 'western-delta', 'bunsen-peak'},
+  ),
+  craterBasement(
+    id: 'crater_basement',
+    name: 'Crater Basement & Impact Megabreccia',
+    description: 'Sample pre-Noachian crustal basement and impact shock melt excavated during the Isidis impact event.',
+    targetIds: {'belva-crater', 'jezero-crater-rim', 'ancient-lake-basin', 'octavia-butler-landing'},
+  ),
+  fluvialHydrology(
+    id: 'fluvial_hydrology',
+    name: 'Fluvial Inflow Hydrology & Canyon Outcrops',
+    description: 'Examine catastrophic paleoflood inflow breaches, boulder conglomerates, and fluvial deposition bars.',
+    targetIds: {'neretva-vallis', 'cape-nukshak', 'jurabi-point', 'sava-vallis', 'pliva-vallis'},
+  );
+
+  final String id;
+  final String name;
+  final String description;
+  final Set<String> targetIds;
+
+  const ScienceCampaignObjective({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.targetIds,
+  });
+}
+
+class ScienceTargetContribution {
+  final ScienceTarget target;
+  final double distanceM;
+  final double baseValue;
+  final double objectiveMultiplier;
+  final double points;
+  final String justification;
+
+  const ScienceTargetContribution({
+    required this.target,
+    required this.distanceM,
+    required this.baseValue,
+    required this.objectiveMultiplier,
+    required this.points,
+    required this.justification,
+  });
+}
+
+class ScienceBreakdown {
+  final ScienceCampaignObjective objective;
+  final int totalScore;
+  final List<ScienceTargetContribution> contributions;
+  final List<ScienceTarget> unvisitedTargets;
+
+  const ScienceBreakdown({
+    required this.objective,
+    required this.totalScore,
+    required this.contributions,
+    required this.unvisitedTargets,
+  });
+}
 
 class GridPoint {
   final int x;
@@ -137,7 +203,7 @@ class _MinHeap {
 /// Pure-Dart 8-connected A* / Dijkstra terrain router (PLAN section 6.3).
 /// Uses Float32List g-scores, Int32List parent pointers, and an array binary heap.
 class MarsRouter {
-  static const double defaultMaxSlopeDeg = 25.0;
+  static const double defaultMaxSlopeDeg = MissionConfig.maxPassableSlopeDeg;
   static const double exposureDeg = 15.0;
 
   static RouteResult? findRoute(
@@ -172,16 +238,16 @@ class MarsRouter {
       double mult;
       if (mode == RouteMode.fastest) {
         // Quickest prioritizes distance and time with minimal slope penalty
-        mult = 1.0 + 0.15 * slQuad + 0.10 * grid.rough[j];
-        return stepDistM * mult + 0.25 * dhPlus;
+        mult = 1.0 + MissionConfig.quickestWeightSlope * slQuad + MissionConfig.quickestWeightRoughness * grid.rough[j];
+        return stepDistM * mult + MissionConfig.quickestWeightAscent * dhPlus;
       } else if (mode == RouteMode.safest) {
         // Safest heavily penalizes slopes (quadratic), roughness, and ascents
-        mult = 1.0 + 15.0 * slQuad + 3.0 * grid.rough[j] + 1.5 * grid.unc[j];
-        return stepDistM * mult + 3.0 * dhPlus;
+        mult = 1.0 + MissionConfig.safestWeightSlope * slQuad + MissionConfig.safestWeightRoughness * grid.rough[j] + MissionConfig.safestWeightUncertainty * grid.unc[j];
+        return stepDistM * mult + MissionConfig.safestWeightAscent * dhPlus;
       } else {
         // Science mode balances safety and target attraction
-        mult = 1.0 + 3.0 * slQuad + 1.5 * grid.rough[j] + 1.0 * grid.unc[j];
-        var c = stepDistM * mult + 1.5 * dhPlus;
+        mult = 1.0 + MissionConfig.scienceWeightSlope * slQuad + MissionConfig.scienceWeightRoughness * grid.rough[j] + MissionConfig.scienceWeightUncertainty * grid.unc[j];
+        var c = stepDistM * mult + MissionConfig.scienceWeightAscent * dhPlus;
         for (final t in targets) {
           final d = math.sqrt((nx - t.x) * (nx - t.x) + (ny - t.y) * (ny - t.y));
           if (d < 6.0) {
@@ -489,6 +555,54 @@ class MarsRouter {
       scienceValue: sciVal,
       confidence: conf,
       nodesExpanded: expanded,
+    );
+  }
+
+  /// Explainable breakdown of scientific yield for a route under a chosen objective (P4).
+  static ScienceBreakdown explainScienceScore(
+    TerrainGrid grid,
+    RouteResult route, {
+    ScienceCampaignObjective objective = ScienceCampaignObjective.deltaLacustrine,
+    List<ScienceTarget> targets = kDemoTargets,
+  }) {
+    final contribs = <ScienceTargetContribution>[];
+    final unvisited = <ScienceTarget>[];
+    var rawScore = 0.0;
+
+    for (final t in targets) {
+      double minDistCells = double.infinity;
+      for (final p in route.path) {
+        final d = math.sqrt((p.x - t.x) * (p.x - t.x) + (p.y - t.y) * (p.y - t.y));
+        if (d < minDistCells) minDistCells = d;
+      }
+      final distM = minDistCells * grid.cellM;
+      if (minDistCells <= 6.0) {
+        final isMatch = objective.targetIds.contains(t.id);
+        final multiplier = isMatch ? 1.5 : 1.0;
+        final proximityFactor = (1.0 - minDistCells / 6.0);
+        final pts = t.value * 25.0 * multiplier * proximityFactor;
+        rawScore += pts;
+        contribs.add(ScienceTargetContribution(
+          target: t,
+          distanceM: distM,
+          baseValue: t.value,
+          objectiveMultiplier: multiplier,
+          points: pts,
+          justification: isMatch
+              ? 'Primary objective match: ${t.significance}'
+              : 'Secondary landmark: ${t.note}',
+        ));
+      } else {
+        unvisited.add(t);
+      }
+    }
+
+    final finalScore = rawScore.round().clamp(0, 100);
+    return ScienceBreakdown(
+      objective: objective,
+      totalScore: finalScore,
+      contributions: contribs,
+      unvisitedTargets: unvisited,
     );
   }
 }

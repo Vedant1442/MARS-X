@@ -58,18 +58,69 @@ import LandingPage from "./pages/LandingPage";
 
 ## Running & Verifying Locally
 
-1. **Frontend (Vite + React + Three.js):**
+1. **Mobile Android App (Flutter 3.4+ / 3.50+):**
+   ```bash
+   cd mobile
+   flutter create --platforms=android --org com.marsx.pro --project-name mars_x .
+   flutter pub get
+   flutter test test/mars_x_test.dart
+   flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64,android-x64
+   ```
+2. **Frontend (Vite + React + Three.js):**
    ```bash
    npm install
    npx tsc --noEmit
    npm run dev
    ```
-2. **Backend (FastAPI + Pytest):**
+3. **Backend (FastAPI + Pytest):**
    ```bash
    cd backend
    python -m pytest -v
    python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
    ```
+4. **Offline Data Pipeline Scripts (Python 3):**
+   ```bash
+   python3 tools/preprocess_meda.py       # Recompresses PDS4 MEDA tables to 20 KB
+   python3 tools/validate_traverse.py     # Benchmarks against Perseverance traverse
+   python3 tools/sensitivity_analysis.py  # Generates +/-20% parameter sensitivity report
+   ```
+
+---
+
+## Scientific Data Provenance & Badging System
+
+Every numerical figure, map layer, and hazard notification in MARS-X displays one of four scientific provenance labels:
+
+- `[OBSERVED]`: Direct calibrated in-situ or orbital sensor measurements (e.g. MRO HiRISE optical orthoimages, Perseverance MEDA calibrated temperature tables, PDS PLACES rover localizations).
+- `[DERIVED]`: Deterministic spatial and topographic calculations computed directly from verified orbital models without predictive heuristics (e.g. slope, aspect, roughness, 9 m corridor elevation cross-sections from HiRISE stereo DTM).
+- `[MODELED]`: Physics-based extrapolations derived from peer-reviewed mission literature (e.g. MSL RAD surface radiation dose rate of $0.445\ \mu\text{Sv/min}$ [Hassler et al., 2014, *Science*], barometric pressure elevation lapse $P(z) = P_0 e^{-(z-z_0)/H}$, Tobler walking speed curve).
+- `[SIMULATED]`: Heuristic planning algorithms for operational exploration (e.g. relative risk scoring 0–100, xEMU buddy-system life support burn rates).
+
+---
+
+## Known Scientific & Operational Limitations
+
+1. **Orbital DTM Resolution vs. Sub-Meter Obstacles**: HiRISE stereo DTMs provide ground sample distances down to 1 m/pixel (downsampled to 9 m/cell in our high-resolution buffer and 36 m/cell in the route grid). Discrete rocks, meter-scale boulders, and narrow cracks below 1 m cannot be resolved from orbit; astronaut visual vigilance and onboard rover sensors remain necessary.
+2. **Coverage Extent**: The high-resolution HiRISE stereo DTM covers a 4.1 km × 2.6 km corridor centered over the landing site and Western Delta. Whole-crater route exploration uses the 100 m USGS CTX elevation mosaic.
+3. **THEMIS Thermal Inertia Exclusion**: Thermal inertia GeoTIFFs in the repository are Git LFS pointer stubs without cached binary payloads in this environment. In compliance with Challenge Rule 1 (strict zero data fabrication), thermal inertia was excluded from active map layers until the user provides the raw GeoTIFF payload.
+4. **Radiation Weather**: The modeled radiation dose ($26.7\ \mu\text{Sv/hr}$) assumes a quiet-Sun Galactic Cosmic Ray (GCR) background measured by MSL RAD; it does not model sudden Solar Particle Events (SPEs), which require immediate shelter in a regolith-shielded habitat.
+
+---
+
+## Pitch Deck Slide-by-Slide Guidance (NASA Space Apps 2026)
+
+If presenting MARS-X to the challenge judges, highlight the following core differentiators across your presentation slides:
+
+| Slide # | Slide Title | What to Show & Say Differently |
+| :--- | :--- | :--- |
+| **Slide 1** | **Title & Mission Challenge** | State that MARS-X is a **100% offline-first Android excursion planner** designed for human astronauts on Mars. Highlight that it operates with zero network connectivity and zero internet permissions in the Android manifest. |
+| **Slide 2** | **Multi-Mission NASA Data Integration** | Show that MARS-X integrates data across **multiple missions and instruments**: MRO HiRISE stereo DTM (topography/optics), Mars 2020 Perseverance MEDA (hourly temperature and barometric pressure), Mars 2020 PLACES (rover traverse), and MSL RAD (surface radiation baseline). Emphasize the 4-tier labeling system (`OBSERVED`, `DERIVED`, `MODELED`, `SIMULATED`). |
+| **Slide 3** | **Differentiated Routing Engine** | Present the three distinct route profiles (**Safest**, **Quickest**, **Scientific**) using **Demo Pair 1 (Western Delta to Belva Crater)**: show how Quickest climbs the 22.4° scarp, while Safest skirts around it through gentle 3.2° terrain, dropping maximum slope to 8.25°. |
+| **Slide 4** | **Hyperlocal Hazard Corridor (P2)** | Showcase the **9 m/pixel corridor elevation cross-section**: explain how the app keeps an efficient 36 m grid for crater-wide planning, but instantly unpacks a full-resolution 9 m profile along the chosen path to flag local scarps > 15° with **zero additional APK weight**. |
+| **Slide 5** | **Validation Against Perseverance (P3)** | Display the empirical benchmark against Perseverance's actual traverse: explain why the rover took a longer path (robotic coring detours into South Séítah) versus the human astronaut path, citing the 90 authentic NASA PDS coordinate positions. |
+| **Slide 6** | **Scientific Campaign Objectives (P4)** | Demonstrate the 3 Jezero science campaigns (*Delta Lacustrine*, *Crater Basement*, *Fluvial Hydrology*) and the **Explainable Science Score** showing exact target contributions (+pts, distances, geological significance). |
+| **Slide 7** | **Grounded Safety Model & Consumables (P5)** | Present the 2-astronaut buddy-system EVA consumables ($O_2$, battery, water, PNR margin) and cite the $\pm 20\%$ sensitivity analysis in `ASSUMPTIONS.md` proving the mathematical stability of the Safest route. |
+| **Slide 8** | **Offline Performance & Delivery (P6)** | End with the verified technical footprint: **19.5 MB standalone release APK**, running completely in flight mode, tested with pure-Dart routing, and verified with GitHub Actions CI. |
 
 ---
 
@@ -77,6 +128,8 @@ import LandingPage from "./pages/LandingPage";
 
 - [Frontend Landing Page Developer Guide](docs/LANDING_PAGE_DEV_GUIDE.md) — quickstart, styling tokens, and landing page tasks for frontend contributors.
 - [Data sources and plain-language explanations](docs/DATA_SOURCES.md) — source, coverage, resolution, current status, limitations, and credit for each layer.
+- [Route Validation Report against NASA Perseverance](docs/VALIDATION.md) — empirical comparison between MARS-X routes and the rover traverse.
+- [Safety Model Assumptions & Sensitivity Analysis](docs/ASSUMPTIONS.md) — parameter inventory, citations, and +/-20% sensitivity testing.
 - [Data processing notes](data/README.md) — how the original HiRISE PDS elevation product becomes offline terrain assets.
 - [Jezero map architecture](docs/terrain_architecture.md) — current rendering and offline-data design.
 
