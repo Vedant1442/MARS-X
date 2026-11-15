@@ -4,14 +4,17 @@ on:
   push:
     branches:
       - main
+      - backend-dev
       - nipun_branch
+    tags:
+      - "v*"
     paths:
       - "mobile/**"
       - ".github/workflows/flutter-apk.yml"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-apk:
@@ -69,3 +72,23 @@ jobs:
           path: mobile/build/app/outputs/flutter-apk/*.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'MARS-X Android Continuous Build' }}
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          files: mobile/build/app/outputs/flutter-apk/*.apk
+          body: |
+            Automated Android APK build for MARS-X.
+
+            - **Commit**: `${{ github.sha }}`
+            - **Branch/Tag**: `${{ github.ref_name }}`
+
+            ### Downloads:
+            - **`app-arm64-v8a-release.apk`**: Modern Android devices (recommended)
+            - **`app-armeabi-v7a-release.apk`**: Older 32-bit Android devices
+            - **`app-x86_64-release.apk`**: Android Emulators / x86 tablets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
