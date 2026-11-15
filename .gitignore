@@ -16,3 +16,7 @@ __pycache__/
 .pytest_cache/
 mobile/.dart_tool/
 mobile/build/
+**/android/local.properties
+**/.flutter-plugins-dependencies
+**/.flutter-plugins
+**/GeneratedPluginRegistrant.java
