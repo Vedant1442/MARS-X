@@ -584,28 +584,59 @@ class _RoutePill extends StatelessWidget {
         ),
         child: Column(
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(color: accentColor, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.bold,
+                    color: selected ? accentColor : MarsTheme.fg,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 3),
             Text(
-              title,
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: selected ? accentColor : MarsTheme.fg,
-              ),
+              '${(route.distanceM / 1000).toStringAsFixed(2)} km',
+              style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              '${risk.estimatedTimeMin.toStringAsFixed(0)} min · Max ${route.maxSlopeDeg.toStringAsFixed(1)}°',
+              style: const TextStyle(fontSize: 8.5, color: MarsTheme.dim),
             ),
             const SizedBox(height: 2),
-            Text(
-              '${(route.distanceM / 1000).toStringAsFixed(1)}km · ${risk.estimatedTimeMin.toStringAsFixed(0)}m',
-              style: const TextStyle(fontSize: 10, color: MarsTheme.dim),
-            ),
-            Text(
-              mode == RouteMode.science ? 'SCI ${risk.scienceScore}' : 'RISK ${risk.score}',
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
-                color: selected ? accentColor : MarsTheme.dim,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'RISK ${risk.score}',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                    color: risk.score > 60 ? MarsTheme.mars : MarsTheme.dim,
+                  ),
+                ),
+                const Text(' · ', style: TextStyle(fontSize: 8, color: MarsTheme.dim)),
+                Text(
+                  'SCI ${risk.scienceScore}',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                    color: mode == RouteMode.science ? MarsTheme.mars : MarsTheme.dim,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
