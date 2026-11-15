@@ -123,7 +123,7 @@ const LABEL_C: Record<Label, string> = {
   UNKNOWN: "text-dim border-line-strong border-dashed",
   SIMULATED: "text-mars-deep border-dust/70",
 };
-function Tag({ l }: { l: Label }) { return <span className={`font-mono text-[10px] leading-none tracking-[0.1em] border rounded-sm px-1.5 py-[3px] whitespace-nowrap ${LABEL_C[l]}`}>{l}</span>; }
+function Tag({ l }: { l: Label }) { return <span className={`inline-flex items-center justify-center font-mono text-[9px] sm:text-[10px] leading-none tracking-[0.08em] border rounded-xs px-1.5 py-[2.5px] whitespace-nowrap shadow-2xs ${LABEL_C[l]}`}>{l}</span>; }
 function Eyebrow({ children, className = "" }: { children: React.ReactNode; className?: string }) { return <div className={`font-mono text-[11px] tracking-[0.16em] text-dim uppercase ${className}`}>{children}</div>; }
 function Btn({ children, onClick, primary, disabled, className = "", ...rest }: { children: React.ReactNode; onClick?: () => void; primary?: boolean; disabled?: boolean; className?: string } & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onClick" | "children" | "className" | "disabled">) {
   return <button {...rest} disabled={disabled} onClick={onClick} className={`font-mono text-[12px] tracking-[0.12em] px-4 py-2.5 border rounded-sm transition-colors disabled:opacity-45 disabled:cursor-not-allowed ${primary ? "bg-mars-deep text-ink border-mars-deep hover:bg-fg hover:border-fg" : "border-line-strong text-fg hover:border-fg hover:bg-panel"} ${className}`}>{children}</button>;
@@ -132,7 +132,7 @@ function Panel({ title, tag, children, className = "" }: { title: string; tag?: 
   return <section className={`border border-line bg-paper rounded-md ${className}`}><header className="flex items-center justify-between gap-2 border-b border-line px-3 py-2"><Eyebrow>{title}</Eyebrow>{tag && <Tag l={tag} />}</header><div className="p-3">{children}</div></section>;
 }
 function Row({ k, v, l }: { k: string; v: React.ReactNode; l?: Label }) {
-  return <div className="flex items-center justify-between gap-3 py-1.5 border-b border-line/70 last:border-0 text-[13px]"><span className="text-dim">{k}</span><span className="flex items-center gap-2 font-mono text-[12px] text-fg text-right">{v}{l && <Tag l={l} />}</span></div>;
+  return <div className="flex items-center justify-between gap-2 py-1.5 border-b border-line/70 last:border-0 text-[12px] sm:text-[13px]"><span className="text-dim shrink-0">{k}</span><span className="flex items-center gap-1.5 font-mono text-[11px] sm:text-[12px] text-fg text-right truncate">{v}{l && <Tag l={l} />}</span></div>;
 }
 const fmtKm = (m: number) => (m / 1000).toFixed(2) + " km";
 const SynthBanner = () => (
@@ -495,9 +495,9 @@ function HeroGlobe({ fly, stage }: { fly: FlyTarget; stage: number | null }) {
   const compact = typeof window !== "undefined" && window.innerWidth < 768;
   return (
     <figure className="relative w-full">
-      <div ref={box} className="relative aspect-square max-h-[76vh] w-full mx-auto">
+      <div ref={box} className="relative aspect-square max-h-[52vh] sm:max-h-[76vh] w-full max-w-[540px] mx-auto">
         {["top-0 left-0 border-t border-l", "top-0 right-0 border-t border-r", "bottom-0 left-0 border-b border-l", "bottom-0 right-0 border-b border-r"].map((c) => <span key={c} aria-hidden="true" className={`absolute w-4 h-4 border-line-strong ${c}`} />)}
-        <div className="absolute inset-3 flex items-center justify-center">
+        <div className="absolute inset-2 sm:inset-3 flex items-center justify-center">
           {gl ? (
             <GlobeBoundary fallback={still}>
               <Suspense fallback={null}>
@@ -507,20 +507,30 @@ function HeroGlobe({ fly, stage }: { fly: FlyTarget; stage: number | null }) {
           ) : still}
           {gl && !ready && <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none"><div className="skeleton rounded-full w-[70%] aspect-square" /><LoadingNote>Loading orbital imagery…</LoadingNote></div>}
         </div>
-        <div className="absolute top-4 left-5 pointer-events-none"><div className={ANNOT}>MOLA</div><div className="text-[11px] text-dim">Global elevation, ~463 m/px</div></div>
-        <div className="absolute top-4 right-5 text-right pointer-events-none"><div className={ANNOT}>CTX</div><div className="text-[11px] text-dim">Context imagery, ~6 m/px</div></div>
-        <div className="absolute bottom-10 left-5 pointer-events-none"><div className={ANNOT}>ROVER DATA</div><div className="text-[11px] text-dim">Jezero, Gale</div></div>
-        <div className="absolute bottom-10 right-5 text-right pointer-events-none"><div className={ANNOT}>SCIENCE TARGETS</div><div className="text-[11px] text-dim">Simulated in this build</div></div>
-        {gl && !stage && stage !== 0 && <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 no-print">
-          <button aria-label="Zoom out" onClick={() => api.current?.zoom(1.25)} className="w-8 h-8 font-mono text-[15px] border border-line-strong rounded-sm bg-ink/80 hover:bg-panel">−</button>
-          <span className="font-mono text-[10px] tracking-[0.1em] text-dim px-2">DRAG TO ROTATE</span>
-          <button aria-label="Zoom in" onClick={() => api.current?.zoom(0.8)} className="w-8 h-8 font-mono text-[15px] border border-line-strong rounded-sm bg-ink/80 hover:bg-panel">+</button>
+        
+        {/* On desktop/tablet, display corner annotations. On mobile (<sm), hide inside canvas to avoid cluttering Mars */}
+        <div className="hidden sm:block absolute top-4 left-5 pointer-events-none"><div className={ANNOT}>MOLA</div><div className="text-[11px] text-dim">Global elevation, ~463 m/px</div></div>
+        <div className="hidden sm:block absolute top-4 right-5 text-right pointer-events-none"><div className={ANNOT}>CTX</div><div className="text-[11px] text-dim">Context imagery, ~6 m/px</div></div>
+        <div className="hidden sm:block absolute bottom-10 left-5 pointer-events-none"><div className={ANNOT}>ROVER DATA</div><div className="text-[11px] text-dim">Jezero, Gale</div></div>
+        <div className="hidden sm:block absolute bottom-10 right-5 text-right pointer-events-none"><div className={ANNOT}>SCIENCE TARGETS</div><div className="text-[11px] text-dim">Simulated in this build</div></div>
+        
+        {gl && !stage && stage !== 0 && <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 no-print bg-ink/80 backdrop-blur-xs px-2 py-0.5 rounded-sm border border-line-strong/60 shadow-xs">
+          <button aria-label="Zoom out" onClick={() => api.current?.zoom(1.25)} className="w-7 h-7 font-mono text-[14px] border border-line-strong rounded-xs bg-ink/90 hover:bg-panel flex items-center justify-center cursor-pointer">−</button>
+          <span className="font-mono text-[9px] sm:text-[10px] tracking-[0.1em] text-dim px-2 whitespace-nowrap">DRAG TO ROTATE</span>
+          <button aria-label="Zoom in" onClick={() => api.current?.zoom(0.8)} className="w-7 h-7 font-mono text-[14px] border border-line-strong rounded-xs bg-ink/90 hover:bg-panel flex items-center justify-center cursor-pointer">+</button>
         </div>}
         {stage !== null && <div role="status" aria-live="polite" className="absolute bottom-3 inset-x-6 fade-in">
           <ol className="flex justify-between gap-2 font-mono text-[11px] tracking-[0.12em]">{STAGES.map(([n], k) => <li key={n} className={`flex-1 border-t-2 pt-1.5 ${k <= stage ? "border-mars text-fg" : "border-line text-dim"}`}>{String(k + 1).padStart(2, "0")} {n}</li>)}</ol>
           <p className="mt-2 text-[12px] text-dim">{STAGES[stage][1]}</p>
         </div>}
       </div>
+      
+      {/* Mobile-only clean metadata chips below globe */}
+      <div className="sm:hidden mt-2 grid grid-cols-2 gap-2 font-mono text-[10px] text-dim text-center">
+        <div className="p-1 border border-line/60 rounded-xs bg-panel/40">MOLA: ~463 m/px</div>
+        <div className="p-1 border border-line/60 rounded-xs bg-panel/40">CTX: ~6 m/px</div>
+      </div>
+      
       <figcaption className="mt-3 text-[11px] leading-relaxed text-dim max-w-md">
         <span className="font-mono text-fg">FIG. 1</span> Viking MDIM 2.1 color mosaic (NASA / USGS) on a sphere. Gold dots are published landing sites; gold outlines are approximate regions; the thin arc is an illustrative trajectory, not a real traverse.
       </figcaption>
@@ -561,23 +571,29 @@ function Landing() {
         <div className="max-w-7xl mx-auto px-6 py-10 lg:py-6 grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] gap-10 lg:gap-6 items-center lg:min-h-[calc(100dvh-52px)]">
           <div className="order-2 lg:order-1">
             <Eyebrow>NASA Space Apps Challenge 2026 · Interplanetary Survival Guide: Martian Map</Eyebrow>
-            <h1 className="mt-6 text-[clamp(52px,7.5vw,104px)] leading-[0.95] tracking-[-0.03em]">MARS-X</h1>
-            <p className="mt-3 font-serif italic font-light text-[clamp(20px,2.2vw,28px)] text-mars-deep">Interplanetary Surface Planning</p>
-            <p className="mt-6 max-w-md text-[16px] leading-relaxed text-fg/85">Fuse NASA terrain, science, and exploration data into explainable candidate routes across Mars.</p>
-            <div className="mt-9 flex flex-wrap gap-3">
+            <h1 className="mt-4 sm:mt-6 text-[clamp(44px,7vw,104px)] leading-[0.95] tracking-[-0.03em] font-medium">MARS-X</h1>
+            <p className="mt-2.5 sm:mt-3 font-serif italic font-light text-[clamp(18px,2.2vw,28px)] text-mars-deep">Interplanetary Surface Planning</p>
+            <p className="mt-4 sm:mt-6 max-w-md text-[14px] sm:text-[16px] leading-relaxed text-fg/85">Fuse NASA terrain, science, and exploration data into explainable candidate routes across Mars.</p>
+            <div className="mt-6 sm:mt-8 flex flex-wrap gap-2.5 sm:gap-3">
               <Btn primary onClick={() => go("/map")} disabled={stage !== null}>PLAN A MISSION</Btn>
               <Btn onClick={explore} disabled={stage !== null}>EXPLORE MARS</Btn>
               <a
                 href="/mars-x-release.apk"
                 download="mars-x-release.apk"
-                className="font-mono text-[12px] tracking-[0.12em] px-4 py-2.5 border rounded-sm transition-colors border-line-strong text-fg hover:border-fg hover:bg-panel flex items-center gap-2"
+                className="font-mono text-[11px] sm:text-[12px] tracking-[0.1em] px-3.5 py-2.5 border rounded-sm transition-colors border-line-strong text-fg hover:border-fg hover:bg-panel flex items-center gap-2"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 <span>DOWNLOAD APK</span>
               </a>
             </div>
-            <p className="mt-10 text-[12px] text-dim max-w-md leading-relaxed">Every value carries a provenance label.</p>
-            <div className="mt-2 flex flex-wrap gap-1.5">{(["OBSERVED", "DERIVED", "MODELED", "UNKNOWN", "SIMULATED"] as Label[]).map((l) => <Tag key={l} l={l} />)}</div>
+            <div className="mt-6 sm:mt-8 pt-4 border-t border-line/60">
+              <p className="text-[11px] sm:text-[12px] text-dim leading-relaxed">Every value carries an honest provenance label:</p>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                {(["OBSERVED", "DERIVED", "MODELED", "UNKNOWN", "SIMULATED"] as Label[]).map((l) => (
+                  <Tag key={l} l={l} />
+                ))}
+              </div>
+            </div>
           </div>
           <div className="order-1 lg:order-2 max-w-[640px] w-full mx-auto"><HeroGlobe fly={fly} stage={stage} /></div>
         </div>

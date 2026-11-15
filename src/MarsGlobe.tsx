@@ -99,10 +99,11 @@ function Atmosphere() {
   return <mesh scale={1.12}><sphereGeometry args={[1, 48, 32]} /><primitive object={mat} attach="material" /></mesh>;
 }
 
-function Planet({ reduce, onReady, planetRef }: { reduce: boolean; onReady: () => void; planetRef: React.RefObject<THREE.Mesh | null> }) {
-  const tex = useTexture(`${import.meta.env.BASE_URL}mars-color-2k.jpg`);
+function Planet({ reduce, onReady, planetRef, compact }: { reduce: boolean; onReady: () => void; planetRef: React.RefObject<THREE.Mesh | null>; compact?: boolean }) {
+  const texPath = compact ? `${import.meta.env.BASE_URL}mars-color-1k.jpg` : `${import.meta.env.BASE_URL}mars-color-2k.jpg`;
+  const tex = useTexture(texPath);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
+  tex.anisotropy = compact ? 4 : 8;
 
   useEffect(() => {
     onReady();
@@ -110,7 +111,7 @@ function Planet({ reduce, onReady, planetRef }: { reduce: boolean; onReady: () =
 
   return (<>
     <mesh ref={planetRef}>
-      <sphereGeometry args={[R, 96, 64]} />
+      <sphereGeometry args={[R, compact ? 64 : 96, compact ? 48 : 64]} />
       <meshStandardMaterial map={tex} roughness={0.88} metalness={0.02} />
     </mesh>
     <Graticule />
@@ -122,7 +123,7 @@ function Planet({ reduce, onReady, planetRef }: { reduce: boolean; onReady: () =
         <group key={s.id}>
           <mesh position={p}><sphereGeometry args={[s.kind === "rover" ? 0.013 : 0.009, 14, 10]} /><meshBasicMaterial color={s.kind === "rover" ? "#d3a24c" : "#f5f1e8"} /></mesh>
           <Html position={latLon(s.lat, s.lon, 1.02)} occlude={[planetRef as React.RefObject<THREE.Object3D>]} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
-            <span className="block -translate-y-1/2 translate-x-2 whitespace-nowrap font-mono text-[9px] tracking-[0.14em] text-[#f5f1e8] [text-shadow:0_0_3px_rgb(36,27,23,0.9),0_0_6px_rgb(36,27,23,0.6)]">{s.id}</span>
+            <span className="block -translate-y-1/2 translate-x-2 whitespace-nowrap font-mono text-[8px] sm:text-[9px] tracking-[0.14em] text-[#f5f1e8] [text-shadow:0_0_3px_rgb(36,27,23,0.9),0_0_6px_rgb(36,27,23,0.6)]">{s.id}</span>
           </Html>
         </group>
       );
@@ -163,7 +164,7 @@ export default function MarsGlobe({ active, reduce, fly, apiRef, onReady, compac
     <Canvas
       frameloop={!active ? "never" : reduce ? "demand" : "always"}
       dpr={[1, compact ? 1.5 : 2]}
-      camera={{ position: latLon(10, -20).setLength(3.1).toArray(), fov: 34, near: 0.1, far: 20 }}
+      camera={{ position: latLon(10, -20).setLength(compact ? 2.65 : 3.1).toArray(), fov: compact ? 36 : 34, near: 0.1, far: 20 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
       onPointerDown={() => setEngaged(true)}
       onPointerLeave={() => setEngaged(false)}
@@ -173,10 +174,23 @@ export default function MarsGlobe({ active, reduce, fly, apiRef, onReady, compac
       <ambientLight intensity={0.55} color="#ffd4c0" />
       <directionalLight position={[-4, 2.5, 4.5]} intensity={1.85} color="#fff6ee" />
       <directionalLight position={[4, -1, -3]} intensity={0.35} color="#b85230" />
-      <Planet reduce={reduce} onReady={onReady} planetRef={planet} />
+      <Planet reduce={reduce} onReady={onReady} planetRef={planet} compact={compact} />
       <Atmosphere />
       <Rig fly={fly} controls={controls} api={apiRef} reduce={reduce} />
-      <OrbitControls ref={controls} enablePan={false} enableDamping dampingFactor={0.08} rotateSpeed={0.5} zoomSpeed={0.6} enableZoom={engaged} minDistance={1.3} maxDistance={4.5} autoRotate={!reduce} autoRotateSpeed={0.35} />
+      <OrbitControls
+        ref={controls}
+        enablePan={false}
+        enableDamping
+        dampingFactor={0.08}
+        rotateSpeed={0.5}
+        zoomSpeed={0.6}
+        enableZoom={engaged}
+        minDistance={1.3}
+        maxDistance={4.5}
+        autoRotate={!reduce}
+        autoRotateSpeed={0.35}
+        touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }}
+      />
     </Canvas>
   );
 }
