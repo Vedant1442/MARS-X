@@ -191,7 +191,7 @@ class _MarsGlobeScreenState extends ConsumerState<MarsGlobeScreen> with SingleTi
                       ),
                     ],
                   ),
-                  const DataBadge(DataType.observed),
+                  DataBadge(DataType.observed),
                 ],
               ),
             ),

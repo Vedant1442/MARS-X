@@ -4,22 +4,46 @@ on:
   push:
     branches:
       - main
-      - backend-dev
       - nipun_branch
+      - backend-dev
     tags:
       - "v*"
     paths:
       - "mobile/**"
-      - ".github/workflows/flutter-apk.yml"
+      - ".github/workflows/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "mobile/**"
+      - ".github/workflows/**"
   workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: "Skip unit tests and proceed directly to APK build"
+        required: false
+        type: boolean
+        default: false
+      publish_release:
+        description: "Publish/update a GitHub Release with the built APKs"
+        required: false
+        type: boolean
+        default: true
+      release_tag:
+        description: "Release tag name (leave empty for automatic naming)"
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
-  build-apk:
-    name: Build Android APKs
+  test:
+    name: Run Unit Tests
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.skip_tests }}
 
     steps:
       - name: Checkout repository
@@ -39,20 +63,56 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Generate Android platform files (Standalone MARS-X Pro v2 Package)
+      - name: Generate platform files
         working-directory: mobile
         run: |
           flutter create --platforms=android --org com.marsx.pro --project-name mars_x .
-          sed -i 's/android:label="mars_x"/android:label="MARS-X Pro v2"/g' android/app/src/main/AndroidManifest.xml
           rm -f test/widget_test.dart
 
       - name: Install dependencies
         working-directory: mobile
         run: flutter pub get
 
-      - name: Run Flutter tests
+      - name: Run test suite
         working-directory: mobile
         run: flutter test test/mars_x_test.dart
+
+  build-release-apk:
+    name: Build Android APKs
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: |
+      always() &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped' || inputs.skip_tests == true)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate Android platform configuration
+        working-directory: mobile
+        run: |
+          flutter create --platforms=android --org com.marsx.pro --project-name mars_x .
+          sed -i 's/android:label="mars_x"/android:label="MARS-X Pro"/g' android/app/src/main/AndroidManifest.xml
+          rm -f test/widget_test.dart
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: flutter pub get
 
       - name: Build split release APKs
         working-directory: mobile
@@ -60,13 +120,16 @@ jobs:
           flutter build apk --release \
             --split-per-abi \
             --target-platform android-arm,android-arm64,android-x64
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk build/app/outputs/flutter-apk/mars-x-arm64-release.apk
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk build/app/outputs/flutter-apk/mars-x-pro-v2.0.0.apk
 
-      - name: Verify APK files
+      - name: Verify APK outputs
         run: |
+          echo "Generated APK files in mobile/build/app/outputs/flutter-apk/:"
           ls -lh mobile/build/app/outputs/flutter-apk/
-          test -f mobile/build/app/outputs/flutter-apk/mars-x-pro-v2.0.0.apk
           test -f mobile/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+          test -f mobile/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+          test -f mobile/build/app/outputs/flutter-apk/app-x86_64-release.apk
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
@@ -76,21 +139,45 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Publish Standalone v2.0.0-pro Release (Preserves Original v1 Release)
+      - name: Determine release tag
+        id: tag_info
+        if: |
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+          (github.event_name == 'workflow_dispatch' && inputs.publish_release)
+        run: |
+          if [ -n "${{ inputs.release_tag }}" ]; then
+            echo "tag=${{ inputs.release_tag }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=v2.1.0-build-${{ github.run_number }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish GitHub Release
+        if: |
+          steps.tag_info.outputs.tag != '' &&
+          (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release))
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.0.0-pro
-          name: "MARS-X Pro v2.0.0 (Unified Backend + 15 Jezero Landmarks + EVA Trade-offs)"
+          tag_name: ${{ steps.tag_info.outputs.tag }}
+          name: "MARS-X Android Release (${{ steps.tag_info.outputs.tag }})"
           prerelease: false
+          generate_release_notes: true
           files: |
             mobile/build/app/outputs/flutter-apk/mars-x-pro-v2.0.0.apk
+            mobile/build/app/outputs/flutter-apk/mars-x-arm64-release.apk
             mobile/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
             mobile/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
             mobile/build/app/outputs/flutter-apk/app-x86_64-release.apk
           body: |
-            Standalone **MARS-X Pro v2.0.0** Android APK (`com.marsx.pro.mars_x` — installs side-by-side without overwriting the original v1 app).
+            ### MARS-X Pro Android Release (${{ steps.tag_info.outputs.tag }})
 
             - **Commit**: `${{ github.sha }}`
-            - **Features**: Unified FastAPI Backend Uplink, 15 Mapped Jezero Landmarks with Bundled Close-Up Imagery, MEDA Sol Selector (Sols 10–28), 2-Astronaut Buddy EVA Consumables, Science Detour Cap (`<= 1.5x`), and Route Trade-Off Analysis.
+            - **Branch/Ref**: `${{ github.ref_name }}`
+
+            #### Included Downloads:
+            - **`mars-x-pro-v2.0.0.apk` / `app-arm64-v8a-release.apk`**: Modern 64-bit ARM devices (Pixel, Samsung Galaxy, OnePlus, etc. - Recommended)
+            - **`app-armeabi-v7a-release.apk`**: Older 32-bit ARM devices
+            - **`app-x86_64-release.apk`**: Android emulators and x86_64 devices
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -120,4 +120,57 @@ void main() {
       expect(tradeoff.compromiseSummary, isNotEmpty);
     }
   });
+
+  test('All 15 Jezero expedition landmarks are defined with coordinates and images', () {
+    expect(kDemoTargets.length, equals(15));
+    for (final t in kDemoTargets) {
+      expect(t.name, isNotEmpty);
+      expect(t.x, inInclusiveRange(0, 119));
+      expect(t.y, inInclusiveRange(0, 75));
+      expect(t.note, isNotEmpty);
+      expect(t.imagePath, isNotEmpty);
+      expect(t.significance, isNotEmpty);
+    }
+  });
+
+  test('Three route profiles (Safest, Quickest, Scientific) produce measurably different routes across test pairs', () {
+    const w = 60;
+    const h = 50;
+    final elev = Float32List(w * h);
+    // Create an elevated ridge/scarp obstacle in the center
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        var z = 0.0;
+        // Central steep ridge between x=25 and x=35
+        if (x >= 25 && x <= 35 && y >= 10 && y <= 40) {
+          z = 250.0 * (1.0 - (x - 30).abs() / 6.0); // steep scarp
+        } else if (y > 40) {
+          z = (y - 40) * 2.0; // gentle bypass corridor
+        }
+        elev[y * w + x] = z;
+      }
+    }
+    final grid = TerrainGrid.fromElevation(w: w, h: h, cellM: 35.99, elev: elev);
+
+    final pairs = [
+      (const GridPoint(10, 25), const GridPoint(50, 25)), // Spans across the steep ridge
+      (const GridPoint(15, 15), const GridPoint(45, 35)), // Diagonal cross-ridge
+      (const GridPoint(10, 30), const GridPoint(50, 45)), // Near bypass corridor
+    ];
+
+    for (final (start, goal) in pairs) {
+      final fastest = MarsRouter.findRoute(grid, start, goal, RouteWeights.fastest, RouteMode.fastest)!;
+      final safest = MarsRouter.findRoute(grid, start, goal, RouteWeights.safest, RouteMode.safest)!;
+      final sci = MarsRouter.findScienceRouteWithDetourCap(grid, start, goal, fastest.distanceM, maxDetourRatio: 1.5)!;
+
+      expect(safest.meanSlopeDeg, lessThanOrEqualTo(fastest.meanSlopeDeg));
+      expect(fastest.distanceM, lessThanOrEqualTo(safest.distanceM + 1e-3));
+      expect(sci.distanceM, lessThanOrEqualTo(fastest.distanceM * 1.5 + 1e-3));
+      // Safest and fastest paths must not be completely identical across the ridge
+      final isDifferent = safest.path.length != fastest.path.length ||
+          safest.meanSlopeDeg != fastest.meanSlopeDeg ||
+          safest.distanceM != fastest.distanceM;
+      expect(isDifferent, isTrue);
+    }
+  });
 }

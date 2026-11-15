@@ -32,9 +32,9 @@ class RouteWeights {
     required this.h,
   });
 
-  static const RouteWeights defaultScience = RouteWeights(s: 40, r: 25, u: 20, h: 15);
-  static const RouteWeights safest = RouteWeights(s: 50, r: 30, u: 15, h: 5);
-  static const RouteWeights fastest = RouteWeights(s: 15, r: 10, u: 5, h: 70);
+  static const RouteWeights defaultScience = RouteWeights(s: 35, r: 20, u: 15, h: 15);
+  static const RouteWeights safest = RouteWeights(s: 70, r: 25, u: 10, h: 15);
+  static const RouteWeights fastest = RouteWeights(s: 10, r: 5, u: 2, h: 5);
 
   static RouteWeights forMode(RouteMode mode) {
     switch (mode) {
@@ -160,29 +160,42 @@ class MarsRouter {
     final wu = weights.u / sum;
     final wh = weights.h / sum;
 
-    double cellCost(int i, int x, int y) {
-      if (grid.nodata[i] != 0 || grid.slope[i] > maxSlopeDeg) {
+    double stepCost(int i, int j, int nx, int ny, double stepDistM) {
+      if (grid.nodata[j] != 0 || grid.slope[j] > maxSlopeDeg) {
         return double.infinity;
       }
-      var c = ws * (grid.slope[i] / maxSlopeDeg) +
-          wr * grid.rough[i] +
-          wu * grid.unc[i] +
-          wh;
-      if (mode == RouteMode.science) {
+      final sl = grid.slope[j];
+      final slNorm = sl / maxSlopeDeg;
+      final slQuad = slNorm * slNorm;
+      final dhPlus = math.max(0.0, grid.elev[j] - grid.elev[i]);
+
+      double mult;
+      if (mode == RouteMode.fastest) {
+        // Quickest prioritizes distance and time with minimal slope penalty
+        mult = 1.0 + 0.15 * slQuad + 0.10 * grid.rough[j];
+        return stepDistM * mult + 0.25 * dhPlus;
+      } else if (mode == RouteMode.safest) {
+        // Safest heavily penalizes slopes (quadratic), roughness, and ascents
+        mult = 1.0 + 15.0 * slQuad + 3.0 * grid.rough[j] + 1.5 * grid.unc[j];
+        return stepDistM * mult + 3.0 * dhPlus;
+      } else {
+        // Science mode balances safety and target attraction
+        mult = 1.0 + 3.0 * slQuad + 1.5 * grid.rough[j] + 1.0 * grid.unc[j];
+        var c = stepDistM * mult + 1.5 * dhPlus;
         for (final t in targets) {
-          final d = math.sqrt((x - t.x) * (x - t.x) + (y - t.y) * (y - t.y));
+          final d = math.sqrt((nx - t.x) * (nx - t.x) + (ny - t.y) * (ny - t.y));
           if (d < 6.0) {
-            c *= 1.0 - 0.55 * t.value * (1.0 - d / 6.0);
+            c *= (1.0 - 0.55 * t.value * (1.0 - d / 6.0));
           }
         }
+        return math.max(0.1, c);
       }
-      return math.max(0.05, c);
     }
 
     final si = start.y * w + start.x;
     final ti = goal.y * w + goal.x;
-    if (!cellCost(si, start.x, start.y).isFinite ||
-        !cellCost(ti, goal.x, goal.y).isFinite) {
+    if (grid.nodata[si] != 0 || grid.slope[si] > maxSlopeDeg ||
+        grid.nodata[ti] != 0 || grid.slope[ti] > maxSlopeDeg) {
       return null;
     }
 
@@ -192,13 +205,12 @@ class MarsRouter {
     final closed = Uint8List(n);
     final heap = _MinHeap();
 
-    final minC = math.max(0.05, mode == RouteMode.science ? wh * 0.45 : wh);
     double heuristic(int x, int y) {
       if (algorithm == SearchAlgorithm.dijkstra) return 0.0;
       final dx = (x - goal.x).abs();
       final dy = (y - goal.y).abs();
       final straightLineM = grid.distanceForCellDelta(dx, dy);
-      return straightLineM / grid.cellM * minC;
+      return straightLineM * (mode == RouteMode.science ? 0.45 : 1.0);
     }
 
     g[si] = 0.0;
@@ -222,11 +234,10 @@ class MarsRouter {
           if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
           final j = ny * w + nx;
           if (closed[j] != 0) continue;
-          final c = cellCost(j, nx, ny);
+          final stepDistM = grid.distanceForCellDelta(dx, dy);
+          final c = stepCost(i, j, nx, ny, stepDistM);
           if (!c.isFinite) continue;
-          final stepM = grid.distanceForCellDelta(dx, dy);
-          final step = stepM / grid.cellM;
-          final ng = g[i] + c * step;
+          final ng = g[i] + c;
           if (ng < g[j]) {
             g[j] = ng;
             from[j] = i;
@@ -243,7 +254,7 @@ class MarsRouter {
       path.add(GridPoint(k % w, k ~/ w));
     }
     final ordered = path.reversed.toList();
-    final smoothed = smoothPath(grid, ordered, maxSlopeDeg: maxSlopeDeg);
+    final smoothed = smoothPath(grid, ordered, maxSlopeDeg: maxSlopeDeg, mode: mode);
 
     return _buildMetrics(grid, smoothed, g[ti], mode, algorithm, expanded, targets);
   }
@@ -300,17 +311,21 @@ class MarsRouter {
     TerrainGrid grid,
     List<GridPoint> path, {
     double maxSlopeDeg = defaultMaxSlopeDeg,
+    RouteMode mode = RouteMode.fastest,
   }) {
     if (path.length <= 2) return path;
 
     final waypoints = <GridPoint>[path.first];
     var curr = 0;
+    // In Safest mode, string-pulling only shortcuts across very gentle terrain (<= 6.0°)
+    // to strictly preserve detours around steeper slopes, scarps, and rough ground.
+    final losSlopeLimit = (mode == RouteMode.safest) ? 6.0 : maxSlopeDeg;
 
     while (curr < path.length - 1) {
       var next = path.length - 1;
       // Greedily find the furthest visible waypoint along the path
       while (next > curr + 1) {
-        if (hasLineOfSight(grid, path[curr], path[next], maxSlopeDeg: maxSlopeDeg)) {
+        if (hasLineOfSight(grid, path[curr], path[next], maxSlopeDeg: losSlopeLimit)) {
           break;
         }
         next--;

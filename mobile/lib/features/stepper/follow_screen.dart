@@ -241,7 +241,7 @@ class _FollowScreenState extends ConsumerState<FollowScreen> with SingleTickerPr
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('CURRENT LOCATION: ${cur.name}', style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 13)),
-                          const DataBadge(DataType.derived),
+                          DataBadge(DataType.derived),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -328,6 +328,19 @@ class _FollowScreenState extends ConsumerState<FollowScreen> with SingleTickerPr
                     ),
                   ),
                 ],
+
+                const SizedBox(height: 14),
+
+                // 5. ALL 15 JEZERO EXPEDITION LANDMARKS EXPLORER
+                _All15LandmarksSection(
+                  currentLandmark: cur,
+                  onSelectTarget: (t) {
+                    final idx = lms.indexWhere((l) => l.name.contains(t.name) || t.name.contains(l.name));
+                    if (idx >= 0) {
+                      notifier.setStep(idx);
+                    }
+                  },
+                ),
               ],
             ),
           ),
@@ -357,15 +370,23 @@ class _LandmarkPhotoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Photographic Outcrop Scene
+          // Photographic Outcrop Scene with real Mastcam-Z / HiRISE image
           AspectRatio(
             aspectRatio: 16 / 9,
             child: Stack(
               children: [
                 Positioned.fill(
-                  child: CustomPaint(
-                    painter: _OutcropPainter(landmark: landmark),
-                  ),
+                  child: landmark.imagePath.isNotEmpty
+                      ? Image.asset(
+                          landmark.imagePath,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => CustomPaint(
+                            painter: _OutcropPainter(landmark: landmark),
+                          ),
+                        )
+                      : CustomPaint(
+                          painter: _OutcropPainter(landmark: landmark),
+                        ),
                 ),
 
                 // Top Badge Overlays
@@ -395,7 +416,7 @@ class _LandmarkPhotoCard extends StatelessWidget {
                       color: Colors.black.withOpacity(0.75),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text('MASTCAM-Z / HiRISE ANALOG', style: TextStyle(color: Color(0xFFD3A24C), fontFamily: 'monospace', fontSize: 9)),
+                    child: const Text('MASTCAM-Z / HiRISE OBSERVATION', style: TextStyle(color: Color(0xFFD3A24C), fontFamily: 'monospace', fontSize: 9)),
                   ),
                 ),
 
@@ -429,10 +450,10 @@ class _LandmarkPhotoCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'VISUAL FIELD PROFILE',
+                      'GEOLOGICAL FEATURE PROFILE',
                       style: TextStyle(fontFamily: 'monospace', fontSize: 11, fontWeight: FontWeight.bold, color: MarsTheme.mars),
                     ),
-                    const DataBadge(DataType.derived),
+                    DataBadge(DataType.observed),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -440,7 +461,201 @@ class _LandmarkPhotoCard extends StatelessWidget {
                   landmark.desc,
                   style: const TextStyle(fontSize: 12, color: Color(0xFFE5DDD8)),
                 ),
+                if (landmark.target?.significance.isNotEmpty ?? false) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Significance: ${landmark.target!.significance}',
+                    style: const TextStyle(fontSize: 11, color: Color(0xFFD3A24C)),
+                  ),
+                ],
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Horizontal Carousel of all 15 Jezero Expedition Landmarks with their real images
+class _All15LandmarksSection extends StatelessWidget {
+  final Landmark currentLandmark;
+  final Function(ScienceTarget) onSelectTarget;
+
+  const _All15LandmarksSection({
+    required this.currentLandmark,
+    required this.onSelectTarget,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: MarsTheme.paper,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: MarsTheme.lineStrong),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.photo_library_outlined, size: 16, color: MarsTheme.mars),
+                  SizedBox(width: 6),
+                  Text(
+                    'ALL 15 JEZERO EXPEDITION LANDMARKS',
+                    style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 11),
+                  ),
+                ],
+              ),
+              Text(
+                '15 FEATURES',
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: MarsTheme.dim),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Official NASA Perseverance & HiRISE surface observation features across Jezero Crater:',
+            style: TextStyle(fontSize: 11, color: MarsTheme.dim),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 180,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: kDemoTargets.length,
+              itemBuilder: (context, idx) {
+                final target = kDemoTargets[idx];
+                final isCurrent = currentLandmark.name.contains(target.name) || target.name.contains(currentLandmark.name);
+
+                return GestureDetector(
+                  onTap: () => onSelectTarget(target),
+                  child: Container(
+                    width: 200,
+                    margin: const EdgeInsets.only(right: 10),
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF151012),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isCurrent ? MarsTheme.mars : MarsTheme.line,
+                        width: isCurrent ? 2.0 : 1.0,
+                      ),
+                      boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Image Thumbnail
+                        SizedBox(
+                          height: 90,
+                          width: double.infinity,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Image.asset(
+                                target.imagePath,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: const Color(0xFF38150E),
+                                  child: const Center(
+                                    child: Icon(Icons.terrain, color: Colors.white38),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 4,
+                                left: 4,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.75),
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                  child: Text(
+                                    '#${idx + 1} · (${target.x}, ${target.y})',
+                                    style: const TextStyle(
+                                      fontFamily: 'monospace',
+                                      fontSize: 8,
+                                      color: Color(0xFFD3A24C),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (isCurrent)
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: MarsTheme.mars,
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                    child: const Text(
+                                      'ACTIVE',
+                                      style: TextStyle(
+                                        fontSize: 8,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        // Text Info
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                target.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontFamily: 'monospace',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                target.type,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFFD3A24C),
+                                  fontSize: 9,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                target.note,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFFD6CBC7),
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ],

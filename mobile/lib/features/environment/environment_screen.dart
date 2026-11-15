@@ -187,7 +187,7 @@ class _EnvironmentAndSavedScreenState extends ConsumerState<EnvironmentAndSavedS
                                 color: Color(0xFF38BDF8),
                               ),
                             ),
-                            const DataBadge(DataType.observed),
+                            DataBadge(DataType.observed),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -275,9 +275,59 @@ class _EnvironmentAndSavedScreenState extends ConsumerState<EnvironmentAndSavedS
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
 
-              const SizedBox(height: 16),
-
+              // 15 Jezero Features Catalog
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('15 EXPEDITION LANDMARKS & CATALOGUE', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 12)),
+                          DataBadge(DataType.observed),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text('Official Mars 2020 Perseverance exploration features mapped on the HiRISE grid:', style: TextStyle(fontSize: 11, color: MarsTheme.dim)),
+                      const Divider(),
+                      for (final t in kDemoTargets)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: Image.asset(
+                                  t.imagePath,
+                                  width: 48,
+                                  height: 48,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(width: 48, height: 48, color: MarsTheme.line, child: const Icon(Icons.image_not_supported, size: 16)),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('${t.name} (${t.x}, ${t.y})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                    Text('${t.type} · Significance: ${t.significance}', style: const TextStyle(fontSize: 10, color: MarsTheme.dim)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
