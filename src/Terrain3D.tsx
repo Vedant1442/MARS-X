@@ -75,7 +75,9 @@ function Dust({ follow }: { follow: React.MutableRefObject<THREE.Vector3> }) {
   return <points ref={ref} frustumCulled={false}><bufferGeometry><bufferAttribute attach="attributes-position" args={[pos, 3]} /></bufferGeometry><pointsMaterial color="#e3b48a" size={0.7} sizeAttenuation transparent opacity={0.3} depthWrite={false} /></points>;
 }
 
-type SceneProps = { hi: Float32Array; meta: Meta; T: Terrain; view: View3D; exag: number; sunEl: number; sunAz: number; cam: Cam; playing: boolean; speed: number; route: Route | null; landmarks: Landmark[]; step: number; onReach: (i: number) => void; onProbe: (p: Probe) => void; resetKey: number };
+export type Telemetry3D = { pitchDeg: number; headingDeg: number };
+
+type SceneProps = { hi: Float32Array; meta: Meta; T: Terrain; view: View3D; exag: number; sunEl: number; sunAz: number; cam: Cam; playing: boolean; speed: number; route: Route | null; landmarks: Landmark[]; step: number; onReach: (i: number) => void; onProbe: (p: Probe) => void; resetKey: number; onTelemetry?: (t: Telemetry3D) => void };
 
 function Scene(p: SceneProps) {
   const { hi, meta: m } = p, { camera, scene } = useThree();
@@ -118,7 +120,7 @@ function Scene(p: SceneProps) {
 
   const path = p.route?.path ?? [];
   const routePts = useMemo(() => path.map((q) => new THREE.Vector3(...toW(q, 1.4))), [path, p.exag, hi]); // eslint-disable-line react-hooks/exhaustive-deps
-  const prog = useRef(0), hold = useRef(0), yaw = useRef(0), drag = useRef<{ x: number } | null>(null), lastReach = useRef(-1), snap = useRef(true);
+  const prog = useRef(0), hold = useRef(0), yaw = useRef(0), drag = useRef<{ x: number } | null>(null), lastReach = useRef(-1), snap = useRef(true), telemTick = useRef(0);
 
   useEffect(() => { // camera presets
     if (p.cam === "orbit") { camera.position.set(m.widthM * 0.12, m.widthM * 0.5, m.heightM * 1.25); camera.lookAt(0, 0, 0); orbit.current?.target.set(0, 0, 0); orbit.current?.update(); }
@@ -146,6 +148,14 @@ function Scene(p: SceneProps) {
     if (snap.current) { camera.position.set(pos.x, eye, pos.z); snap.current = false; } else camera.position.lerp(new THREE.Vector3(pos.x, eye, pos.z), 0.25);
     const ang = hd + yaw.current; camera.lookAt(camera.position.x + Math.sin(ang) * 60, camera.position.y - 1.2, camera.position.z - Math.cos(ang) * 60);
     follow.current.copy(camera.position);
+    if (++telemTick.current % 5 === 0) {
+      const headingDeg = Math.round((((ang * 180) / Math.PI) % 360 + 360) % 360);
+      const cellX = Math.min(m.w - 1, Math.max(0, Math.round(fx * (m.w - 1))));
+      const cellY = Math.min(m.h - 1, Math.max(0, Math.round(fy * (m.h - 1))));
+      const cellIdx = cellY * m.w + cellX;
+      const pitchDeg = +(p.T.slope[cellIdx] || 0).toFixed(1);
+      p.onTelemetry?.({ pitchDeg, headingDeg });
+    }
     const lm = p.landmarks.findIndex((l) => Math.abs(l.idx - prog.current) < 0.35);
     if (lm >= 0 && lm !== lastReach.current && p.playing) { lastReach.current = lm; hold.current = 2.2; p.onReach(lm); }
   });

@@ -1,12 +1,61 @@
 import { Component, createContext, lazy, Suspense, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
-  astar, buildTerrain, cardinal, CELL_M, MAP_H_KM, MAP_W_KM, DEFAULT_W, EXPOSURE_DEG, H, MAX_SLOPE, MODE_W, pickLandmarks, pressureRel, SCALE_HEIGHT_M, scienceScore, TARGETS, TIME_BUDGET_MIN, W,
-  type Landmark, type Label, type Mode, type Pt, type Route, type Target, type Terrain, type Weights,
+  abortRoute, astar, multiStopAstar, buildTerrain, cardinal, CELL_M, MAP_H_KM, MAP_W_KM, DEFAULT_W, EXPOSURE_DEG, H, MAX_SLOPE, MODE_W, pickLandmarks, pressureRel, SCALE_HEIGHT_M, scienceScore, TARGETS, TIME_BUDGET_MIN, W,
+  EVA_TOTAL_O2_L, EVA_TOTAL_BATT_WH, EVA_TOTAL_WATER_KG,
+  type EvaConsumables, type Landmark, type Label, type Mode, type Pt, type Route, type Target, type Terrain, type Weights,
 } from "./engine";
 import type { FlyTarget, GlobeApi } from "./MarsGlobe";
 import { JEZERO_META } from "./jezeroGrid";
-import type { Cam, Probe, View3D } from "./Terrain3D";
+import type { Cam, Probe, Telemetry3D, View3D } from "./Terrain3D";
 import { ROVER_TRAVERSE_SEGMENTS } from "./roverTraverse";
+import { SIM3464_CONTACTS, SIM3464_UNITS } from "./geologyLayers";
+import { AVAILABLE_SOLS, getMedaWeather, MEDA_SOLS, solHourToSun } from "./medaData";
+
+// ---------- Perseverance Sample Caching & Petrology Types (Phase 5) ----------
+export type SampleTube = {
+  id: string;
+  name: string;
+  tubeNum: number;
+  lithology: string;
+  x: number;
+  y: number;
+  depthCm: number;
+  sol: number;
+  notes: string;
+};
+
+export const INITIAL_SAMPLE_TUBES: SampleTube[] = [
+  { id: "ST-01", name: "Roubion", tubeNum: 1, lithology: "Crater Floor Basalt", x: 60, y: 38, depthCm: 6.2, sol: 164, notes: "Citadelle target; paired with atmospheric witness tube." },
+  { id: "ST-02", name: "Montdenier", tubeNum: 2, lithology: "Olivine-Rich Cumulate", x: 57, y: 36, depthCm: 5.9, sol: 190, notes: "Rochette outcrop in Séítah formation; high olivine and carbonate." },
+  { id: "ST-03", name: "Montagnac", tubeNum: 3, lithology: "Olivine-Rich Cumulate", x: 57, y: 36, depthCm: 6.1, sol: 192, notes: "Paired core with Montdenier for dual return analysis." },
+  { id: "ST-04", name: "Salette", tubeNum: 4, lithology: "Altered Ultramafic Bedrock", x: 48, y: 34, depthCm: 5.8, sol: 262, notes: "Brac outcrop; evidence of aqueous phyllosilicates." },
+  { id: "ST-05", name: "Coulettes", tubeNum: 5, lithology: "Altered Ultramafic Bedrock", x: 48, y: 34, depthCm: 6.0, sol: 264, notes: "Paired core; confirms pervasive ancient water interaction." },
+  { id: "ST-06", name: "Hazeltop", tubeNum: 6, lithology: "Delta Front Sandstone", x: 30, y: 40, depthCm: 6.4, sol: 457, notes: "Skinner Ridge delta scarp bottomset; rich in sulfates." },
+  { id: "ST-07", name: "Bearwallow", tubeNum: 7, lithology: "Delta Front Sandstone", x: 30, y: 40, depthCm: 6.2, sol: 461, notes: "Paired sedimentary core for biosignature search." },
+  { id: "ST-08", name: "Kukaklek", tubeNum: 8, lithology: "Lacustrine Mudstone", x: 26, y: 42, depthCm: 5.7, sol: 639, notes: "Amalik delta fan top; fine-grained clay minerals." },
+];
+
+export function getCachedSampleTubes(): SampleTube[] {
+  try {
+    const raw = localStorage.getItem("marsx.sample_tubes");
+    if (!raw) return INITIAL_SAMPLE_TUBES;
+    return JSON.parse(raw);
+  } catch {
+    return INITIAL_SAMPLE_TUBES;
+  }
+}
+
+export function saveCachedSampleTube(tube: SampleTube): SampleTube[] {
+  const cur = getCachedSampleTubes();
+  const next = [tube, ...cur.filter((t) => t.tubeNum !== tube.tubeNum)];
+  try {
+    localStorage.setItem("marsx.sample_tubes", JSON.stringify(next));
+  } catch (e) {
+    console.error(e);
+  }
+  return next;
+}
+
 
 /* ============================================================
    MARS-X: Mission planner. All terrain in this build is SYNTHETIC
@@ -183,6 +232,11 @@ function RouteLine({ route, focus, animate, uid }: { route: Route; focus: boolea
     void last; return out;
   }, [route, T]);
   const mid_id = `${uid}-${m}`;
+  const pnrIdx = route.eva?.pnrIdx;
+  const hasPnr = typeof pnrIdx === "number" && pnrIdx > 0 && pnrIdx < route.path.length;
+  const pnrPt = route.eva?.pnrPt;
+  const dangerPts = hasPnr ? route.path.slice(pnrIdx).map((p) => `${p.x + 0.5},${p.y + 0.5}`).join(" ") : null;
+
   return (
     <g opacity={focus ? 1 : 0.6}>
       <defs>
@@ -193,15 +247,25 @@ function RouteLine({ route, focus, animate, uid }: { route: Route; focus: boolea
       <g mask={`url(#${mid_id})`}>
         <polyline points={pts} fill="none" stroke="#f5f1e8" strokeWidth={0.95} strokeLinejoin="round" strokeLinecap="round" opacity={0.92} />
         <polyline points={pts} fill="none" stroke={ROUTE_C[m]} strokeWidth={0.5} strokeLinejoin="round" strokeLinecap={m === "SCIENCE" ? "round" : "butt"} strokeDasharray={MAP_DASH[m]} />
+        {dangerPts && (
+          <polyline points={dangerPts} fill="none" stroke="#B85C43" strokeWidth={0.7} strokeLinejoin="round" strokeDasharray="1.0 0.8" />
+        )}
       </g>
       {focus && <g className="fade-in" style={{ animationDelay: animate ? "1.2s" : "0s" }}>
         {mid.map((p, k) => <circle key={k} cx={p.x + 0.5} cy={p.y + 0.5} r={0.7} fill="#f5f1e8" stroke={ROUTE_C[m]} strokeWidth={0.3} />)}
         {warns.map((p, k) => <path key={k} d={`M${p.x + 0.5} ${p.y - 1.1} L${p.x + 1.7} ${p.y + 1.2} L${p.x - 0.7} ${p.y + 1.2} Z`} fill="#D3A24C" stroke="#241b17" strokeWidth={0.22} />)}
+        {pnrPt && (
+          <g>
+            <circle cx={pnrPt.x + 0.5} cy={pnrPt.y + 0.5} r={1.8} fill="#B85C43" fillOpacity={0.4} />
+            <circle cx={pnrPt.x + 0.5} cy={pnrPt.y + 0.5} r={0.8} fill="#B85C43" stroke="#241b17" strokeWidth={0.2} />
+            <text x={pnrPt.x + 1.4} y={pnrPt.y + 2.0} fontSize={1.8} fill="#B85C43" stroke="#241b17" strokeWidth={0.35} paintOrder="stroke" fontFamily="IBM Plex Mono" fontWeight="bold">PNR</text>
+          </g>
+        )}
       </g>}
     </g>
   );
 }
-function MarsMap({ layer = "hillshade", onPick, showTargets = true, showRover = true, highlight, inspect, loadingLabel = "Loading terrain…", contours = false, landmarks, current, marker }: { layer?: Layer; onPick?: (p: Pt) => void; showTargets?: boolean; showRover?: boolean; highlight?: Mode | "ALL"; inspect?: Pt | null; loadingLabel?: string; contours?: boolean; landmarks?: Landmark[]; current?: number; marker?: Pt | null }) {
+function MarsMap({ layer = "hillshade", onPick, showTargets = true, showRover = true, showGeology = false, highlight, inspect, loadingLabel = "Loading terrain…", contours = false, landmarks, current, marker, waypoints }: { layer?: Layer; onPick?: (p: Pt) => void; showTargets?: boolean; showRover?: boolean; showGeology?: boolean; highlight?: Mode | "ALL"; inspect?: Pt | null; loadingLabel?: string; contours?: boolean; landmarks?: Landmark[]; current?: number; marker?: Pt | null; waypoints?: Pt[] }) {
   const { T, start, end, routes, mission, mode } = useStore();
   const ref = useRef<HTMLCanvasElement>(null);
   const uid = useId().replace(/:/g, "");
@@ -235,6 +299,30 @@ function MarsMap({ layer = "hillshade", onPick, showTargets = true, showRover = 
             {Array.from({ length: 11 }).map((_, k) => <line key={"v" + k} x1={(k * W) / 10} x2={(k * W) / 10} y1={0} y2={H} stroke="#f5f1e8" strokeOpacity={0.1} strokeWidth={0.1} />)}
             {Array.from({ length: 7 }).map((_, k) => <line key={"h" + k} y1={(k * H) / 6} y2={(k * H) / 6} x1={0} x2={W} stroke="#f5f1e8" strokeOpacity={0.1} strokeWidth={0.1} />)}
             {modes.map((m) => <RouteLine key={`${m}-${routes[m]!.cost}`} route={routes[m]!} focus={m === focusMode} animate uid={uid} />)}
+            {showGeology && (
+              <g opacity={0.68}>
+                {SIM3464_UNITS.map((u, idx) => (
+                  <polygon
+                    key={`geo-unit-${idx}`}
+                    points={u.pts.map(([x, y]) => `${x + 0.5},${y + 0.5}`).join(" ")}
+                    fill={u.color}
+                    fillOpacity={0.25}
+                    stroke={u.color}
+                    strokeWidth={0.3}
+                  />
+                ))}
+                {SIM3464_CONTACTS.map((c, idx) => (
+                  <polyline
+                    key={`geo-contact-${idx}`}
+                    points={c.pts.map(([x, y]) => `${x + 0.5},${y + 0.5}`).join(" ")}
+                    fill="none"
+                    stroke="#9EC0CD"
+                    strokeWidth={0.45}
+                    strokeDasharray={c.type === "approximate" ? "1.5 1.0" : undefined}
+                  />
+                ))}
+              </g>
+            )}
             {showRover && ROVER_TRAVERSE_SEGMENTS.map((seg, idx) => (
               <polyline key={`rover-seg-${idx}`} points={seg.map(([x, y]) => `${x + 0.5},${y + 0.5}`).join(" ")} fill="none" stroke="#D3A24C" strokeWidth={0.5} strokeDasharray="1.2 0.6" />
             ))}
@@ -250,6 +338,12 @@ function MarsMap({ layer = "hillshade", onPick, showTargets = true, showRover = 
             {marker && <g><circle cx={marker.x + 0.5} cy={marker.y + 0.5} r={2.4} fill="#D3A24C" fillOpacity={0.35} /><circle cx={marker.x + 0.5} cy={marker.y + 0.5} r={1} fill="#D3A24C" stroke={outline} strokeWidth={0.3} /></g>}
             {start && !landmarks && <g><circle cx={start.x + 0.5} cy={start.y + 0.5} r={1.5} fill={outline} stroke="#f5f1e8" strokeWidth={0.4} /><circle cx={start.x + 0.5} cy={start.y + 0.5} r={0.45} fill="#f5f1e8" /><text x={start.x + 2.6} y={start.y - 0.8} fontSize={2.2} fill="#f5f1e8" stroke={outline} strokeWidth={0.5} paintOrder="stroke" fontFamily="IBM Plex Mono">START</text></g>}
             {end && !landmarks && <g><circle className="pulse-ring" cx={end.x + 0.5} cy={end.y + 0.5} r={1.6} fill="none" stroke="#f5f1e8" strokeWidth={0.25} /><rect x={end.x - 0.8} y={end.y - 0.8} width={2.6} height={2.6} fill="#B85C43" stroke="#f5f1e8" strokeWidth={0.35} /><text x={end.x + 2.8} y={end.y - 0.8} fontSize={2.2} fill="#f5f1e8" stroke={outline} strokeWidth={0.5} paintOrder="stroke" fontFamily="IBM Plex Mono">DEST</text></g>}
+            {waypoints && !landmarks && waypoints.map((w, idx) => (
+              <g key={`waypoint-${idx}`}>
+                <rect x={w.x - 0.7} y={w.y - 0.7} width={2.4} height={2.4} fill="#D3A24C" stroke={outline} strokeWidth={0.3} transform={`rotate(45 ${w.x + 0.5} ${w.y + 0.5})`} />
+                <text x={w.x + 0.5} y={w.y + 1.1} fontSize={1.8} textAnchor="middle" fill="#241b17" fontWeight="bold" fontFamily="IBM Plex Mono">W{idx + 1}</text>
+              </g>
+            ))}
             {(inspect ?? hover) && <g stroke="#D3A24C" strokeWidth={0.22}>{(() => { const p = (inspect ?? hover)!; return <><line x1={p.x + 0.5} x2={p.x + 0.5} y1={p.y - 3} y2={p.y + 4} /><line y1={p.y + 0.5} y2={p.y + 0.5} x1={p.x - 3} x2={p.x + 4} /></>; })()}</g>}
           </svg>
           <div className="absolute bottom-0 left-0 right-0 flex justify-between px-1 font-mono text-[10px] text-ink/75 pointer-events-none" aria-hidden="true">{[0, 1, 2, 3, 4].map((k) => <span key={k} className="[text-shadow:0_0_3px_#241b17]">{(MAP_W_KM * k / 4).toFixed(1)}</span>)}<span className="[text-shadow:0_0_3px_#241b17]">km</span></div>
@@ -273,6 +367,10 @@ function Profile({ route, kind, h = 96 }: { route: Route; kind: "elev" | "slope"
   const y = (v: number) => h - 6 - ((v - mn) / (mx - mn || 1)) * (h - 14);
   const pts = vals.map((v, k) => `${(k / (n - 1)) * 100},${y(v)}`).join(" ");
   const d = (dp: number) => (kind === "cost" ? mn.toFixed(dp) : mn.toFixed(0));
+  const pnrIdx = route.eva?.pnrIdx;
+  const hasPnr = typeof pnrIdx === "number" && pnrIdx > 0 && pnrIdx < n;
+  const pnrX = hasPnr ? (pnrIdx / (n - 1)) * 100 : 0;
+
   return (
     <figure>
       <figcaption className="flex justify-between font-mono text-[11px] text-dim mb-1"><span>{kind === "elev" ? "ELEVATION (m)" : kind === "slope" ? "DERIVED SLOPE (°)" : "CELL COST C_i"}</span><span>{d(2)} to {kind === "cost" ? mx.toFixed(2) : mx.toFixed(0)}</span></figcaption>
@@ -281,8 +379,19 @@ function Profile({ route, kind, h = 96 }: { route: Route; kind: "elev" | "slope"
         {kind === "slope" && MAX_SLOPE >= mn && MAX_SLOPE <= mx && <line x1={0} x2={100} y1={y(MAX_SLOPE)} y2={y(MAX_SLOPE)} stroke="#964630" strokeDasharray="4 3" strokeWidth={1} vectorEffect="non-scaling-stroke" />}
         <polyline points={`0,${h} ${pts} 100,${h}`} fill={ROUTE_C[route.mode]} fillOpacity={0.18} stroke="none" />
         <polyline points={pts} fill="none" stroke={ROUTE_DEEP[route.mode]} strokeWidth={1.6} vectorEffect="non-scaling-stroke" strokeDasharray={route.mode === "SAFEST" ? undefined : route.mode === "FASTEST" ? "6 3" : "1 4"} strokeLinecap="round" />
+        {hasPnr && (
+          <g>
+            <line x1={pnrX} x2={pnrX} y1={0} y2={h} stroke="#B85C43" strokeWidth={1.5} strokeDasharray="3 2" vectorEffect="non-scaling-stroke" />
+            <rect x={pnrX - 8} y={3} width={16} height={12} fill="#B85C43" rx={1} />
+            <text x={pnrX} y={11.5} fontSize={7} textAnchor="middle" fill="#f5f1e8" fontFamily="IBM Plex Mono" fontWeight="bold">PNR</text>
+          </g>
+        )}
       </svg>
-      <div className="flex justify-between font-mono text-[10px] text-dim mt-1"><span>0 km</span><span>{(route.dist / 2000).toFixed(1)}</span><span>{(route.dist / 1000).toFixed(1)} km</span></div>
+      <div className="flex justify-between font-mono text-[10px] text-dim mt-1">
+        <span>0 km</span>
+        {route.eva?.pnrDistM ? <span className="text-mars-deep font-semibold">PNR {fmtKm(route.eva.pnrDistM)}</span> : <span>{(route.dist / 2000).toFixed(1)} km</span>}
+        <span>{(route.dist / 1000).toFixed(1)} km</span>
+      </div>
     </figure>
   );
 }
@@ -534,13 +643,19 @@ function Planner() {
   const [layer, setLayer] = useState<Layer>("hillshade");
   const [tilt, setTilt] = useState(false);
   const [inspected, setInspected] = useState<Pt | null>(null);
+  const [waypoints, setWaypoints] = useState<Pt[]>([]);
+  const [sampling, setSampling] = useState(false);
+  const [sampleName, setSampleName] = useState("");
+  const [sampleLitho, setSampleLitho] = useState("Crater Floor Basalt");
+  const [sampleSavedMsg, setSampleSavedMsg] = useState("");
   const timers = useRef<number[]>([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
   const pick = (p: Pt) => {
     setInspected(p);
+    setSampleSavedMsg("");
     if (!S.start || (S.start && S.end)) {
-      S.setStart(p); S.setEnd(null); S.setRoutes({});
+      S.setStart(p); S.setEnd(null); S.setRoutes({}); setWaypoints([]);
     } else {
       S.setEnd(p);
     }
@@ -550,17 +665,20 @@ function Planner() {
   const setPracticeRoute = () => {
     if (!S.T) return;
     const s = snapPassable(S.T, { x: 16, y: 38 });
+    const w1 = snapPassable(S.T, { x: 50, y: 30 });
     const e = snapPassable(S.T, { x: 100, y: 42 });
     S.setStart(s);
+    setWaypoints([w1]);
     S.setEnd(e);
     setInspected(s);
     setErr("");
     setBusy(true); setStage(0); setSheet(null);
     timers.current.push(window.setTimeout(() => setStage(1), 300), window.setTimeout(() => setStage(2), 650));
     timers.current.push(window.setTimeout(() => {
+      const stops = [s, w1, e];
       const out: Partial<Record<Mode, Route | null>> = {};
       (["SAFEST", "FASTEST", "SCIENCE"] as Mode[]).forEach((m) => {
-        out[m] = astar(S.T, s, e, m === "SCIENCE" ? S.weights : MODE_W[m], m);
+        out[m] = multiStopAstar(S.T, stops, m === "SCIENCE" ? S.weights : MODE_W[m], m);
       });
       S.setRoutes(out); setBusy(false); setSheet("results");
     }, 850));
@@ -570,11 +688,31 @@ function Planner() {
     if (!S.start || !S.end) return; setBusy(true); setErr(""); setStage(0); setSheet(null);
     timers.current.push(window.setTimeout(() => setStage(1), 350), window.setTimeout(() => setStage(2), 700));
     timers.current.push(window.setTimeout(() => {
+      const stops = [S.start!, ...waypoints, S.end!];
       const out: Partial<Record<Mode, Route | null>> = {};
-      (["SAFEST", "FASTEST", "SCIENCE"] as Mode[]).forEach((m) => { out[m] = astar(S.T, S.start!, S.end!, m === "SCIENCE" ? S.weights : MODE_W[m], m); });
+      (["SAFEST", "FASTEST", "SCIENCE"] as Mode[]).forEach((m) => {
+        out[m] = stops.length > 2
+          ? multiStopAstar(S.T, stops, m === "SCIENCE" ? S.weights : MODE_W[m], m)
+          : astar(S.T, S.start!, S.end!, m === "SCIENCE" ? S.weights : MODE_W[m], m);
+      });
       S.setRoutes(out); setBusy(false); setSheet("results");
       if (!out[S.mode]) setErr("No valid route found in the selected terrain model.");
     }, 900));
+  };
+
+  const handleAbort = () => {
+    if (!S.T || !S.start || !r || !r.path.length) return;
+    const base = S.start;
+    const curr = inspected ?? r.path[r.path.length - 1];
+    const esc = abortRoute(S.T, curr, base);
+    if (esc) {
+      S.setStart(curr);
+      setWaypoints([]);
+      S.setEnd(base);
+      S.setMode("SAFEST");
+      S.setRoutes({ ...S.routes, SAFEST: esc, [S.mode]: esc });
+      setSheet("results");
+    }
   };
 
   const r = S.routes[S.mode];
@@ -595,14 +733,31 @@ function Planner() {
             <span className="font-mono text-[11px] text-dim">COORDINATES</span>
             <button
               onClick={setPracticeRoute}
-              className="font-mono text-[10px] tracking-[0.06em] px-2 py-0.5 rounded-sm border border-mars-deep/40 bg-mars/[0.08] text-mars-deep hover:bg-mars-deep hover:text-ink transition-colors"
+              className="font-mono text-[10px] tracking-[0.06em] px-2 py-0.5 rounded-sm border border-mars-deep/40 bg-mars/[0.08] text-mars-deep hover:bg-mars-deep hover:text-ink transition-colors cursor-pointer"
             >
               ★ PRACTICE ROUTE
             </button>
           </div>
           <Row k="Start" v={cellInfo(S.start)} />
+          {waypoints.length > 0 && (
+            <div className="border-t border-line/60 pt-1.5 my-1 space-y-1">
+              <span className="font-mono text-[10px] text-dim tracking-wider block">INTERMEDIATE WAYPOINTS ({waypoints.length})</span>
+              {waypoints.map((w, idx) => (
+                <div key={idx} className="flex items-center justify-between font-mono text-[11px]">
+                  <span className="text-gold-deep font-semibold">W{idx + 1}: {cellInfo(w)}</span>
+                  <button
+                    onClick={() => setWaypoints((wp) => wp.filter((_, j) => j !== idx))}
+                    className="text-mars-deep hover:text-fg px-1 font-bold cursor-pointer"
+                    title="Remove waypoint"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <Row k="Destination" v={cellInfo(S.end)} />
-          <p className="text-[12px] text-dim mt-2" aria-live="polite">{!S.start ? "Select the map to place START." : !S.end ? "Select the map to place DESTINATION." : "Click map to re-inspect or reset."}</p>
+          <p className="text-[12px] text-dim mt-2" aria-live="polite">{!S.start ? "Select the map to place START." : !S.end ? "Select the map to place DESTINATION." : "Click map to re-inspect, add waypoints, or reset."}</p>
         </Panel>
 
         {inspected && inspIdx !== null && (
@@ -614,6 +769,101 @@ function Planner() {
                 <Row k="Elevation" v={`${inspElev?.toFixed(0)} m`} />
                 <Row k="Slope" v={`${inspSlope?.toFixed(1)}° ${inspSlope && inspSlope > MAX_SLOPE ? "(STEEP)" : "(PASSABLE)"}`} />
                 <Row k="Roughness" v={`${inspRough?.toFixed(2)}`} />
+                
+                <div className="pt-2 border-t border-line space-y-2">
+                  <div className="grid grid-cols-3 gap-1">
+                    <button
+                      onClick={() => { S.setStart(inspected); S.setRoutes({}); setWaypoints([]); }}
+                      className="font-mono text-[10px] py-1 px-1 rounded-sm border border-line-strong hover:bg-paper text-center cursor-pointer"
+                    >
+                      SET START
+                    </button>
+                    <button
+                      disabled={waypoints.length >= 5}
+                      onClick={() => { if (waypoints.length < 5) setWaypoints((w) => [...w, inspected]); }}
+                      className="font-mono text-[10px] py-1 px-1 rounded-sm border border-line-strong hover:bg-paper text-gold-deep text-center cursor-pointer disabled:opacity-50"
+                    >
+                      + WAYPOINT
+                    </button>
+                    <button
+                      onClick={() => { S.setEnd(inspected); }}
+                      className="font-mono text-[10px] py-1 px-1 rounded-sm border border-line-strong hover:bg-paper text-center cursor-pointer"
+                    >
+                      SET DEST
+                    </button>
+                  </div>
+
+                  {/* Core Sample Logger action */}
+                  <div className="pt-1 border-t border-line/60">
+                    {!sampling ? (
+                      <button
+                        onClick={() => { setSampling(true); setSampleName(`Jezero Core (${inspected.x},${inspected.y})`); }}
+                        className="w-full font-mono text-[10px] tracking-[0.06em] py-1 px-2 rounded-sm border border-gold-deep/50 bg-gold/[0.08] text-gold-deep hover:bg-gold-deep hover:text-ink font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <span>🔬</span>
+                        <span>DRILL &amp; CACHE SAMPLE TUBE</span>
+                      </button>
+                    ) : (
+                      <div className="p-2 border border-gold-deep/60 rounded-sm bg-panel space-y-2 text-[11px] font-mono">
+                        <div className="flex justify-between items-center text-gold-deep font-semibold">
+                          <span>DRILL CORE TUBE #{(getCachedSampleTubes().length + 1).toString().padStart(2, "0")}</span>
+                          <button onClick={() => setSampling(false)} className="text-dim hover:text-fg font-bold cursor-pointer">✕</button>
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-dim block">Sample Target Name</label>
+                          <input
+                            type="text"
+                            value={sampleName}
+                            onChange={(e) => setSampleName(e.target.value)}
+                            className="w-full border border-line-strong rounded-sm bg-ink px-1.5 py-1 text-[11px]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-dim block">Lithology Unit</label>
+                          <select
+                            value={sampleLitho}
+                            onChange={(e) => setSampleLitho(e.target.value)}
+                            className="w-full border border-line-strong rounded-sm bg-ink px-1.5 py-1 text-[11px]"
+                          >
+                            <option value="Crater Floor Basalt">Crater Floor Basalt</option>
+                            <option value="Olivine-Rich Cumulate">Olivine-Rich Cumulate</option>
+                            <option value="Altered Ultramafic Bedrock">Altered Ultramafic Bedrock</option>
+                            <option value="Delta Front Sandstone">Delta Front Sandstone</option>
+                            <option value="Lacustrine Mudstone">Lacustrine Mudstone</option>
+                            <option value="Regolith / Witness Tube">Regolith / Witness Tube</option>
+                          </select>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const nextNum = getCachedSampleTubes().length + 1;
+                            saveCachedSampleTube({
+                              id: `ST-${nextNum.toString().padStart(2, "0")}`,
+                              name: sampleName || `Core (${inspected.x},${inspected.y})`,
+                              tubeNum: nextNum,
+                              lithology: sampleLitho,
+                              x: inspected.x,
+                              y: inspected.y,
+                              depthCm: +(5.5 + Math.random() * 1.5).toFixed(1),
+                              sol: 28,
+                              notes: `Sample acquired at elev ${inspElev?.toFixed(0)}m, slope ${inspSlope?.toFixed(1)}°`,
+                            });
+                            setSampling(false);
+                            setSampleSavedMsg(`✓ Sample Tube #${nextNum} Sealed & Cached`);
+                            setTimeout(() => setSampleSavedMsg(""), 4000);
+                          }}
+                          className="w-full py-1 bg-gold-deep text-ink font-semibold rounded-sm tracking-wider text-center cursor-pointer hover:opacity-90"
+                        >
+                          SEAL &amp; CACHE TUBE
+                        </button>
+                      </div>
+                    )}
+                    {sampleSavedMsg && (
+                      <div className="mt-1 text-center font-mono text-[10px] text-sage-deep font-semibold">
+                        {sampleSavedMsg}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </Panel>
@@ -666,7 +916,7 @@ function Planner() {
       <main className="relative flex flex-col min-h-0 h-[calc(100dvh-52px-56px)] lg:h-auto overflow-hidden">
         <SynthBanner />
         <div className={`relative flex-1 min-h-0 transition-transform duration-500 origin-bottom ${tilt ? "perspective-[1000px] scale-[0.92] [transform:rotateX(28deg)] shadow-2xl" : ""}`}>
-          <MarsMap layer={layer} onPick={pick} highlight="ALL" loadingLabel="Loading terrain…" />
+          <MarsMap layer={layer} onPick={pick} waypoints={waypoints} highlight="ALL" loadingLabel="Loading terrain…" />
           {busy && <div className="absolute inset-0 bg-map/80 flex flex-col items-center justify-center gap-3 z-20 on-dark"><div className="w-56 h-[3px] skeleton-dark rounded-full" /><p role="status" className="font-mono text-[13px] tracking-[0.06em] text-ink">{stages[stage]}</p></div>}
         </div>
         <div className="border-t border-line px-3 py-2 flex flex-wrap gap-x-5 gap-y-1.5 font-mono text-[11px] text-fg bg-ink">
@@ -693,6 +943,8 @@ function Planner() {
               <Row k="Data confidence" v={r.confidence} l="MODELED" />
               <Row k="Safety" v={<span className="text-mars-deep font-semibold">NOT CERTIFIED</span>} />
             </Panel>
+
+            <EvaPanel r={r} onAbort={handleAbort} />
 
             <Panel title="Candidate Objectives">
               <div className="space-y-2">
@@ -753,12 +1005,12 @@ function Planner() {
 }
 
 // ---------- Explorer ----------
-type LayerItem = { k: Layer | "targets" | "contours" | "rover"; name: string; tag: Label; off?: string };
+type LayerItem = { k: Layer | "targets" | "contours" | "rover" | "geology"; name: string; tag: Label; off?: string };
 const LAYER_GROUPS: { g: string; items: LayerItem[] }[] = [
   { g: "Terrain", items: [{ k: "hillshade", name: "Hillshade", tag: "DERIVED" }, { k: "elev", name: "Elevation", tag: "DERIVED" }, { k: "slope", name: "Slope", tag: "DERIVED" }, { k: "rough", name: "Roughness", tag: "DERIVED" }, { k: "unc", name: "Data uncertainty", tag: "MODELED" }, { k: "pressure", name: "Pressure (relative)", tag: "SIMULATED" }, { k: "contours", name: "Contour lines (100 m)", tag: "DERIVED" }] },
   { g: "Imagery", items: [{ k: "hillshade", name: "CTX", tag: "UNKNOWN", off: "CTX" }, { k: "hillshade", name: "HiRISE", tag: "UNKNOWN", off: "HiRISE" }] },
   { g: "Science", items: [{ k: "targets", name: "Science targets (Jezero Crater)", tag: "DERIVED" }, { k: "hillshade", name: "Mineralogy", tag: "UNKNOWN", off: "CRISM" }, { k: "hillshade", name: "Observations", tag: "UNKNOWN", off: "mission data" }] },
-  { g: "Exploration", items: [{ k: "rover", name: "Perseverance traverse (Sol 0-407)", tag: "OBSERVED" }, { k: "hillshade", name: "Landing ellipse", tag: "UNKNOWN", off: "SIM 3464" }] },
+  { g: "Exploration", items: [{ k: "rover", name: "Perseverance traverse (Sol 0-407)", tag: "OBSERVED" }, { k: "geology", name: "USGS SIM 3464 Geologic Units", tag: "OBSERVED" }] },
   { g: "Environment", items: [{ k: "hillshade", name: "Temperature map", tag: "UNKNOWN", off: "THEMIS thermal; rover MEDA readings are point data only" }] },
 ];
 const LAYER_NAME: Record<Layer, string> = { hillshade: "Hillshade", elev: "Elevation", slope: "Slope", rough: "Roughness", unc: "Data uncertainty", pressure: "Pressure (simulated)" };
@@ -767,7 +1019,7 @@ function Explorer() {
   const { T } = useStore();
   const reduce = useReducedMotion();
   const arrive = useRef(arrivedFromGlobe && !reduce); useEffect(() => { arrivedFromGlobe = false; }, []);
-  const [layer, setLayer] = useState<Layer>("hillshade"); const [targets, setTargets] = useState(true); const [contours, setContours] = useState(false); const [rover, setRover] = useState(true);
+  const [layer, setLayer] = useState<Layer>("hillshade"); const [targets, setTargets] = useState(true); const [contours, setContours] = useState(false); const [rover, setRover] = useState(true); const [geology, setGeology] = useState(true);
   const [p, setP] = useState<Pt | null>({ x: 60, y: 38 });
   const [sheet, setSheet] = useState<"layers" | "inspector" | null>(null);
   const i = p ? p.y * W + p.x : 0, nd = p && T.nodata[i];
@@ -779,9 +1031,9 @@ function Explorer() {
         <div role="group" aria-label="Map layers" className="space-y-3">{LAYER_GROUPS.map(({ g, items }) => (
           <div key={g}><Eyebrow className="mb-1">{g}</Eyebrow>
             {items.map((it) => {
-              const off = !!it.off; const on = it.k === "targets" ? targets : it.k === "contours" ? contours : it.k === "rover" ? rover : !off && layer === it.k;
+              const off = !!it.off; const on = it.k === "targets" ? targets : it.k === "contours" ? contours : it.k === "rover" ? rover : it.k === "geology" ? geology : !off && layer === it.k;
               return <button key={g + it.name} disabled={off} aria-pressed={!off ? on : undefined} title={off ? `Target dataset: ${it.off}. Not ingested in this build.` : undefined}
-                onClick={() => (it.k === "targets" ? setTargets((t) => !t) : it.k === "contours" ? setContours((c) => !c) : it.k === "rover" ? setRover((r) => !r) : setLayer(it.k))}
+                onClick={() => (it.k === "targets" ? setTargets((t) => !t) : it.k === "contours" ? setContours((c) => !c) : it.k === "rover" ? setRover((r) => !r) : it.k === "geology" ? setGeology((g) => !g) : setLayer(it.k))}
                 className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 text-[13px] rounded-sm ${off ? "text-dim/80 cursor-not-allowed" : on ? "bg-fg text-ink" : "text-fg hover:bg-panel"}`}>
                 <span className="flex items-center gap-2"><span aria-hidden="true" className={`w-2.5 h-2.5 border ${it.k === "targets" ? "rounded-none rotate-45" : "rounded-full"} ${on ? "bg-ink border-ink" : "border-line-strong"}`} />{it.name}</span>
                 {off ? <span className="font-mono text-[10px] tracking-[0.08em] text-dim">NOT INGESTED</span> : <span className={on ? "opacity-80" : ""}><Tag l={it.tag} /></span>}
@@ -790,7 +1042,7 @@ function Explorer() {
           </div>))}</div>
         <div className="border-t border-line pt-3"><Eyebrow className="mb-2">Legend · {LAYER_NAME[layer]}</Eyebrow><div className="h-2.5 rounded-sm border border-line" style={{ background: rampCss(layer) }} aria-hidden="true" /><div className="flex justify-between font-mono text-[10px] text-dim mt-1"><span>{LAYER_UNITS[layer][0]}</span><span>{LAYER_UNITS[layer][1]}</span></div><div className="flex items-center gap-2 mt-3 text-[12px] text-dim"><Glyph k="nodata" />Unknown / insufficient data</div></div>
       </Sheet>
-      <main className="relative flex flex-col min-h-0 h-[calc(100dvh-52px-56px)] lg:h-auto"><SynthBanner /><div className="relative flex-1 min-h-0"><MarsMap layer={layer} onPick={setP} inspect={p} showTargets={targets} showRover={rover} contours={contours} loadingLabel="Processing elevation…" /></div></main>
+      <main className="relative flex flex-col min-h-0 h-[calc(100dvh-52px-56px)] lg:h-auto"><SynthBanner /><div className="relative flex-1 min-h-0"><MarsMap layer={layer} onPick={setP} inspect={p} showTargets={targets} showRover={rover} showGeology={geology} contours={contours} loadingLabel="Processing elevation…" /></div></main>
       <Sheet open={sheet === "inspector"} onClose={() => setSheet(null)} title="Inspector" className="lg:border-l lg:border-line">
         <Panel title="Location inspector" tag={nd ? "UNKNOWN" : "MODELED"}>
           {!p ? <p className="text-dim text-[13px]">Select a cell.</p> : nd ? <><Row k="Cell" v={`${p.x}, ${p.y}`} /><p className="text-[13px] mt-2">Unknown / insufficient data.</p><p className="text-[12px] text-dim mt-1">This cell is excluded from routing. Absence of data is not treated as safe.</p></> : <>
@@ -801,6 +1053,19 @@ function Explorer() {
             <Row k="Roughness" v={T.rough[i].toFixed(2)} l="DERIVED" />
             <Row k="Uncertainty" v={T.unc[i].toFixed(2)} l="MODELED" />
             <Row k="Traversable" v={T.slope[i] > MAX_SLOPE ? <span className="text-mars-deep">NO (slope)</span> : "within limits"} l="MODELED" />
+            {(() => {
+              const unit = SIM3464_UNITS.find((u) => {
+                let inside = false;
+                for (let pi = 0, pj = u.pts.length - 1; pi < u.pts.length; pj = pi++) {
+                  const xi = u.pts[pi][0], yi = u.pts[pi][1];
+                  const xj = u.pts[pj][0], yj = u.pts[pj][1];
+                  const intersect = ((yi > p.y) !== (yj > p.y)) && (p.x < (xj - xi) * (p.y - yi) / (yj - yi) + xi);
+                  if (intersect) inside = !inside;
+                }
+                return inside;
+              });
+              return unit ? <Row k="Geology (SIM 3464)" v={`${unit.name} (${unit.symbol})`} l="OBSERVED" /> : null;
+            })()}
           </>}
         </Panel>
         <Panel title="Nearby targets" tag="SIMULATED">{near.length ? near.map((t) => <Row key={t.id} k={`${t.id} ${t.name}`} v={t.value.toFixed(2)} />) : <p className="text-[13px] text-dim">None nearby.</p>}</Panel>
@@ -818,6 +1083,8 @@ function Explorer() {
 type Metric = { label: string; l: Label; note: string; get: (r: Route) => number; txt: (r: Route) => string; max?: number };
 const METRICS: Metric[] = [
   { label: "Risk score (0-100)", l: "SIMULATED", note: "Weighted from peak slope, steep share, roughness, low confidence and time. Lower is better.", get: (r) => r.risk.score, txt: (r) => `${r.risk.score} · ${r.risk.level}`, max: 100 },
+  { label: "EVA O2 Margin", l: "SIMULATED", note: "Percent oxygen remaining after full round-trip traversal with unassisted walk back to base.", get: (r) => r.eva?.o2Percent ?? 100, txt: (r) => `${r.eva?.o2Percent ?? 100}% (${r.eva?.isBreached ? "BREACH" : "NOMINAL"})`, max: 100 },
+  { label: "Point of No Return (PNR)", l: "SIMULATED", note: "Outward distance threshold before emergency unassisted return reserve falls below 30%.", get: (r) => r.eva?.pnrDistM ?? r.dist, txt: (r) => r.eva?.isBreached ? `${fmtKm(r.eva.pnrDistM ?? 0)}` : "SAFE (NO BREACH)" },
   { label: "Science score (0-100)", l: "SIMULATED", note: "Simulated target value passed along the route. Higher is better.", get: (r) => scienceScore(r), txt: (r) => String(scienceScore(r)), max: 100 },
   { label: "Est. time", l: "SIMULATED", note: `Slope-dependent walking speed model against a ${TIME_BUDGET_MIN} min budget.`, get: (r) => r.risk.timeMin, txt: (r) => `${r.risk.timeMin.toFixed(0)} min`, max: TIME_BUDGET_MIN },
   { label: "Distance", l: "DERIVED", note: "Shorter costs less time and energy.", get: (r) => r.dist, txt: (r) => fmtKm(r.dist) },
@@ -868,8 +1135,8 @@ function RoutesPage() {
         <div className="overflow-x-auto border-t border-fg">
           <table className="w-full text-[12px] font-mono">
             <caption className="sr-only">Candidate route metrics</caption>
-            <thead className="text-dim text-[11px] tracking-[0.1em]"><tr>{["OBJECTIVE", "DISTANCE", "COST J(P)", "MAX SLOPE", "MEAN ROUGH", "GAIN", "TARGETS", "CONFIDENCE", "SAFETY"].map((h) => <th key={h} scope="col" className="text-left px-3 py-2 font-normal">{h}</th>)}</tr></thead>
-            <tbody>{modes.map((m) => { const x = S.routes[m]; return <tr key={m} onClick={() => setSel(m)} className={`border-t border-line cursor-pointer ${sel === m ? "bg-panel" : "hover:bg-panel/60"}`}><th scope="row" className="px-3 py-2.5 text-left font-normal"><span className="inline-flex items-center gap-2"><Swatch m={m} w={22} />{m}</span></th>{x ? <><td className="px-3">{fmtKm(x.dist)}</td><td className="px-3">{x.cost.toFixed(2)}</td><td className="px-3">{x.maxSlope.toFixed(1)}°</td><td className="px-3">{x.meanRough.toFixed(2)}</td><td className="px-3">{x.elevGain.toFixed(0)} m</td><td className="px-3">{x.sciHits.length}</td><td className="px-3">{x.confidence}</td><td className="px-3 text-mars-deep">NOT CERTIFIED</td></> : <td colSpan={8} className="px-3 text-dim">No valid route found in the selected terrain model.</td>}</tr>; })}</tbody>
+            <thead className="text-dim text-[11px] tracking-[0.1em]"><tr>{["OBJECTIVE", "DISTANCE", "COST J(P)", "MAX SLOPE", "MEAN ROUGH", "EVA O2", "PNR", "CONFIDENCE", "SAFETY"].map((h) => <th key={h} scope="col" className="text-left px-3 py-2 font-normal">{h}</th>)}</tr></thead>
+            <tbody>{modes.map((m) => { const x = S.routes[m]; return <tr key={m} onClick={() => setSel(m)} className={`border-t border-line cursor-pointer ${sel === m ? "bg-panel" : "hover:bg-panel/60"}`}><th scope="row" className="px-3 py-2.5 text-left font-normal"><span className="inline-flex items-center gap-2"><Swatch m={m} w={22} />{m}</span></th>{x ? <><td className="px-3">{fmtKm(x.dist)}</td><td className="px-3">{x.cost.toFixed(2)}</td><td className="px-3">{x.maxSlope.toFixed(1)}°</td><td className="px-3">{x.meanRough.toFixed(2)}</td><td className="px-3">{x.eva ? `${x.eva.o2Percent}%` : "100%"}</td><td className="px-3 font-semibold text-[11px]">{x.eva?.isBreached ? <span className="text-mars-deep">{fmtKm(x.eva.pnrDistM ?? 0)}</span> : <span className="text-sage-deep">SAFE</span>}</td><td className="px-3">{x.confidence}</td><td className="px-3 text-mars-deep">NOT CERTIFIED</td></> : <td colSpan={8} className="px-3 text-dim">No valid route found in the selected terrain model.</td>}</tr>; })}</tbody>
           </table>
         </div>
         {r && <div className="grid lg:grid-cols-[1.5fr_1fr] gap-8">
@@ -878,6 +1145,7 @@ function RoutesPage() {
             <div className="grid md:grid-cols-3 gap-4"><div><Eyebrow className="mb-1">Elevation</Eyebrow><Profile route={r} kind="elev" /></div><div><Eyebrow className="mb-1">Terrain slope</Eyebrow><Profile route={r} kind="slope" /></div><div><Eyebrow className="mb-1">Cell cost</Eyebrow><Profile route={r} kind="cost" /></div></div>
           </div>
           <div className="space-y-5">
+            <EvaPanel r={r} />
             <Panel title="Why this route?" tag="MODELED"><ul className="space-y-2 text-[13px] text-fg/90 leading-relaxed">{why(r).map((s) => <li key={s} className="pl-3 relative before:content-['–'] before:absolute before:left-0 before:text-dim">{s}</li>)}</ul></Panel>
             <Panel title="Cost weights · assumptions" tag="MODELED">
               <p className="text-[12px] text-dim mb-3">Planning assumptions, not validated parameters. Applied to the SCIENCE objective.</p>
@@ -892,22 +1160,99 @@ function RoutesPage() {
   );
 }
 
+
 // ---------- Science ----------
 function SciencePage() {
   const S = useStore();
   const ready = useDelay(500);
+  const [sampleList, setSampleList] = useState<SampleTube[]>(() => getCachedSampleTubes());
+
   return (
-    <div className="max-w-6xl w-full mx-auto px-6 py-10">
-      <div className="flex items-end justify-between flex-wrap gap-4 mb-6"><div><Eyebrow>Science targets</Eyebrow><h1 className="text-[34px] mt-2 leading-tight">Candidate observation sites</h1></div><Tag l="SIMULATED" /></div>
-      <p className="text-[13px] text-dim max-w-xl mb-6">All targets are simulated placeholders at demonstration locations on the real terrain. They illustrate how science value enters the route cost; they are not detections or published features.</p>
-      {!ready ? <div className="space-y-3"><LoadingNote>Loading science observations…</LoadingNote>{Array.from({ length: 5 }).map((_, k) => <Skeleton key={k} className="h-16" />)}</div> : (
-        <div className="border-t border-fg fade-in">{TARGETS.map((t) => { const on = S.mission.some((m) => m.id === t.id); return (
-          <div key={t.id} className="grid md:grid-cols-[56px_1.4fr_1fr_120px] gap-x-6 gap-y-2 py-4 border-b border-line items-center">
-            <span className="font-mono text-[13px] text-sci">{t.id}</span>
-            <div><h3 className="font-sans text-[16px] font-medium tracking-normal">{t.name}</h3><div className="text-[12px] text-dim">{t.type}</div><p className="mt-1.5 text-[13px] text-fg/80 leading-relaxed">{t.note}</p></div>
-            <div><div className="flex justify-between font-mono text-[11px] text-dim"><span>VALUE {t.value.toFixed(2)}</span><span>CONF {t.conf}</span><span>CELL {t.x},{t.y}</span></div><div className="mt-1.5 h-1.5 bg-line rounded-full" role="img" aria-label={`Science value ${t.value.toFixed(2)} of 1`}><div className="h-full bg-atmos rounded-full" style={{ width: `${t.value * 100}%` }} /></div></div>
-            <Btn primary={!on} aria-pressed={on} onClick={() => S.toggleTarget(t)}>{on ? "REMOVE" : "ADD"}</Btn>
-          </div>); })}</div>)}
+    <div className="max-w-6xl w-full mx-auto px-6 py-10 space-y-10">
+      <div>
+        <div className="flex items-end justify-between flex-wrap gap-4 mb-2">
+          <div>
+            <Eyebrow>Science targets</Eyebrow>
+            <h1 className="text-[34px] mt-2 leading-tight">Candidate observation sites</h1>
+          </div>
+          <Tag l="SIMULATED" />
+        </div>
+        <p className="text-[13px] text-dim max-w-xl">
+          Demonstration science targets mapped against real Jezero Crater geology and Perseverance traverse waypoints. Adding targets incorporates them into the SCIENCE objective routing optimization.
+        </p>
+      </div>
+
+      {!ready ? (
+        <div className="space-y-3">
+          <LoadingNote>Loading science observations…</LoadingNote>
+          {Array.from({ length: 5 }).map((_, k) => <Skeleton key={k} className="h-16" />)}
+        </div>
+      ) : (
+        <div className="border-t border-fg fade-in">
+          {TARGETS.map((t) => {
+            const on = S.mission.some((m) => m.id === t.id);
+            return (
+              <div key={t.id} className="grid md:grid-cols-[56px_1.4fr_1fr_120px] gap-x-6 gap-y-2 py-4 border-b border-line items-center">
+                <span className="font-mono text-[13px] text-sci">{t.id}</span>
+                <div>
+                  <h3 className="font-sans text-[16px] font-medium tracking-normal">{t.name}</h3>
+                  <div className="text-[12px] text-dim">{t.type}</div>
+                  <p className="mt-1.5 text-[13px] text-fg/80 leading-relaxed">{t.note}</p>
+                </div>
+                <div>
+                  <div className="flex justify-between font-mono text-[11px] text-dim">
+                    <span>VALUE {t.value.toFixed(2)}</span>
+                    <span>CONF {t.conf}</span>
+                    <span>CELL {t.x},{t.y}</span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 bg-line rounded-full" role="img" aria-label={`Science value ${t.value.toFixed(2)} of 1`}>
+                    <div className="h-full bg-atmos rounded-full" style={{ width: `${t.value * 100}%` }} />
+                  </div>
+                </div>
+                <Btn primary={!on} aria-pressed={on} onClick={() => S.toggleTarget(t)}>{on ? "REMOVE" : "ADD"}</Btn>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Perseverance Sample Caching & Return Depot */}
+      <section className="border border-line rounded-md bg-paper p-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] tracking-[0.1em] px-2 py-0.5 rounded-sm bg-gold-deep text-ink font-semibold">MARS SAMPLE RETURN (MSR)</span>
+              <Tag l="OBSERVED" />
+            </div>
+            <h2 className="text-[20px] font-medium text-fg mt-1">Perseverance Sample Tube Depot &amp; Inventory</h2>
+          </div>
+          <div className="font-mono text-[12px] text-dim">
+            <span className="text-gold-deep font-bold">{sampleList.length}</span> / 43 TUBES CACHED
+          </div>
+        </div>
+
+        <p className="text-[13px] text-dim leading-relaxed">
+          Samples collected across the Jezero crater floor, Séítah formation, and Neretva delta front by NASA Perseverance rover. Sealed in ultra-clean titanium tubes for future recovery and Earth return.
+        </p>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {sampleList.map((t) => (
+            <div key={t.id} className="border border-line rounded-sm p-3 bg-panel/60 space-y-1.5 font-mono text-[11px]">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-gold-deep">{t.id}: {t.name}</span>
+                <span className="text-[10px] text-dim">TUBE #{t.tubeNum.toString().padStart(2, "0")}</span>
+              </div>
+              <div className="text-[11px] text-fg font-sans font-medium">{t.lithology}</div>
+              <div className="text-[10px] text-dim flex justify-between pt-1 border-t border-line/40">
+                <span>SOL {t.sol}</span>
+                <span>DEPTH {t.depthCm} cm</span>
+                <span>({t.x},{t.y})</span>
+              </div>
+              <p className="text-[10px] text-dim/90 font-sans line-clamp-2">{t.notes}</p>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
@@ -945,6 +1290,7 @@ function MissionPage({ id }: { id: string }) {
   const exportMarkdown = () => {
     if (!r) return;
     const lms = pickLandmarks(S.T, r);
+    const samples = getCachedSampleTubes();
     const md = [
       `# MARS-X Mission Summary Report: ${id}`,
       `**Objective**: ${S.mode} | **Generated**: ${new Date().toISOString()}`,
@@ -959,20 +1305,31 @@ function MissionPage({ id }: { id: string }) {
       `- **Data Confidence**: ${r.confidence}`,
       `- **Risk Level**: ${r.risk.level} (${r.risk.score} / 100)`,
       "",
-      "## 2. Environmental Context (NASA Mars 2020 MEDA)",
+      "## 2. EVA Life Support & Point of No Return (NASA xEMU Baseline)",
+      `- **Oxygen Supply**: ${r.eva ? `${r.eva.o2Percent}% (${r.eva.o2RemainingL.toFixed(0)} / ${r.eva.o2TotalL} L)` : "100%"}`,
+      `- **Suit Battery Reserve**: ${r.eva ? `${r.eva.battPercent}% (${r.eva.battRemainingWh.toFixed(0)} / ${r.eva.battTotalWh} Wh)` : "100%"}`,
+      `- **Cooling Water Reserve**: ${r.eva ? `${r.eva.waterPercent}% (${r.eva.waterRemainingKg.toFixed(1)} / ${r.eva.waterTotalKg} kg)` : "100%"}`,
+      `- **Point of No Return (PNR)**: ${r.eva?.isBreached ? `BREACHED at ${fmtKm(r.eva.pnrDistM ?? 0)} (${r.eva.pnrTimeMin?.toFixed(0)} min outward)` : "NOMINAL (Unassisted return buffer exceeds mandatory 30% reserve)"}`,
+      `- **Limiting Resource**: ${r.eva?.limitingResource ?? "None"}`,
+      `- **Average Metabolic Output**: ${r.eva?.metabolicAvgW ?? 300} W`,
+      "",
+      "## 3. Environmental Context (NASA Mars 2020 MEDA)",
       "- **Observation Site**: Octavia E. Butler Landing (Jezero Crater)",
       "- **Air Temperature (Sol 20)**: Mean -33.0 °C (Min -65.5 °C, Max -7.1 °C)",
       "- **Ground Brightness Temp**: Mean -29.8 °C (Min -73.8 °C, Max +7.6 °C)",
       "- **Relative Humidity**: 0.5% – 7.8% (diurnal cycle)",
       "- **Atmospheric Pressure**: ~760 Pa (derived from DTM elevation + scale height)",
       "",
-      "## 3. Key Landmarks & Waypoints",
+      "## 4. Key Landmarks & Waypoints",
       ...lms.map((l) => `- **${l.n}. ${l.name}** (${l.kind}): ${l.desc} ${l.next ? `-> ${fmtKm(l.next.distM)} ${cardinal(l.next.bearing)}` : ""}`),
       "",
-      "## 4. Science Targets",
+      "## 5. Science Targets",
       ...r.sciHits.map((t) => `- **${t.name}** (${t.type}): Value ${t.value.toFixed(2)} - ${t.note}`),
       "",
-      "## 5. Data Provenance & Limitations",
+      "## 6. Cached Core Samples (Mars Sample Return)",
+      ...samples.map((t) => `- **${t.id}: ${t.name}** (Tube #${t.tubeNum.toString().padStart(2, "0")}): ${t.lithology} · Depth ${t.depthCm} cm · Sol ${t.sol} · ${t.notes}`),
+      "",
+      "## 7. Data Provenance & Limitations",
       "- **USGS HiRISE DTM**: DTEEC_045994_1985_046060_1985_U01 (resampled to ~35 m planning cells).",
       "- **NASA Mars 2020 MEDA**: Archived PDS4 derived tables (TIRS & RHS) for Sols 10, 14, 20, 28.",
       "- **NASA Mars 2020 PLACES**: Release 16 localized rover traverse and stops.",
@@ -1007,10 +1364,12 @@ function MissionPage({ id }: { id: string }) {
         elevationGainM: r.elevGain,
         confidence: r.confidence,
         risk: r.risk,
+        eva: r.eva,
         path: r.path,
         landmarks: lms,
         scienceHits: r.sciHits,
       },
+      cachedSamples: getCachedSampleTubes(),
       environmentContext: {
         source: "NASA Mars 2020 MEDA (PDS4 archived)",
         sol: 20,
@@ -1104,12 +1463,25 @@ function MissionPage({ id }: { id: string }) {
           </Panel>
           <div className="grid md:grid-cols-2 gap-6">
             <RiskPanel r={r} />
+            <EvaPanel r={r} />
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
             <Panel title="Landmarks & Turn-by-Turn" tag="SIMULATED">
               {pickLandmarks(S.T, r).map((l) => (
                 <Row key={l.n} k={`${l.n}. ${l.name}`} v={l.next ? `${fmtKm(l.next.distM)} ${cardinal(l.next.bearing)}` : "end"} />
               ))}
               <div className="mt-3">
                 <A to="/follow" className="font-mono text-[12px] text-mars-deep underline underline-offset-2 font-semibold">FOLLOW THIS ROUTE →</A>
+              </div>
+            </Panel>
+            <Panel title="Cached Sample Tubes (Mars Sample Return)" tag="OBSERVED">
+              <div className="space-y-1.5 max-h-56 overflow-y-auto">
+                {getCachedSampleTubes().map((t) => (
+                  <div key={t.id} className="text-[11px] font-mono flex items-center justify-between border-b border-line/40 pb-1">
+                    <span className="text-gold-deep font-semibold">{t.id}: {t.name}</span>
+                    <span className="text-dim text-[10px]">{t.lithology}</span>
+                  </div>
+                ))}
               </div>
             </Panel>
           </div>
@@ -1154,6 +1526,346 @@ function RiskPanel({ r }: { r: Route }) {
   </Panel>;
 }
 
+function EvaPanel({ r, onAbort }: { r: Route; onAbort?: () => void }) {
+  const eva = r.eva;
+  if (!eva) return null;
+  const isDanger = eva.isBreached;
+  return (
+    <Panel title="EVA Life Support & PNR" tag="SIMULATED" className={isDanger ? "border-mars-deep/60" : ""}>
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className={`font-mono text-[10px] sm:text-[11px] font-semibold border rounded-sm px-2 py-0.5 ${isDanger ? "bg-mars-deep/15 text-mars-deep border-mars-deep" : "bg-sage/15 text-sage-deep border-sage"}`}>
+          {isDanger ? "⚠ PNR BREACHED (30% RESERVE)" : "✓ NOMINAL RETURN MARGIN"}
+        </span>
+        <span className="font-mono text-[10px] text-dim">{eva.limitingResource}</span>
+      </div>
+
+      {isDanger ? (
+        <div className="p-2 border border-mars-deep/40 rounded-sm bg-mars/[0.08] text-[12px] text-fg/90 mb-3 leading-relaxed">
+          <strong className="text-mars-deep">Critical Threshold:</strong> Point of No Return reached at <strong>{fmtKm(eva.pnrDistM ?? 0)}</strong> ({eva.pnrTimeMin?.toFixed(0)} min outward). Continuing beyond this point leaves less than 30% emergency reserve for an unassisted return on foot.
+        </div>
+      ) : (
+        <p className="text-[12px] text-dim mb-3">
+          Sufficient life support reserves for full round-trip traversal with at least <strong>{eva.safeMarginPercent}%</strong> safety buffer upon return.
+        </p>
+      )}
+
+      {/* Consumable Bars */}
+      <div className="space-y-2 font-mono text-[11px]">
+        {/* Oxygen */}
+        <div>
+          <div className="flex justify-between items-center text-[12px]">
+            <span className="font-sans text-dim">Oxygen Supply</span>
+            <span className={eva.o2Percent < 30 ? "text-mars-deep font-semibold" : "text-fg"}>
+              {eva.o2RemainingL.toFixed(0)} / {eva.o2TotalL} L ({eva.o2Percent}%)
+            </span>
+          </div>
+          <div className="relative h-2 bg-line/80 rounded-sm overflow-hidden mt-1">
+            <div className="absolute top-0 bottom-0 left-[30%] w-0.5 bg-mars-deep/60 z-10" title="30% Emergency Reserve Threshold" />
+            <div
+              className={`h-full rounded-sm transition-all duration-300 ${eva.o2Percent < 30 ? "bg-mars-deep" : "bg-atmos"}`}
+              style={{ width: `${eva.o2Percent}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Battery */}
+        <div>
+          <div className="flex justify-between items-center text-[12px]">
+            <span className="font-sans text-dim">Suit Battery (Heating &amp; Fans)</span>
+            <span className={eva.battPercent < 30 ? "text-mars-deep font-semibold" : "text-fg"}>
+              {eva.battRemainingWh.toFixed(0)} / {eva.battTotalWh} Wh ({eva.battPercent}%)
+            </span>
+          </div>
+          <div className="relative h-2 bg-line/80 rounded-sm overflow-hidden mt-1">
+            <div className="absolute top-0 bottom-0 left-[30%] w-0.5 bg-mars-deep/60 z-10" title="30% Emergency Reserve Threshold" />
+            <div
+              className={`h-full rounded-sm transition-all duration-300 ${eva.battPercent < 30 ? "bg-mars-deep" : "bg-gold"}`}
+              style={{ width: `${eva.battPercent}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Water */}
+        <div>
+          <div className="flex justify-between items-center text-[12px]">
+            <span className="font-sans text-dim">Coolant Reserve</span>
+            <span className={eva.waterPercent < 30 ? "text-mars-deep font-semibold" : "text-fg"}>
+              {eva.waterRemainingKg.toFixed(1)} / {eva.waterTotalKg} kg ({eva.waterPercent}%)
+            </span>
+          </div>
+          <div className="relative h-2 bg-line/80 rounded-sm overflow-hidden mt-1">
+            <div className="absolute top-0 bottom-0 left-[30%] w-0.5 bg-mars-deep/60 z-10" title="30% Emergency Reserve Threshold" />
+            <div
+              className={`h-full rounded-sm transition-all duration-300 ${eva.waterPercent < 30 ? "bg-mars-deep" : "bg-sage"}`}
+              style={{ width: `${eva.waterPercent}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 pt-2 border-t border-line grid grid-cols-2 gap-2 text-[11px] font-mono">
+        <div><span className="text-dim block">AVG METABOLIC LOAD</span><strong>{eva.metabolicAvgW} W</strong></div>
+        <div><span className="text-dim block">SAFETY BUFFER</span><strong className={isDanger ? "text-mars-deep" : "text-sage-deep"}>{eva.safeMarginPercent}%</strong></div>
+      </div>
+
+      {onAbort && (
+        <button
+          onClick={onAbort}
+          className="mt-3.5 w-full font-mono text-[11px] tracking-[0.1em] py-2 px-3 rounded-sm border border-mars-deep bg-mars-deep/10 text-mars-deep hover:bg-mars-deep hover:text-ink transition-colors font-semibold flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <span>🚨</span>
+          <span>EMERGENCY ABORT TO BASE</span>
+        </button>
+      )}
+    </Panel>
+  );
+}
+
+// ---------- Astronaut Helmet Visor HUD (Phase 2) ----------
+function VisorHud({
+  telem,
+  curLm,
+  totalLms,
+  route,
+  speed,
+  solHour,
+  sol,
+  onToggle,
+}: {
+  telem: Telemetry3D;
+  curLm?: Landmark;
+  totalLms: number;
+  route: Route | null;
+  speed: number;
+  solHour: number;
+  sol: number;
+  onToggle: () => void;
+}) {
+  const eva = route?.eva;
+  const weather = getMedaWeather(sol, solHour);
+  const head = Math.round(((telem.headingDeg % 360) + 360) % 360);
+  const pitch = Math.round(telem.pitchDeg * 10) / 10;
+  const isSteep = Math.abs(pitch) > 15;
+  const nextLm = curLm?.next;
+
+  const ticks = [-45, -30, -15, 0, 15, 30, 45].map((off) => {
+    const deg = (head + off + 360) % 360;
+    const isCard = deg % 45 === 0;
+    const label = deg === 0 ? "N" : deg === 45 ? "NE" : deg === 90 ? "E" : deg === 135 ? "SE" : deg === 180 ? "S" : deg === 225 ? "SW" : deg === 270 ? "W" : deg === 315 ? "NW" : deg % 30 === 0 ? String(deg).padStart(3, "0") : "·";
+    return { off, deg, isCard, label };
+  });
+
+  const targetDelta = nextLm ? ((((nextLm.bearing - head) % 360) + 540) % 360) - 180 : null;
+  const targetOnCompass = targetDelta !== null && Math.abs(targetDelta) <= 45;
+
+  return (
+    <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-3 sm:p-5 select-none font-mono">
+      {/* Top Bar: Corner Brackets & Center Compass Tape */}
+      <div className="flex items-start justify-between gap-3">
+        {/* Upper Left: Suit Telemetry HUD */}
+        <div className="border-l-2 border-t-2 border-cyan-400/60 bg-black/55 backdrop-blur-xs p-2.5 rounded-tl-sm w-48 sm:w-56 shadow-lg text-[10px] space-y-1 text-cyan-200">
+          <div className="flex items-center justify-between border-b border-cyan-500/30 pb-1">
+            <span className="font-bold tracking-wider text-cyan-300">xEMU LIFE SUPPORT</span>
+            <span className={eva?.isBreached ? "text-mars-deep font-bold" : "text-emerald-400"}>
+              {eva?.isBreached ? "⚠ PNR" : "NOMINAL"}
+            </span>
+          </div>
+          <div className="space-y-1 pt-0.5">
+            <div>
+              <div className="flex justify-between">
+                <span>O2 SUPPLY:</span>
+                <span className="font-bold">{eva ? `${eva.o2Percent}% (${eva.o2RemainingL.toFixed(0)}L)` : "98% (1176L)"}</span>
+              </div>
+              <div className="h-1 bg-cyan-950/80 rounded-full overflow-hidden mt-0.5">
+                <div className="h-full bg-cyan-400" style={{ width: `${eva ? eva.o2Percent : 98}%` }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between">
+                <span>SUIT BATT:</span>
+                <span className="font-bold">{eva ? `${eva.battPercent}% (${eva.battRemainingWh.toFixed(0)}Wh)` : "94% (1128Wh)"}</span>
+              </div>
+              <div className="h-1 bg-cyan-950/80 rounded-full overflow-hidden mt-0.5">
+                <div className="h-full bg-amber-400" style={{ width: `${eva ? eva.battPercent : 94}%` }} />
+              </div>
+            </div>
+            <div className="flex justify-between pt-0.5 text-cyan-300/80">
+              <span>METABOLIC:</span>
+              <span>{eva ? `${eva.metabolicAvgW} W` : "310 W"}</span>
+            </div>
+            <div className="flex justify-between text-cyan-300/80">
+              <span>SUIT PRESS:</span>
+              <span>29.6 kPa (100% O2)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Center Top: Compass Heading Tape */}
+        <div className="flex flex-col items-center">
+          <div className="relative w-64 sm:w-80 h-9 bg-black/60 backdrop-blur-xs border-x-2 border-t-2 border-cyan-400/50 rounded-t-sm px-2 flex items-center justify-center overflow-hidden shadow-lg">
+            {/* Center tick indicator */}
+            <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-0.5 bg-cyan-400 z-20" />
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-1 bg-cyan-400 [clip-path:polygon(50%_0%,0%_100%,100%_100%)] z-20" />
+
+            {/* Compass Scale */}
+            <div className="flex justify-between w-full text-[11px] text-cyan-300/90 font-mono relative">
+              {ticks.map((t, idx) => (
+                <div key={idx} className="flex flex-col items-center" style={{ width: "14%" }}>
+                  <span className={`text-[9px] ${t.isCard ? "font-bold text-cyan-200" : "text-cyan-400/70"}`}>
+                    {t.label}
+                  </span>
+                  <div className={`w-0.5 ${t.isCard ? "h-2 bg-cyan-300" : "h-1 bg-cyan-500/50"}`} />
+                </div>
+              ))}
+            </div>
+
+            {/* Target Landmark Needle */}
+            {nextLm && targetOnCompass && (
+              <div
+                className="absolute top-1 text-[8px] text-amber-400 font-bold flex flex-col items-center transition-all duration-200 z-30"
+                style={{ left: `calc(50% + ${(targetDelta! / 45) * 45}%)` }}
+              >
+                <span>▼</span>
+                <span className="scale-75">TGT</span>
+              </div>
+            )}
+          </div>
+          <div className="bg-black/75 px-3 py-0.5 border-x border-b border-cyan-500/40 rounded-b-sm text-[11px] text-cyan-300 font-bold tracking-wider flex items-center gap-2 shadow-md">
+            <span>{head}°</span>
+            <span className="text-cyan-400/70">·</span>
+            <span>{cardinal(head)}</span>
+            {nextLm && (
+              <>
+                <span className="text-cyan-400/70">·</span>
+                <span className="text-amber-400 text-[10px]">TGT {nextLm.bearing.toFixed(0)}°</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Upper Right: Comm & Environment HUD */}
+        <div className="border-r-2 border-t-2 border-cyan-400/60 bg-black/55 backdrop-blur-xs p-2.5 rounded-tr-sm w-48 sm:w-56 shadow-lg text-[10px] space-y-1 text-right text-cyan-200">
+          <div className="flex items-center justify-between border-b border-cyan-500/30 pb-1">
+            <span className="text-emerald-400">● 401.5 MHz</span>
+            <span className="font-bold tracking-wider text-cyan-300">ORBITER RELAY</span>
+          </div>
+          <div className="space-y-0.5 pt-0.5">
+            <div>ODYSSEY UHF-1 [NOMINAL]</div>
+            <div className="text-cyan-400/75">DELAY: 14m 22s (OWLT)</div>
+            <div className="text-cyan-300 font-semibold pt-1 border-t border-cyan-500/20">
+              SOL {sol} · {Math.floor(solHour).toString().padStart(2, "0")}:{Math.floor((solHour % 1) * 60).toString().padStart(2, "0")} LMST
+            </div>
+            <div className="flex justify-between text-cyan-200/90 text-[10px]">
+              <span className="text-cyan-400/70">MEDA AIR:</span>
+              <span className="font-bold">{weather.airC > 0 ? `+${weather.airC}` : weather.airC}°C</span>
+            </div>
+            <div className="flex justify-between text-cyan-200/90 text-[10px]">
+              <span className="text-cyan-400/70">MEDA SFC:</span>
+              <span className="font-bold">{weather.groundC > 0 ? `+${weather.groundC}` : weather.groundC}°C</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Center: Tactical Pitch Horizon & Crosshair Reticle */}
+      <div className="flex items-center justify-center pointer-events-none">
+        <div className="relative flex items-center justify-center">
+          {/* Horizon reference wings */}
+          <div className="w-16 h-px bg-cyan-400/40" />
+          <div className="w-2 h-2 border-t-2 border-l-2 border-cyan-400/50 -rotate-45 mx-2" />
+          {/* Crosshairs Reticle */}
+          <div className="relative w-12 h-12 flex items-center justify-center">
+            <div className="absolute inset-0 border border-cyan-400/30 rounded-full" />
+            <div className="w-2 h-2 bg-cyan-400/60 rounded-full" />
+            {/* Rangefinder ticks */}
+            <div className="absolute top-0 w-px h-2 bg-cyan-400/60" />
+            <div className="absolute bottom-0 w-px h-2 bg-cyan-400/60" />
+            <div className="absolute left-0 h-px w-2 bg-cyan-400/60" />
+            <div className="absolute right-0 h-px w-2 bg-cyan-400/60" />
+          </div>
+          <div className="w-2 h-2 border-t-2 border-r-2 border-cyan-400/50 rotate-45 mx-2" />
+          <div className="w-16 h-px bg-cyan-400/40" />
+
+          {/* Inclinometer Pitch Indicator */}
+          <div className="absolute left-full ml-4 bg-black/60 backdrop-blur-xs px-2 py-1 rounded-sm border border-cyan-500/40 text-[10px] space-y-0.5">
+            <div className="flex items-center gap-1.5">
+              <span className="text-cyan-400/70">PITCH:</span>
+              <span className={`font-bold ${isSteep ? "text-mars-deep" : "text-cyan-200"}`}>
+                {pitch >= 0 ? `+${pitch}` : pitch}°
+              </span>
+            </div>
+            <div className={`text-[9px] ${isSteep ? "text-mars-deep font-bold" : "text-cyan-400/80"}`}>
+              {isSteep ? "⚠ STEEP (>15°)" : "GRADE NOMINAL"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Bar: Terrain Inclinometer Box & Navigation Waypoint Box */}
+      <div className="flex items-end justify-between gap-3">
+        {/* Lower Left: Terrain / Mobility Box */}
+        <div className="border-l-2 border-b-2 border-cyan-400/60 bg-black/55 backdrop-blur-xs p-2.5 rounded-bl-sm w-48 sm:w-56 shadow-lg text-[10px] space-y-1 text-cyan-200">
+          <div className="flex items-center justify-between border-b border-cyan-500/30 pb-0.5 font-bold text-cyan-300">
+            <span>TERRAIN TELEMETRY</span>
+            <span>HiRISE</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-cyan-400/70">WALK SPEED:</span>
+            <span className="font-bold">{speed} m/s</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-cyan-400/70">TERRAIN GRADE:</span>
+            <span className="font-bold">{Math.abs(pitch).toFixed(1)}°</span>
+          </div>
+          <div className="flex justify-between text-cyan-400/70 text-[9px]">
+            <span>COORD RESOLUTION:</span>
+            <span>~34.6 m / cell</span>
+          </div>
+        </div>
+
+        {/* Center Bottom: Quick HUD Visibility Toggle Button */}
+        <div className="pointer-events-auto">
+          <button
+            onClick={onToggle}
+            className="font-mono text-[10px] tracking-[0.1em] px-2.5 py-1 bg-black/75 hover:bg-black text-cyan-300/80 hover:text-cyan-200 border border-cyan-500/40 rounded-sm shadow-md transition-all cursor-pointer"
+          >
+            HUD OVERLAY [ON]
+          </button>
+        </div>
+
+        {/* Lower Right: Waypoint Rangefinder Box */}
+        <div className="border-r-2 border-b-2 border-cyan-400/60 bg-black/55 backdrop-blur-xs p-2.5 rounded-br-sm w-52 sm:w-64 shadow-lg text-[10px] space-y-1 text-right text-cyan-200">
+          <div className="flex items-center justify-between border-b border-cyan-500/30 pb-0.5 font-bold text-cyan-300">
+            <span>{nextLm ? `LANDMARK ${curLm ? curLm.n : 1}/${totalLms}` : "DESTINATION"}</span>
+            <span className="text-amber-400 font-bold">{nextLm ? `${cardinal(nextLm.bearing)}` : "ARRIVED"}</span>
+          </div>
+          <div className="text-cyan-100 font-semibold truncate">
+            {curLm?.name.toUpperCase() ?? "TRAVERSE IN PROGRESS"}
+          </div>
+          {nextLm ? (
+            <div className="space-y-0.5 text-[10px]">
+              <div className="flex justify-between">
+                <span className="text-cyan-400/70">NEXT BEARING:</span>
+                <span className="font-bold">{nextLm.bearing.toFixed(0)}° {cardinal(nextLm.bearing)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-cyan-400/70">DISTANCE:</span>
+                <span className="font-bold">{fmtKm(nextLm.distM)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-cyan-400/70">ELEV DELTA:</span>
+                <span className="font-bold">{nextLm.dElev >= 0 ? `+${nextLm.dElev.toFixed(0)}` : nextLm.dElev.toFixed(0)} m</span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-emerald-400 font-bold pt-1">ENDPOINT REACHED</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------- Immersive 3D map ----------
 const VIEWS: [View3D, string, Label][] = [["natural", "Natural", "DERIVED"], ["slope", "Slope", "DERIVED"], ["contours", "Contours", "DERIVED"], ["pressure", "Pressure", "SIMULATED"]];
 function ImmersivePage() {
@@ -1161,6 +1873,12 @@ function ImmersivePage() {
   const [view, setView] = useState<View3D>("natural"), [cam, setCam] = useState<Cam>(() => (window.location.hash.includes("walk") ? "walk" : "orbit")), [exag, setExag] = useState(2.5);
   const [sunEl, setSunEl] = useState(24), [sunAz, setSunAz] = useState(250), [playing, setPlaying] = useState(false), [speed, setSpeed] = useState(40);
   const [step, setStep] = useState(() => +(window.location.hash.match(/step=(\d)/)?.[1] ?? 0)), [probe, setProbe] = useState<Probe | null>(null), [ready, setReady] = useState(false), [hud, setHud] = useState(true), [resetKey, setResetKey] = useState(0);
+  const [telem, setTelem] = useState<Telemetry3D>({ pitchDeg: 0, headingDeg: 0 });
+  const [visorOn, setVisorOn] = useState(true);
+  const [sol, setSol] = useState<number>(20);
+  const [solHour, setSolHour] = useState<number>(13.5);
+  const [syncSun, setSyncSun] = useState<boolean>(true);
+
   const demo = useMemo(() => {
     if (S.routes[S.mode]) return null;
     const ok = (x: number, y: number) => S.T.slope[y * W + x] < MAX_SLOPE;
@@ -1175,13 +1893,28 @@ function ImmersivePage() {
   const i = probe ? Math.min(H - 1, Math.round(probe.fy * (H - 1))) * W + Math.min(W - 1, Math.round(probe.fx * (W - 1))) : -1;
   const cur = lms[step];
   const chip = (on: boolean) => `px-2.5 py-1.5 font-mono text-[11px] tracking-[0.08em] rounded-sm border ${on ? "bg-fg text-ink border-fg" : "border-line-strong text-fg bg-ink/80 hover:bg-panel"}`;
+
   return (
     <div className="relative flex-1 min-h-[560px] lg:h-[calc(100dvh-52px-29px)] bg-map overflow-hidden">
       <div className="absolute inset-0 z-0">
         <Suspense fallback={<div role="status" className="absolute inset-0 flex items-center justify-center font-mono text-[12px] text-ink/85">Preparing 3D renderer…</div>}>
-          <Terrain3D meta={JEZERO_META} T={S.T} view={view} exag={walk ? 1 : exag} sunEl={sunEl} sunAz={sunAz} cam={walk ? "walk" : "orbit"} playing={playing} speed={speed} route={route} landmarks={lms} step={step} onReach={(k) => setStep(k)} onProbe={setProbe} resetKey={resetKey} onReady={() => setReady(true)} />
+          <Terrain3D meta={JEZERO_META} T={S.T} view={view} exag={walk ? 1 : exag} sunEl={sunEl} sunAz={sunAz} cam={walk ? "walk" : "orbit"} playing={playing} speed={speed} route={route} landmarks={lms} step={step} onReach={(k) => setStep(k)} onProbe={setProbe} resetKey={resetKey} onReady={() => setReady(true)} onTelemetry={setTelem} />
         </Suspense>
       </div>
+
+      {/* Visor HUD Overlay in Walk Mode */}
+      {walk && visorOn && (
+        <VisorHud
+          telem={telem}
+          curLm={cur}
+          totalLms={lms.length}
+          route={route}
+          speed={speed}
+          solHour={solHour}
+          sol={sol}
+          onToggle={() => setVisorOn(false)}
+        />
+      )}
 
       {/* Non-overlapping Top HUD Header */}
       <div className="relative z-20 pointer-events-none flex flex-col w-full">
@@ -1189,14 +1922,24 @@ function ImmersivePage() {
           <SynthBanner />
         </div>
         <div className="px-3 py-2 flex items-center justify-between gap-2 pointer-events-auto flex-wrap">
-          <button
-            className="font-mono text-[11px] sm:text-[12px] tracking-[0.08em] font-medium bg-ink/95 hover:bg-paper active:scale-95 border border-line-strong rounded-sm px-3 py-1.5 shadow-sm flex items-center gap-1.5 transition-all cursor-pointer text-mars-deep"
-            aria-expanded={hud}
-            onClick={() => setHud((v) => !v)}
-          >
-            <span>{hud ? "✕" : "⚙"}</span>
-            <span>{hud ? "HIDE CONTROLS" : "CONTROLS"}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="font-mono text-[11px] sm:text-[12px] tracking-[0.08em] font-medium bg-ink/95 hover:bg-paper active:scale-95 border border-line-strong rounded-sm px-3 py-1.5 shadow-sm flex items-center gap-1.5 transition-all cursor-pointer text-mars-deep"
+              aria-expanded={hud}
+              onClick={() => setHud((v) => !v)}
+            >
+              <span>{hud ? "✕" : "⚙"}</span>
+              <span>{hud ? "HIDE CONTROLS" : "CONTROLS"}</span>
+            </button>
+            {walk && (
+              <button
+                onClick={() => setVisorOn((v) => !v)}
+                className={`font-mono text-[11px] tracking-[0.08em] px-2.5 py-1.5 border rounded-sm transition-colors cursor-pointer ${visorOn ? "bg-cyan-950/80 border-cyan-400 text-cyan-200 font-semibold" : "border-line text-dim hover:text-fg bg-ink/80"}`}
+              >
+                {visorOn ? "VISOR HUD ON" : "VISOR HUD OFF"}
+              </button>
+            )}
+          </div>
 
           <div className="bg-ink/95 backdrop-blur-md border border-line-strong rounded-sm px-3 py-1.5 font-mono text-[11px] shadow-sm">
             {probe && i >= 0 ? (
@@ -1218,16 +1961,101 @@ function ImmersivePage() {
       {/* Controls Drawer */}
       {hud && <div className="absolute top-[86px] left-3 z-30 w-[min(94vw,320px)] max-h-[calc(100%-6.5rem)] overflow-y-auto overscroll-contain bg-ink/98 backdrop-blur-md border border-line-strong rounded-md shadow-float p-3.5 space-y-3.5 text-fg">
         <div><Eyebrow className="mb-1.5">Camera</Eyebrow><div className="flex gap-1.5"><button className={chip(!walk)} aria-pressed={!walk} onClick={() => { setCam("orbit"); setPlaying(false); }}>ORBIT</button><button className={chip(walk)} aria-pressed={walk} disabled={!route} onClick={() => { setCam("walk"); setResetKey((k) => k + 1); }}>SURFACE WALK</button><button className={chip(false)} onClick={() => setResetKey((k) => k + 1)}>RESET</button></div>
-          <p className="text-[11px] text-dim mt-1.5">{walk ? "Drag to look around. Walk follows the candidate route at eye height." : "Drag to rotate, scroll to zoom, right-drag to pan, click terrain to inspect."}</p></div>
+          <p className="text-[11px] text-dim mt-1.5">{walk ? "Drag to look around. Walk follows the candidate route at eye height with Astronaut Helmet HUD." : "Drag to rotate, scroll to zoom, right-drag to pan, click terrain to inspect."}</p></div>
         <div><Eyebrow className="mb-1.5">Route</Eyebrow><div className="flex gap-1.5">{(["SAFEST", "FASTEST", "SCIENCE"] as Mode[]).map((m) => <button key={m} className={chip(S.mode === m)} aria-pressed={S.mode === m} onClick={() => S.setMode(m)}>{MODE_NAME[m].split(" ")[0].toUpperCase()}</button>)}</div>
           <p className="text-[11px] text-dim mt-1.5">{S.routes[S.mode] ? "Your planned route." : "Practice route. Plan your own in the Planner."}{route ? ` Risk ${route.risk.score} · ${route.risk.level}.` : ""}</p></div>
         <div><Eyebrow className="mb-1.5">Surface layer</Eyebrow><div className="flex flex-wrap gap-1.5">{VIEWS.map(([k, n]) => <button key={k} className={chip(view === k)} aria-pressed={view === k} onClick={() => setView(k)}>{n.toUpperCase()}</button>)}</div>
           <div className="mt-1.5"><Tag l={VIEWS.find((v) => v[0] === view)![2]} /></div></div>
-        <div className="space-y-2.5">
+        
+        {/* Sol Diurnal Weather Scrubber (Phase 4) */}
+        <div className="border-t border-line pt-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <Eyebrow>Sol Weather (MEDA)</Eyebrow>
+            <Tag l="OBSERVED" />
+          </div>
+          <div className="flex items-center justify-between text-[11px] font-mono">
+            <span>PERSEVERANCE SOL:</span>
+            <div className="flex gap-1">
+              {AVAILABLE_SOLS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSol(s)}
+                  className={`px-1.5 py-0.5 rounded-sm border text-[10px] cursor-pointer ${sol === s ? "border-mars-deep bg-mars-deep text-ink font-semibold" : "border-line text-dim hover:text-fg"}`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="flex justify-between text-[12px] font-mono">
+              <label htmlFor="sol-h">Time (LMST)</label>
+              <span className="font-semibold text-mars-deep">
+                {Math.floor(solHour).toString().padStart(2, "0")}:{Math.floor((solHour % 1) * 60).toString().padStart(2, "0")}
+              </span>
+            </div>
+            <input
+              id="sol-h"
+              type="range"
+              min={0}
+              max={23.9}
+              step={0.5}
+              value={solHour}
+              onChange={(e) => {
+                const h = +e.target.value;
+                setSolHour(h);
+                if (syncSun) {
+                  const { sunEl: el, sunAz: az } = solHourToSun(h);
+                  setSunEl(el);
+                  setSunAz(az);
+                }
+              }}
+              className="w-full accent-mars-deep"
+            />
+          </div>
+          <div className="flex items-center justify-between pt-0.5">
+            <span className="text-[11px] font-mono text-dim">Sync Lighting to Sol</span>
+            <button
+              onClick={() => {
+                const next = !syncSun;
+                setSyncSun(next);
+                if (next) {
+                  const { sunEl: el, sunAz: az } = solHourToSun(solHour);
+                  setSunEl(el);
+                  setSunAz(az);
+                }
+              }}
+              className={`font-mono text-[10px] px-2 py-0.5 border rounded-sm cursor-pointer ${syncSun ? "bg-mars-deep text-ink border-mars-deep font-semibold" : "border-line text-dim hover:text-fg"}`}
+            >
+              {syncSun ? "SYNC ON" : "MANUAL"}
+            </button>
+          </div>
+          {(() => {
+            const w = getMedaWeather(sol, solHour);
+            return (
+              <div className="p-2 border border-line-strong rounded-sm bg-ink/70 font-mono text-[11px] space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-dim">Air Temp (1.5m):</span>
+                  <strong>{w.airC > 0 ? `+${w.airC}` : w.airC}°C</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-dim">Ground Brightness:</span>
+                  <strong className={w.groundC > 0 ? "text-gold" : "text-fg"}>{w.groundC > 0 ? `+${w.groundC}` : w.groundC}°C</strong>
+                </div>
+                <div className="flex justify-between text-[10px] text-dim pt-1 border-t border-line/40">
+                  <span>DATA SOURCE:</span>
+                  <Tag l={w.source} />
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
+        <div className="space-y-2.5 border-t border-line pt-3">
           {!walk && <div><div className="flex justify-between text-[12px]"><label htmlFor="ex">Vertical exaggeration</label><span className="font-mono">{exag.toFixed(1)}×</span></div><input id="ex" type="range" min={1} max={6} step={0.1} value={exag} onChange={(e) => setExag(+e.target.value)} className="w-full accent-mars-deep" /></div>}
-          <div><div className="flex justify-between text-[12px]"><label htmlFor="se">Sun elevation</label><span className="font-mono">{sunEl}°</span></div><input id="se" type="range" min={4} max={70} value={sunEl} onChange={(e) => setSunEl(+e.target.value)} className="w-full accent-mars-deep" /></div>
-          <div><div className="flex justify-between text-[12px]"><label htmlFor="sa">Sun direction</label><span className="font-mono">{sunAz}°</span></div><input id="sa" type="range" min={0} max={360} value={sunAz} onChange={(e) => setSunAz(+e.target.value)} className="w-full accent-mars-deep" /></div>
-          <p className="text-[11px] text-dim">Lighting is a visual aid, not a model of the real illumination at a given Martian time.</p>
+          <div><div className="flex justify-between text-[12px]"><label htmlFor="se">Sun elevation</label><span className="font-mono">{sunEl}°</span></div><input id="se" type="range" min={4} max={70} value={sunEl} onChange={(e) => { setSunEl(+e.target.value); setSyncSun(false); }} className="w-full accent-mars-deep" /></div>
+          <div><div className="flex justify-between text-[12px]"><label htmlFor="sa">Sun direction</label><span className="font-mono">{sunAz}°</span></div><input id="sa" type="range" min={0} max={360} value={sunAz} onChange={(e) => { setSunAz(+e.target.value); setSyncSun(false); }} className="w-full accent-mars-deep" /></div>
+          <p className="text-[11px] text-dim">Lighting can be manually adjusted or locked to the Sol Diurnal Weather Scrubber.</p>
         </div>
         {walk && <div className="space-y-2 border-t border-line pt-3">
           <div className="flex gap-1.5"><button className={chip(playing)} aria-pressed={playing} onClick={() => setPlaying((v) => !v)}>{playing ? "PAUSE" : "AUTO-WALK"}</button><button className={chip(false)} disabled={step === 0} onClick={() => { setPlaying(false); setStep((v) => v - 1); }}>BACK</button><button className={chip(false)} disabled={step >= lms.length - 1} onClick={() => { setPlaying(false); setStep((v) => v + 1); }}>NEXT</button></div>
@@ -1236,7 +2064,7 @@ function ImmersivePage() {
         </div>}
       </div>}
 
-      {cur && walk && <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 w-[min(94vw,560px)] bg-ink/94 backdrop-blur-md border border-line-strong rounded-md shadow-float p-3.5">
+      {cur && walk && !visorOn && <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 w-[min(94vw,560px)] bg-ink/94 backdrop-blur-md border border-line-strong rounded-md shadow-float p-3.5">
         <div className="flex items-center justify-between gap-2"><div className="font-mono text-[12px] tracking-[0.08em]">LANDMARK {cur.n} OF {lms.length} · {cur.name.toUpperCase()}</div><Tag l={cur.kind === "science" ? "SIMULATED" : "DERIVED"} /></div>
         <p className="text-[13px] mt-1.5 leading-relaxed">{cur.desc}</p>
         {cur.next && <p className="font-mono text-[11px] text-dim mt-1.5">NEXT: {cur.next.bearing.toFixed(0)}° {cardinal(cur.next.bearing)} · {fmtKm(cur.next.distM)} · {cur.next.dElev >= 0 ? "+" : ""}{cur.next.dElev.toFixed(0)} m</p>}
@@ -1251,6 +2079,7 @@ function ImmersivePage() {
     </div>
   );
 }
+
 
 // ---------- Follow (landmark-to-landmark, no GPS) ----------
 function FollowPage() {
@@ -1289,12 +2118,24 @@ function FollowPage() {
             <svg viewBox={`0 0 100 ${hh}`} preserveAspectRatio="none" className="w-full border border-line bg-ink rounded-sm" style={{ height: hh }} role="img" aria-label="Elevation profile with landmarks and current position">
               <polyline points={`0,${hh} ${vals.map((v, k) => `${xk(k)},${y(v)}`).join(" ")} 100,${hh}`} fill={ROUTE_C[S.mode]} fillOpacity={0.18} stroke={ROUTE_DEEP[S.mode]} strokeWidth={1.4} vectorEffect="non-scaling-stroke" />
               {lms.map((l, k) => <line key={l.n} x1={xk(l.idx)} x2={xk(l.idx)} y1={0} y2={hh} stroke={k === step ? "#B85C43" : "#b9b2a3"} strokeWidth={k === step ? 1.6 : 1} strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />)}
+              {r.eva?.pnrIdx && (
+                <line x1={xk(r.eva.pnrIdx)} x2={xk(r.eva.pnrIdx)} y1={0} y2={hh} stroke="#B85C43" strokeWidth={1.8} strokeDasharray="3 2" vectorEffect="non-scaling-stroke" />
+              )}
               <line x1={xk(here)} x2={xk(here)} y1={0} y2={hh} stroke="#D3A24C" strokeWidth={2.2} vectorEffect="non-scaling-stroke" />
             </svg>
             <div className="relative h-4 font-mono text-[10px] text-dim">{lms.map((l) => <span key={l.n} className="absolute -translate-x-1/2" style={{ left: `${xk(l.idx)}%` }}>{l.n}</span>)}</div>
           </figure>
         </div>
         <div className="space-y-4">
+          {cur && r.eva?.isBreached && cur.idx >= (r.eva.pnrIdx ?? 9999) && (
+            <div className="p-3 border-2 border-mars-deep bg-mars-deep/20 text-mars-deep rounded-sm font-mono text-[12px] font-semibold flex items-center gap-2.5 animate-pulse">
+              <span className="text-[18px]">🚨</span>
+              <div>
+                <div>POINT OF NO RETURN PASSED!</div>
+                <div className="text-[11px] font-sans text-fg/90 font-normal">Continuing further leaves insufficient life support reserves (&lt;30%) for an unassisted walk back to base.</div>
+              </div>
+            </div>
+          )}
           <Panel title={`${cur.n}. ${cur.name}`} tag={cur.kind === "science" ? "SIMULATED" : "DERIVED"}>
             <p className="text-[13px] leading-relaxed">{cur.desc}</p>
             <div className="mt-3 border-t border-line pt-3"><Eyebrow className="mb-1">Why it matters</Eyebrow><p className="text-[13px] leading-relaxed text-fg/90">{cur.why}</p></div>
@@ -1309,6 +2150,7 @@ function FollowPage() {
           <div className="flex gap-2"><Btn className="flex-1" disabled={step === 0} onClick={() => setStep((v) => v - 1)}>BACK</Btn><Btn primary className="flex-1" disabled={step >= lms.length - 1} onClick={() => setStep((v) => v + 1)}>NEXT LANDMARK</Btn></div>
           <button className="font-mono text-[12px] tracking-[0.08em] underline underline-offset-2 text-dim hover:text-fg" aria-expanded={lost} onClick={() => setLost((v) => !v)}>I&apos;M LOST</button>
           {lost && <Panel title="Re-anchor" tag="DERIVED"><p className="text-[12px] text-dim mb-2">Nearest landmarks along the route. Match one to what you can see.</p>{lostList.map((l) => <button key={l.n} onClick={() => { setStep(l.n - 1); setLost(false); }} className="w-full text-left"><Row k={`${l.n}. ${l.name}`} v={`${Math.abs(l.sM - cur.sM).toFixed(0)} m along route`} /></button>)}</Panel>}
+          <EvaPanel r={r} />
           <RiskPanel r={r} />
         </div>
       </div>
@@ -1323,6 +2165,8 @@ function DataPage() {
   const [sel, setSel] = useState(all[0].id);
   const d = all.find((x) => x.id === sel)!;
   const synth = d.id === SYNTH.id;
+  const [dataSol, setDataSol] = useState<number>(20);
+  const [dataHour, setDataHour] = useState<number>(13.0);
 
   const [savedMissions, setSavedMissions] = useState<any[]>(() => {
     try {
@@ -1347,11 +2191,22 @@ function DataPage() {
     localStorage.setItem("marsx.saved_missions", JSON.stringify(updated));
   };
 
+  const hours24 = Array.from({ length: 24 }, (_, k) => k);
+  const readings = hours24.map((h) => getMedaWeather(dataSol, h));
+  const curWeather = getMedaWeather(dataSol, dataHour);
+
+  // SVG chart dimensions for diurnal temperatures: min -85C, max +15C
+  const chH = 110;
+  const ty = (degC: number) => chH - 12 - ((degC + 85) / 100) * (chH - 24);
+  const tx = (h: number) => (h / 23) * 100;
+  const groundPts = readings.map((r, h) => `${tx(h)},${ty(r.groundC)}`).join(" ");
+  const airPts = readings.map((r, h) => `${tx(h)},${ty(r.airC)}`).join(" ");
+
   return (
     <div className="max-w-6xl w-full mx-auto px-6 py-10 space-y-10">
       <div>
-        <Eyebrow>Data & Offline Storage</Eyebrow>
-        <h1 className="text-[34px] mt-2 leading-tight text-mars-deep">Mission Data, Telemetry & APK</h1>
+        <Eyebrow>Data &amp; Offline Storage</Eyebrow>
+        <h1 className="text-[34px] mt-2 leading-tight text-mars-deep">Mission Data, Telemetry &amp; APK</h1>
         <p className="text-dim mt-2 max-w-2xl text-[14px] leading-relaxed">
           Ground-truth HiRISE Jezero Crater terrain models, archived weather telemetry, offline saved mission profiles, and the standalone Android APK build.
         </p>
@@ -1384,41 +2239,135 @@ function DataPage() {
         </a>
       </div>
 
-      {/* Jezero Telemetry Card */}
-      <div className="border border-line rounded-md p-6 bg-paper space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
+      {/* NASA Mars 2020 MEDA Diurnal Weather Station (Phase 4) */}
+      <div className="border border-line rounded-md p-6 bg-paper space-y-5">
+        <div className="flex items-center justify-between flex-wrap gap-3 border-b border-line pb-3">
           <div>
-            <Eyebrow>Archived Telemetry</Eyebrow>
-            <h2 className="text-[20px] font-normal text-mars-deep mt-1">Jezero Crater Environment · Sol 1284</h2>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] tracking-[0.1em] px-2 py-0.5 rounded-sm bg-mars-deep text-ink font-semibold">NASA MARS 2020 MEDA</span>
+              <Tag l="OBSERVED" />
+            </div>
+            <h2 className="text-[22px] font-normal text-mars-deep mt-1">Jezero Diurnal Weather Station · Sol {dataSol}</h2>
           </div>
-          <Tag l="MODELED" />
+          <div className="flex items-center gap-2 font-mono text-[11px]">
+            <span className="text-dim">SELECT ARCHIVED SOL:</span>
+            <div className="flex gap-1">
+              {AVAILABLE_SOLS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setDataSol(s)}
+                  className={`px-2.5 py-1 rounded-sm border text-[11px] cursor-pointer transition-colors ${dataSol === s ? "border-mars-deep bg-mars-deep text-ink font-semibold" : "border-line text-fg hover:bg-panel"}`}
+                >
+                  SOL {s}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <p className="text-[13px] text-dim">
-          Derived from Mars 2020 MEDA seasonal averages at Octavia E. Butler Landing Site (18.4447°N, 77.4508°E).
+
+        <p className="text-[13px] text-dim leading-relaxed">
+          Archived PDS4 calibrated measurements from Perseverance MEDA (Mars Environmental Dynamics Analyzer) Thermal Infrared Sensor (TIRS) and Relative Humidity Sensor (RHS) at Octavia E. Butler Landing (18.4447°N, 77.4508°E).
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-          <div className="border border-line p-3 rounded-sm bg-ink/60">
-            <span className="font-mono text-[11px] text-dim block">SURFACE TEMP</span>
-            <span className="font-mono text-[20px] text-mars-deep font-semibold">-62°C</span>
-            <span className="text-[11px] text-dim block mt-0.5">Min -84°C · Max -14°C</span>
+
+        {/* 24-Hour Diurnal Temperature Profile Chart */}
+        <figure className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between text-[11px] font-mono text-dim">
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-gold" /> GROUND BRIGHTNESS TEMP</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-atmos" /> AIR TEMP (1.5m)</span>
+            </div>
+            <span>RANGE: -85°C to +15°C</span>
           </div>
-          <div className="border border-line p-3 rounded-sm bg-ink/60">
-            <span className="font-mono text-[11px] text-dim block">ATM PRESSURE</span>
-            <span className="font-mono text-[20px] text-mars-deep font-semibold">612 Pa</span>
-            <span className="text-[11px] text-dim block mt-0.5">~0.006 atm (Mars-normal)</span>
+
+          <div className="relative border border-line bg-ink rounded-sm p-2">
+            <svg viewBox={`0 0 100 ${chH}`} preserveAspectRatio="none" className="w-full h-36" role="img" aria-label="24-hour diurnal temperature profile">
+              {/* Zero degree C reference line */}
+              <line x1={0} x2={100} y1={ty(0)} y2={ty(0)} stroke="#d9d4c9" strokeWidth={0.8} strokeDasharray="3 2" vectorEffect="non-scaling-stroke" />
+              <text x={2} y={ty(0) - 2} fontSize={5} fill="#b9b2a3" fontFamily="IBM Plex Mono">0°C FREEZING</text>
+
+              {/* -50 degree C reference line */}
+              <line x1={0} x2={100} y1={ty(-50)} y2={ty(-50)} stroke="#d9d4c9" strokeWidth={0.5} strokeDasharray="1 2" strokeOpacity={0.5} vectorEffect="non-scaling-stroke" />
+              <text x={2} y={ty(-50) - 2} fontSize={5} fill="#807a70" fontFamily="IBM Plex Mono">-50°C</text>
+
+              {/* Temperature Curves */}
+              <polyline points={groundPts} fill="none" stroke="#D3A24C" strokeWidth={2.0} vectorEffect="non-scaling-stroke" />
+              <polyline points={airPts} fill="none" stroke="#789BA8" strokeWidth={2.0} vectorEffect="non-scaling-stroke" />
+
+              {/* Active Scrubber Cursor */}
+              <line x1={tx(dataHour)} x2={tx(dataHour)} y1={0} y2={chH} stroke="#B85C43" strokeWidth={2.2} vectorEffect="non-scaling-stroke" />
+              <circle cx={tx(dataHour)} cy={ty(curWeather.groundC)} r={1.8} fill="#D3A24C" stroke="#241b17" strokeWidth={0.4} />
+              <circle cx={tx(dataHour)} cy={ty(curWeather.airC)} r={1.8} fill="#789BA8" stroke="#241b17" strokeWidth={0.4} />
+            </svg>
+
+            {/* Time ticks */}
+            <div className="flex justify-between font-mono text-[9px] text-dim px-1 pt-1 border-t border-line/40">
+              <span>00:00</span>
+              <span>04:00</span>
+              <span>08:00</span>
+              <span>12:00 NOON</span>
+              <span>16:00</span>
+              <span>20:00</span>
+              <span>23:59</span>
+            </div>
           </div>
-          <div className="border border-line p-3 rounded-sm bg-ink/60">
-            <span className="font-mono text-[11px] text-dim block">SOLAR FLUX</span>
-            <span className="font-mono text-[20px] text-mars-deep font-semibold">590 W/m²</span>
-            <span className="text-[11px] text-dim block mt-0.5">Tau optical depth: 0.38</span>
+        </figure>
+
+        {/* Local Solar Time Scrubber Slider */}
+        <div className="space-y-1">
+          <div className="flex justify-between font-mono text-[12px]">
+            <label htmlFor="data-hour-slider" className="text-dim">Scrub Local Solar Hour (LMST):</label>
+            <span className="font-semibold text-mars-deep">
+              {Math.floor(dataHour).toString().padStart(2, "0")}:{Math.floor((dataHour % 1) * 60).toString().padStart(2, "0")} LMST
+            </span>
           </div>
-          <div className="border border-line p-3 rounded-sm bg-ink/60">
-            <span className="font-mono text-[11px] text-dim block">SURFACE WIND</span>
-            <span className="font-mono text-[20px] text-mars-deep font-semibold">4.2 m/s</span>
-            <span className="text-[11px] text-dim block mt-0.5">Heading 068° ENE</span>
+          <input
+            id="data-hour-slider"
+            type="range"
+            min={0}
+            max={23.9}
+            step={0.5}
+            value={dataHour}
+            onChange={(e) => setDataHour(+e.target.value)}
+            className="w-full accent-mars-deep"
+          />
+        </div>
+
+        {/* Selected Hour Telemetry Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-1">
+          <div className="border border-line p-3 rounded-sm bg-ink/70">
+            <span className="font-mono text-[11px] text-dim block">AIR TEMP (1.5m)</span>
+            <span className="font-mono text-[22px] text-fg font-semibold">
+              {curWeather.airC > 0 ? `+${curWeather.airC}` : curWeather.airC}°C
+            </span>
+            <span className="text-[10px] text-dim block mt-0.5">NASA MEDA TIRS (Air)</span>
           </div>
+
+          <div className="border border-line p-3 rounded-sm bg-ink/70">
+            <span className="font-mono text-[11px] text-dim block">GROUND BRIGHTNESS</span>
+            <span className={`font-mono text-[22px] font-semibold ${curWeather.groundC > 0 ? "text-gold" : "text-fg"}`}>
+              {curWeather.groundC > 0 ? `+${curWeather.groundC}` : curWeather.groundC}°C
+            </span>
+            <span className="text-[10px] text-dim block mt-0.5">Surface regolith radiance</span>
+          </div>
+
+          <div className="border border-line p-3 rounded-sm bg-ink/70">
+            <span className="font-mono text-[11px] text-dim block">DIURNAL SWING (ΔT)</span>
+            <span className="font-mono text-[22px] text-mars-deep font-semibold">81.4°C</span>
+            <span className="text-[10px] text-dim block mt-0.5">Min -73.8°C / Max +7.6°C</span>
+          </div>
+
+          <div className="border border-line p-3 rounded-sm bg-ink/70">
+            <span className="font-mono text-[11px] text-dim block">ATMOSPHERIC PRESS.</span>
+            <span className="font-mono text-[22px] text-fg font-semibold">~760 Pa</span>
+            <span className="text-[10px] text-dim block mt-0.5">HiRISE DTM datum · ~0.0075 atm</span>
+          </div>
+        </div>
+
+        <div className="p-3 bg-panel/70 border border-line rounded-sm text-[12px] text-fg/85 leading-relaxed space-y-1">
+          <strong>Environmental Physics Note:</strong> Mars exhibits extreme surface temperature fluctuations ($\Delta T &gt; 80^\circ\text{C}$ between midday and pre-dawn) due to low atmospheric density ($&lt; 1\%$ Earth) and low thermal inertia of fine aeolian basaltic dust. Midday ground temperatures briefly exceed freezing ($+7.6^\circ\text{C}$), while night drops to $-73.8^\circ\text{C}$, placing significant thermal heating loads on astronaut suit batteries and rover electronics.
         </div>
       </div>
+
 
       {/* Saved Missions Card */}
       <div className="border border-line rounded-md p-6 bg-paper space-y-4">

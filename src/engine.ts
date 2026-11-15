@@ -58,7 +58,213 @@ export const MODE_W: Record<Mode, Weights> = { SAFEST: { s: 50, r: 30, u: 15, h:
 export const MAX_SLOPE = 25;
 export const EXPOSURE_DEG = 15; // planning assumption: cells above this are counted as slope exposure
 export type Pt = { x: number; y: number };
-export type Route = { mode: Mode; path: Pt[]; dist: number; cost: number; maxSlope: number; meanSlope: number; meanRough: number; meanUnc: number; sciHits: Target[]; elevGain: number; confidence: string; exposure: number; sciValue: number; risk: Risk };
+export type Route = {
+  mode: Mode;
+  path: Pt[];
+  dist: number;
+  cost: number;
+  maxSlope: number;
+  meanSlope: number;
+  meanRough: number;
+  meanUnc: number;
+  sciHits: Target[];
+  elevGain: number;
+  confidence: string;
+  exposure: number;
+  sciValue: number;
+  risk: Risk;
+  eva: EvaConsumables;
+};
+
+// ---------- EVA Life Support & Consumables Model (NASA xEMU / Mars Survival) ----------
+export const EVA_TOTAL_O2_L = 1200; // dual 600 L O2 primary tanks
+export const EVA_TOTAL_BATT_WH = 1200; // suit primary battery pack
+export const EVA_TOTAL_WATER_KG = 3.6; // sublimator cooling water reserve
+export const EVA_RESERVE_MARGIN = 0.30; // mandatory 30% emergency reserve margin
+export const EVA_USABLE_FRACTION = 1 - EVA_RESERVE_MARGIN; // 70% allowable round-trip draw
+
+export type EvaConsumables = {
+  o2UsedL: number;
+  o2TotalL: number;
+  o2RemainingL: number;
+  o2Percent: number;
+  battUsedWh: number;
+  battTotalWh: number;
+  battRemainingWh: number;
+  battPercent: number;
+  waterUsedKg: number;
+  waterTotalKg: number;
+  waterRemainingKg: number;
+  waterPercent: number;
+  metabolicAvgW: number;
+  limitingResource: "Oxygen" | "Battery" | "Cooling Water" | "Time Budget";
+  pnrIdx: number | null;
+  pnrPt: Pt | null;
+  pnrDistM: number | null;
+  pnrTimeMin: number | null;
+  isBreached: boolean;
+  safeMarginPercent: number;
+  cumDistM: number[];
+  cumTimeMin: number[];
+  cumO2: number[];
+  cumBatt: number[];
+  cumWater: number[];
+};
+
+export function computeEvaConsumables(T: Terrain, path: Pt[]): EvaConsumables {
+  const n = path.length;
+  const cumDistM = new Array(n).fill(0);
+  const cumTimeMin = new Array(n).fill(0);
+  const cumO2 = new Array(n).fill(0);
+  const cumBatt = new Array(n).fill(0);
+  const cumWater = new Array(n).fill(0);
+  let totalMetabolicJoules = 0;
+  let totalTimeSec = 0;
+
+  for (let k = 1; k < n; k++) {
+    const a = path[k - 1], b = path[k];
+    const ai = a.y * W + a.x, bi = b.y * W + b.x;
+    const dM = Math.hypot(b.x - a.x, b.y - a.y) * CELL_M;
+    const slope = T.slope[bi];
+    const dz = T.elev[bi] - T.elev[ai];
+    const v = speedMps(slope);
+    const dt = dM / v; // seconds
+
+    let pMet = 300;
+    if (dz > 0) {
+      const sinTheta = Math.sin((slope * Math.PI) / 180);
+      pMet += (145 * 3.72 * v * sinTheta) / 0.24;
+    } else {
+      pMet = Math.max(220, 300 - slope * 3);
+    }
+
+    const o2Burn = (pMet / 100) * (0.28 / 60) * dt;
+    const pElec = 110 + 65 + T.rough[bi] * 20;
+    const battBurnWh = (pElec * dt) / 3600;
+    const waterBurnKg = ((pMet * 0.85) / 2830000) * dt;
+
+    cumDistM[k] = cumDistM[k - 1] + dM;
+    cumTimeMin[k] = cumTimeMin[k - 1] + dt / 60;
+    cumO2[k] = cumO2[k - 1] + o2Burn;
+    cumBatt[k] = cumBatt[k - 1] + battBurnWh;
+    cumWater[k] = cumWater[k - 1] + waterBurnKg;
+
+    totalMetabolicJoules += pMet * dt;
+    totalTimeSec += dt;
+  }
+
+  // Precompute reverse leg costs from node j to j-1 to evaluate return consumption
+  const legReturnCost = new Array(n).fill(null).map(() => ({ o2: 0, batt: 0, water: 0, timeMin: 0 }));
+  for (let k = 1; k < n; k++) {
+    const a = path[k], b = path[k - 1];
+    const ai = a.y * W + a.x, bi = b.y * W + b.x;
+    const dM = Math.hypot(b.x - a.x, b.y - a.y) * CELL_M;
+    const slope = T.slope[bi];
+    const dz = T.elev[bi] - T.elev[ai];
+    const v = speedMps(slope);
+    const dt = dM / v;
+    let pMet = 300;
+    if (dz > 0) {
+      const sinTheta = Math.sin((slope * Math.PI) / 180);
+      pMet += (145 * 3.72 * v * sinTheta) / 0.24;
+    } else {
+      pMet = Math.max(220, 300 - slope * 3);
+    }
+    const o2Burn = (pMet / 100) * (0.28 / 60) * dt;
+    const pElec = 110 + 65 + T.rough[bi] * 20;
+    const battBurnWh = (pElec * dt) / 3600;
+    const waterBurnKg = ((pMet * 0.85) / 2830000) * dt;
+    legReturnCost[k] = { o2: o2Burn, batt: battBurnWh, water: waterBurnKg, timeMin: dt / 60 };
+  }
+
+  const revO2 = new Array(n).fill(0);
+  const revBatt = new Array(n).fill(0);
+  const revWater = new Array(n).fill(0);
+  const revTimeMin = new Array(n).fill(0);
+  for (let k = 1; k < n; k++) {
+    let sumO2 = 0, sumBatt = 0, sumWater = 0, sumTime = 0;
+    for (let j = k; j >= 1; j--) {
+      sumO2 += legReturnCost[j].o2;
+      sumBatt += legReturnCost[j].batt;
+      sumWater += legReturnCost[j].water;
+      sumTime += legReturnCost[j].timeMin;
+    }
+    revO2[k] = sumO2;
+    revBatt[k] = sumBatt;
+    revWater[k] = sumWater;
+    revTimeMin[k] = sumTime;
+  }
+
+  // Point of No Return: first node where round-trip exceeds 70% of any life support constraint
+  const maxAllowableO2 = EVA_TOTAL_O2_L * EVA_USABLE_FRACTION;
+  const maxAllowableBatt = EVA_TOTAL_BATT_WH * EVA_USABLE_FRACTION;
+  const maxAllowableWater = EVA_TOTAL_WATER_KG * EVA_USABLE_FRACTION;
+  const maxAllowableTime = TIME_BUDGET_MIN * EVA_USABLE_FRACTION;
+
+  let pnrIdx: number | null = null;
+  for (let k = 0; k < n; k++) {
+    const roundTripO2 = cumO2[k] + revO2[k];
+    const roundTripBatt = cumBatt[k] + revBatt[k];
+    const roundTripWater = cumWater[k] + revWater[k];
+    const roundTripTime = cumTimeMin[k] + revTimeMin[k];
+
+    if (
+      roundTripO2 > maxAllowableO2 ||
+      roundTripBatt > maxAllowableBatt ||
+      roundTripWater > maxAllowableWater ||
+      roundTripTime > maxAllowableTime
+    ) {
+      pnrIdx = k;
+      break;
+    }
+  }
+
+  const o2UsedL = cumO2[n - 1];
+  const battUsedWh = cumBatt[n - 1];
+  const waterUsedKg = cumWater[n - 1];
+
+  const fracO2 = o2UsedL / maxAllowableO2;
+  const fracBatt = battUsedWh / maxAllowableBatt;
+  const fracWater = waterUsedKg / maxAllowableWater;
+  const fracTime = cumTimeMin[n - 1] / maxAllowableTime;
+  const maxFrac = Math.max(fracO2, fracBatt, fracWater, fracTime);
+
+  let limitingResource: EvaConsumables["limitingResource"] = "Time Budget";
+  if (maxFrac === fracO2) limitingResource = "Oxygen";
+  else if (maxFrac === fracBatt) limitingResource = "Battery";
+  else if (maxFrac === fracWater) limitingResource = "Cooling Water";
+
+  const safeMarginPercent = Math.max(0, Math.round((1 - Math.min(1, maxFrac)) * 100));
+  const avgMetabolicW = totalTimeSec > 0 ? Math.round(totalMetabolicJoules / totalTimeSec) : 300;
+
+  return {
+    o2UsedL,
+    o2TotalL: EVA_TOTAL_O2_L,
+    o2RemainingL: Math.max(0, EVA_TOTAL_O2_L - o2UsedL),
+    o2Percent: Math.max(0, Math.round(((EVA_TOTAL_O2_L - o2UsedL) / EVA_TOTAL_O2_L) * 100)),
+    battUsedWh,
+    battTotalWh: EVA_TOTAL_BATT_WH,
+    battRemainingWh: Math.max(0, EVA_TOTAL_BATT_WH - battUsedWh),
+    battPercent: Math.max(0, Math.round(((EVA_TOTAL_BATT_WH - battUsedWh) / EVA_TOTAL_BATT_WH) * 100)),
+    waterUsedKg,
+    waterTotalKg: EVA_TOTAL_WATER_KG,
+    waterRemainingKg: Math.max(0, EVA_TOTAL_WATER_KG - waterUsedKg),
+    waterPercent: Math.max(0, Math.round(((EVA_TOTAL_WATER_KG - waterUsedKg) / EVA_TOTAL_WATER_KG) * 100)),
+    metabolicAvgW: avgMetabolicW,
+    limitingResource,
+    pnrIdx,
+    pnrPt: pnrIdx !== null ? path[pnrIdx] : null,
+    pnrDistM: pnrIdx !== null ? cumDistM[pnrIdx] : null,
+    pnrTimeMin: pnrIdx !== null ? cumTimeMin[pnrIdx] : null,
+    isBreached: pnrIdx !== null,
+    safeMarginPercent,
+    cumDistM,
+    cumTimeMin,
+    cumO2,
+    cumBatt,
+    cumWater,
+  };
+}
 
 export function astar(T: Terrain, a: Pt, b: Pt, w: Weights, mode: Mode): Route | null {
   const sum = w.s + w.r + w.u + w.h || 1;
@@ -94,10 +300,81 @@ export function astar(T: Terrain, a: Pt, b: Pt, w: Weights, mode: Mode): Route |
   const n = path.length, mu = uu / n;
   const exposure = path.filter((p) => T.slope[p.y * W + p.x] > EXPOSURE_DEG).length / n;
   const sciHits = TARGETS.filter((t) => path.some((p) => Math.hypot(p.x - t.x, p.y - t.y) < 4));
-  const route: Route = { mode, path, dist, cost: g[ti], maxSlope: ms, meanSlope: ss / n, meanRough: rr / n, meanUnc: mu, sciHits, elevGain: gain, exposure, sciValue: sciHits.reduce((a, t) => a + t.value, 0), confidence: mu < 0.3 ? "MEDIUM" : mu < 0.5 ? "LOW" : "VERY LOW" , risk: undefined as unknown as Risk };
+  const route: Route = {
+    mode, path, dist, cost: g[ti], maxSlope: ms, meanSlope: ss / n,
+    meanRough: rr / n, meanUnc: mu, sciHits, elevGain: gain, exposure,
+    sciValue: sciHits.reduce((a, t) => a + t.value, 0),
+    confidence: mu < 0.3 ? "MEDIUM" : mu < 0.5 ? "LOW" : "VERY LOW",
+    risk: undefined as unknown as Risk,
+    eva: undefined as unknown as EvaConsumables,
+  };
   route.risk = riskScore(T, route);
+  route.eva = computeEvaConsumables(T, route.path);
   return route;
 }
+
+export function abortRoute(T: Terrain, from: Pt, base: Pt): Route | null {
+  return astar(T, from, base, MODE_W.SAFEST, "SAFEST");
+}
+
+export function multiStopAstar(T: Terrain, stops: Pt[], w: Weights, mode: Mode): Route | null {
+  if (stops.length < 2) return null;
+  if (stops.length === 2) return astar(T, stops[0], stops[1], w, mode);
+
+  const segs: Route[] = [];
+  for (let k = 0; k < stops.length - 1; k++) {
+    const s = astar(T, stops[k], stops[k + 1], w, mode);
+    if (!s) return null;
+    segs.push(s);
+  }
+
+  const path: Pt[] = [];
+  segs.forEach((s, idx) => {
+    if (idx === 0) path.push(...s.path);
+    else path.push(...s.path.slice(1));
+  });
+
+  let dist = 0, ms = 0, ss = 0, rr = 0, uu = 0, gain = 0;
+  path.forEach((p, k) => {
+    const i = p.y * W + p.x;
+    ms = Math.max(ms, T.slope[i]);
+    ss += T.slope[i];
+    rr += T.rough[i];
+    uu += T.unc[i];
+    if (k) {
+      const q = path[k - 1];
+      dist += Math.hypot(p.x - q.x, p.y - q.y) * CELL_M;
+      gain += Math.max(0, T.elev[i] - T.elev[q.y * W + q.x]);
+    }
+  });
+
+  const n = path.length, mu = uu / n;
+  const exposure = path.filter((p) => T.slope[p.y * W + p.x] > EXPOSURE_DEG).length / n;
+  const sciHits = TARGETS.filter((t) => path.some((p) => Math.hypot(p.x - t.x, p.y - t.y) < 4));
+  const totCost = segs.reduce((a, s) => a + s.cost, 0);
+
+  const route: Route = {
+    mode,
+    path,
+    dist,
+    cost: totCost,
+    maxSlope: ms,
+    meanSlope: ss / n,
+    meanRough: rr / n,
+    meanUnc: mu,
+    sciHits,
+    elevGain: gain,
+    exposure,
+    sciValue: sciHits.reduce((a, t) => a + t.value, 0),
+    confidence: mu < 0.3 ? "MEDIUM" : mu < 0.5 ? "LOW" : "VERY LOW",
+    risk: undefined as unknown as Risk,
+    eva: undefined as unknown as EvaConsumables,
+  };
+  route.risk = riskScore(T, route);
+  route.eva = computeEvaConsumables(T, route.path);
+  return route;
+}
+
 
 // ---------- Time model (SIMULATED) ----------
 // Walking speed falls with slope. A planning assumption, not a certified EVA mobility limit.
