@@ -9,165 +9,273 @@ import '../../domain/terrain/terrain_grid.dart';
 import '../../domain/track/risk.dart';
 import '../../shared/widgets/data_badge.dart';
 
-class TerrainMapScreen extends ConsumerWidget {
+class TerrainMapScreen extends ConsumerStatefulWidget {
   const TerrainMapScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TerrainMapScreen> createState() => _TerrainMapScreenState();
+}
+
+class _TerrainMapScreenState extends ConsumerState<TerrainMapScreen> {
+  final TransformationController _transController = TransformationController();
+  bool _drawerExpanded = true;
+
+  @override
+  void dispose() {
+    _transController.dispose();
+    super.dispose();
+  }
+
+  void _resetZoom() {
+    _transController.value = Matrix4.identity();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final gridAsync = ref.watch(terrainGridProvider);
     final st = ref.watch(plannerProvider);
     final notifier = ref.read(plannerProvider.notifier);
 
-    return Column(
-      children: [
-        const HonestyBanner(),
-        Expanded(
-          child: gridAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Failed to load HiRISE DTM: $e')),
-            data: (grid) => ListView(
-              padding: const EdgeInsets.all(12),
-              children: [
-                _LayerControls(st: st, notifier: notifier, grid: grid),
-                const SizedBox(height: 8),
-                _InteractiveMapCard(grid: grid, st: st, notifier: notifier),
-                if (st.statusMessage != null) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: MarsTheme.paper,
-                      border: Border.all(color: MarsTheme.lineStrong),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      st.statusMessage!,
-                      style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: MarsTheme.fg),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 12),
-                if (st.inspected != null) _InspectorCard(grid: grid, pt: st.inspected!),
-                const SizedBox(height: 12),
-                _RoutesComparisonCard(grid: grid, st: st, notifier: notifier),
-              ],
-            ),
+    return Scaffold(
+      backgroundColor: MarsTheme.mapBg,
+      body: gridAsync.when(
+        loading: () => const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: MarsTheme.mars),
+              SizedBox(height: 12),
+              Text('Loading HiRISE Jezero DTM (35.99 m/px)...', style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
+            ],
           ),
         ),
-      ],
-    );
-  }
-}
+        error: (e, _) => Center(child: Text('Failed to load HiRISE DTM: $e')),
+        data: (grid) {
+          return Stack(
+            children: [
+              // 1. FULL-SCREEN INTERACTIVE TERRAIN CANVAS
+              Positioned.fill(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    Widget canvasWidget = GestureDetector(
+                      onTapUp: (details) {
+                        // Invert current transformation matrix to find cell
+                        final scenePoint = _transController.toScene(details.localPosition);
+                        final dx = scenePoint.dx / constraints.maxWidth;
+                        final dy = scenePoint.dy / constraints.maxHeight;
+                        final x = (dx * grid.w).floor().clamp(0, grid.w - 1);
+                        final y = (dy * grid.h).floor().clamp(0, grid.h - 1);
+                        notifier.tapCell(grid, GridPoint(x, y));
+                      },
+                      child: CustomPaint(
+                        painter: _TerrainPainter(grid: grid, st: st),
+                        size: Size(constraints.maxWidth, constraints.maxHeight),
+                      ),
+                    );
 
-class _LayerControls extends StatelessWidget {
-  final PlannerState st;
-  final PlannerNotifier notifier;
-  final TerrainGrid grid;
+                    if (st.tilt3D) {
+                      canvasWidget = Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.identity()
+                          ..setEntry(3, 2, 0.0012)
+                          ..rotateX(-0.55 * (st.verticalExag / 2.5).clamp(0.6, 1.4)),
+                        child: canvasWidget,
+                      );
+                    }
 
-  const _LayerControls({required this.st, required this.notifier, required this.grid});
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        for (final layer in TerrainLayer.values)
-          ChoiceChip(
-            label: Text(layer.name.toUpperCase(), style: const TextStyle(fontFamily: 'monospace', fontSize: 11)),
-            selected: st.layer == layer,
-            onSelected: (_) => notifier.setLayer(layer),
-          ),
-        FilterChip(
-          label: const Text('CONTOURS', style: TextStyle(fontFamily: 'monospace', fontSize: 11)),
-          selected: st.showContours,
-          onSelected: (_) => notifier.toggleContours(),
-        ),
-        FilterChip(
-          label: const Text('3D TILT', style: TextStyle(fontFamily: 'monospace', fontSize: 11)),
-          selected: st.tilt3D,
-          onSelected: (_) => notifier.toggleTilt3D(),
-        ),
-        ActionChip(
-          label: const Text('PRACTICE ROUTE', style: TextStyle(fontFamily: 'monospace', fontSize: 11)),
-          onPressed: () => notifier.loadPracticeRoute(grid),
-        ),
-      ],
-    );
-  }
-}
-
-class _InteractiveMapCard extends StatelessWidget {
-  final TerrainGrid grid;
-  final PlannerState st;
-  final PlannerNotifier notifier;
-
-  const _InteractiveMapCard({required this.grid, required this.st, required this.notifier});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          AspectRatio(
-            aspectRatio: grid.w / grid.h,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                Widget mapWidget = GestureDetector(
-                  onTapUp: (details) {
-                    final dx = details.localPosition.dx / constraints.maxWidth;
-                    final dy = details.localPosition.dy / constraints.maxHeight;
-                    final x = (dx * grid.w).floor().clamp(0, grid.w - 1);
-                    final y = (dy * grid.h).floor().clamp(0, grid.h - 1);
-                    notifier.tapCell(grid, GridPoint(x, y));
+                    return InteractiveViewer(
+                      transformationController: _transController,
+                      minScale: 0.8,
+                      maxScale: 6.0,
+                      boundaryMargin: const EdgeInsets.all(120),
+                      child: canvasWidget,
+                    );
                   },
-                  child: CustomPaint(
-                    painter: _TerrainPainter(grid: grid, st: st),
-                    size: Size(constraints.maxWidth, constraints.maxHeight),
-                  ),
-                );
-                if (st.tilt3D) {
-                  mapWidget = Transform(
-                    alignment: Alignment.center,
-                    transform: Matrix4.identity()
-                      ..setEntry(3, 2, 0.0012)
-                      ..rotateX(-0.55 * (st.verticalExag / 2.5).clamp(0.6, 1.4)),
-                    child: mapWidget,
-                  );
-                }
-                return Container(color: MarsTheme.mapBg, child: mapWidget);
-              },
-            ),
-          ),
-          if (st.tilt3D)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              child: Row(
-                children: [
-                  const Text('EXAGGERATION', style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: MarsTheme.dim)),
-                  Expanded(
-                    child: Slider(
-                      min: 1.0,
-                      max: 4.0,
-                      value: st.verticalExag,
-                      onChanged: notifier.setExag,
-                    ),
-                  ),
-                  Text('${st.verticalExag.toStringAsFixed(1)}×', style: const TextStyle(fontFamily: 'monospace', fontSize: 11)),
-                ],
+                ),
               ),
-            ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Tap map: 1st = Start, 2nd = Destination', style: TextStyle(fontSize: 12, color: MarsTheme.dim)),
-                DataBadge(st.layer == TerrainLayer.pressure ? DataType.simulated : DataType.derived),
-              ],
-            ),
+
+              // 2. TOP FLOATING CONTROLS: LAYER PILLS & ACTION BUTTONS
+              Positioned(
+                top: 8,
+                left: 8,
+                right: 8,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: MarsTheme.paper.withValues(alpha: 0.90),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: MarsTheme.lineStrong),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6, offset: const Offset(0, 2)),
+                        ],
+                      ),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            for (final layer in TerrainLayer.values)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: ChoiceChip(
+                                  label: Text(layer.name.toUpperCase(), style: const TextStyle(fontFamily: 'monospace', fontSize: 10)),
+                                  selected: st.layer == layer,
+                                  onSelected: (_) => notifier.setLayer(layer),
+                                ),
+                              ),
+                            FilterChip(
+                              label: const Text('CONTOURS', style: TextStyle(fontFamily: 'monospace', fontSize: 10)),
+                              selected: st.showContours,
+                              onSelected: (_) => notifier.toggleContours(),
+                            ),
+                            const SizedBox(width: 4),
+                            FilterChip(
+                              label: const Text('3D TILT', style: TextStyle(fontFamily: 'monospace', fontSize: 10)),
+                              selected: st.tilt3D,
+                              onSelected: (_) => notifier.toggleTilt3D(),
+                            ),
+                            const SizedBox(width: 4),
+                            ActionChip(
+                              avatar: const Icon(Icons.refresh, size: 14),
+                              label: const Text('RESET', style: TextStyle(fontFamily: 'monospace', fontSize: 10)),
+                              onPressed: _resetZoom,
+                            ),
+                            const SizedBox(width: 4),
+                            ActionChip(
+                              avatar: const Icon(Icons.flag_outlined, size: 14),
+                              label: const Text('PRACTICE', style: TextStyle(fontFamily: 'monospace', fontSize: 10)),
+                              onPressed: () => notifier.loadPracticeRoute(grid),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // 3D Vertical Exaggeration Slider if 3D Tilt enabled
+                    if (st.tilt3D) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: MarsTheme.paper.withValues(alpha: 0.88),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: MarsTheme.line),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('3D EXAG: ', style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold)),
+                            SizedBox(
+                              width: 140,
+                              height: 30,
+                              child: Slider(
+                                min: 1.0,
+                                max: 4.0,
+                                value: st.verticalExag,
+                                onChanged: notifier.setExag,
+                              ),
+                            ),
+                            Text('${st.verticalExag.toStringAsFixed(1)}×', style: const TextStyle(fontFamily: 'monospace', fontSize: 10)),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    // Status / Tap Guidance Pill
+                    if (st.statusMessage != null) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF191316).withValues(alpha: 0.85),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: const Color(0xFFD3A24C)),
+                        ),
+                        child: Text(
+                          st.statusMessage!,
+                          style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Color(0xFFF5F1E8)),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              // 3. TOP-RIGHT FLOATING CELL INSPECTOR
+              if (st.inspected != null)
+                Positioned(
+                  top: 90,
+                  right: 8,
+                  child: _FloatingInspector(grid: grid, pt: st.inspected!),
+                ),
+
+              // 4. BOTTOM FLOATING ACTION DRAWER / ROUTE SELECTOR
+              Positioned(
+                bottom: 12,
+                left: 12,
+                right: 12,
+                child: _BottomRouteSheet(
+                  grid: grid,
+                  st: st,
+                  notifier: notifier,
+                  isExpanded: _drawerExpanded,
+                  onToggleExpand: () => setState(() => _drawerExpanded = !_drawerExpanded),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _FloatingInspector extends StatelessWidget {
+  final TerrainGrid grid;
+  final GridPoint pt;
+
+  const _FloatingInspector({required this.grid, required this.pt});
+
+  @override
+  Widget build(BuildContext context) {
+    final i = pt.y * grid.w + pt.x;
+    final passable = grid.nodata[i] == 0 && grid.slope[i] <= MarsRouter.defaultMaxSlopeDeg;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF191316).withValues(alpha: 0.90),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: passable ? const Color(0xFF7FA99B) : const Color(0xFFC3423F)),
+        boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('POINT (${pt.x}, ${pt.y})', style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white)),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: passable ? const Color(0xFF395B50) : const Color(0xFF8B2624),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: Text(passable ? 'PASSABLE' : 'HAZARD', style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'Elev: ${grid.elev[i].toStringAsFixed(1)} m · Slope: ${grid.slope[i].toStringAsFixed(1)}°\n'
+            'Rough: ${grid.rough[i].toStringAsFixed(2)} · Pres: ${grid.pressureRel(i).toStringAsFixed(2)} (SIM)',
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: Color(0xFFD6CBC7)),
           ),
         ],
       ),
@@ -175,129 +283,165 @@ class _InteractiveMapCard extends StatelessWidget {
   }
 }
 
-class _InspectorCard extends StatelessWidget {
-  final TerrainGrid grid;
-  final GridPoint pt;
-
-  const _InspectorCard({required this.grid, required this.pt});
-
-  @override
-  Widget build(BuildContext context) {
-    final i = pt.y * grid.w + pt.x;
-    final passable = grid.nodata[i] == 0 && grid.slope[i] <= MarsRouter.defaultMaxSlopeDeg;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('CELL (${pt.x}, ${pt.y})', style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600)),
-                DataBadge(passable ? DataType.derived : DataType.unknown),
-              ],
-            ),
-            const Divider(),
-            Text(
-              'Elevation: ${grid.elev[i].toStringAsFixed(1)} m  ·  Slope: ${grid.slope[i].toStringAsFixed(1)}°  ·  '
-              'Roughness: ${grid.rough[i].toStringAsFixed(2)}  ·  Rel. Pressure: ${grid.pressureRel(i).toStringAsFixed(3)} (SIMULATED)',
-              style: const TextStyle(fontSize: 13),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RoutesComparisonCard extends ConsumerWidget {
+class _BottomRouteSheet extends ConsumerWidget {
   final TerrainGrid grid;
   final PlannerState st;
   final PlannerNotifier notifier;
+  final bool isExpanded;
+  final VoidCallback onToggleExpand;
 
-  const _RoutesComparisonCard({required this.grid, required this.st, required this.notifier});
+  const _BottomRouteSheet({
+    required this.grid,
+    required this.st,
+    required this.notifier,
+    required this.isExpanded,
+    required this.onToggleExpand,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (st.routes.isEmpty) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(12),
-          child: Text('Tap Start and Destination on the map (or tap PRACTICE ROUTE) to compute Safest, Quickest, and Most Scientific routes.'),
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: MarsTheme.paper.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: MarsTheme.lineStrong),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                st.start == null
+                    ? '1. Tap any cell to set START position.'
+                    : '2. Tap destination cell to compute routes.',
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ),
+            FilledButton.tonal(
+              onPressed: () => notifier.loadPracticeRoute(grid),
+              style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
+              child: const Text('DEMO ROUTE', style: TextStyle(fontFamily: 'monospace', fontSize: 10)),
+            ),
+          ],
         ),
       );
     }
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: MarsTheme.paper.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: MarsTheme.lineStrong),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 3))],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.route, size: 16, color: MarsTheme.mars),
+                  SizedBox(width: 6),
+                  Text('ROUTE PROFILES', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 12)),
+                ],
+              ),
+              IconButton(
+                icon: Icon(isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up, size: 20),
+                onPressed: onToggleExpand,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          if (isExpanded) ...[
+            const SizedBox(height: 8),
+            Row(
               children: [
-                Text('CANDIDATE ROUTES', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600)),
-                DataBadge(DataType.modeled),
+                for (final mode in RouteMode.values)
+                  if (st.routes[mode] != null)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: _RoutePill(
+                          mode: mode,
+                          route: st.routes[mode]!,
+                          risk: RiskModel.assess(grid, st.routes[mode]!),
+                          selected: st.activeMode == mode,
+                          onTap: () => notifier.setMode(mode),
+                        ),
+                      ),
+                    ),
               ],
             ),
-            const SizedBox(height: 8),
-            for (final mode in RouteMode.values)
-              if (st.routes[mode] != null) ...[
-                _RouteTile(
-                  mode: mode,
-                  route: st.routes[mode]!,
-                  risk: RiskModel.assess(grid, st.routes[mode]!),
-                  selected: st.activeMode == mode,
-                  onTap: () => notifier.setMode(mode),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: MarsTheme.mars,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    onPressed: () {
+                      // Navigate straight to Follow Tab!
+                      ref.read(tabIndexProvider.notifier).state = 2;
+                    },
+                    icon: const Icon(Icons.explore, size: 16),
+                    label: const Text('START 360° NAVIGATION →', style: TextStyle(fontFamily: 'monospace', fontSize: 11, fontWeight: FontWeight.bold)),
+                  ),
                 ),
-                const SizedBox(height: 6),
-              ],
-            if (st.activeRoute != null && st.start != null && st.end != null)
-              Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton.icon(
+                const SizedBox(width: 8),
+                IconButton(
+                  tooltip: 'Save Mission Offline',
+                  icon: const Icon(Icons.bookmark_add_outlined, size: 20),
                   onPressed: () async {
-                    final route = st.activeRoute!;
-                    final rk = RiskModel.assess(grid, route);
-                    await ref.read(missionRepoProvider).saveMission(SavedMission(
-                          name: 'Jezero ${st.activeMode.name.toUpperCase()}',
-                          mode: st.activeMode.name,
-                          startX: st.start!.x,
-                          startY: st.start!.y,
-                          endX: st.end!.x,
-                          endY: st.end!.y,
-                          distanceM: route.distanceM,
-                          riskScore: rk.score,
-                          currentStep: st.landmarkStep,
-                          createdAt: DateTime.now().toIso8601String(),
-                        ));
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Mission saved to offline SQLite storage.')),
-                      );
+                    final route = st.activeRoute;
+                    if (route != null && st.start != null && st.end != null) {
+                      final rk = RiskModel.assess(grid, route);
+                      await ref.read(missionRepoProvider).saveMission(SavedMission(
+                            name: 'Jezero ${st.activeMode.name.toUpperCase()}',
+                            mode: st.activeMode.name,
+                            startX: st.start!.x,
+                            startY: st.start!.y,
+                            endX: st.end!.x,
+                            endY: st.end!.y,
+                            distanceM: route.distanceM,
+                            riskScore: rk.score,
+                            currentStep: st.landmarkStep,
+                            createdAt: DateTime.now().toIso8601String(),
+                          ));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Mission saved to offline SQLite database.')),
+                        );
+                      }
                     }
                   },
-                  icon: const Icon(Icons.bookmark_add_outlined, size: 18),
-                  label: const Text('SAVE MISSION OFFLINE'),
                 ),
-              ),
+              ],
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
 }
 
-class _RouteTile extends StatelessWidget {
+class _RoutePill extends StatelessWidget {
   final RouteMode mode;
   final RouteResult route;
   final RiskAssessment risk;
   final bool selected;
   final VoidCallback onTap;
 
-  const _RouteTile({
+  const _RoutePill({
     required this.mode,
     required this.route,
     required this.risk,
@@ -307,41 +451,53 @@ class _RouteTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = switch (mode) {
+    final title = switch (mode) {
       RouteMode.safest => 'SAFEST',
       RouteMode.fastest => 'QUICKEST',
-      RouteMode.science => 'MOST SCIENTIFIC',
+      RouteMode.science => 'SCIENTIFIC',
     };
+    final accentColor = switch (mode) {
+      RouteMode.safest => MarsTheme.sage,
+      RouteMode.fastest => MarsTheme.atmos,
+      RouteMode.science => MarsTheme.mars,
+    };
+
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? MarsTheme.panel : MarsTheme.ink,
-          border: Border.all(color: selected ? MarsTheme.marsDeep : MarsTheme.line, width: selected ? 1.5 : 1),
-          borderRadius: BorderRadius.circular(4),
+          color: selected ? accentColor.withValues(alpha: 0.15) : MarsTheme.ink,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: selected ? accentColor : MarsTheme.line,
+            width: selected ? 2.0 : 1.0,
+          ),
         ),
-        child: Row(
+        child: Column(
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600, fontSize: 12)),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${(route.distanceM / 1000).toStringAsFixed(2)} km · ${risk.estimatedTimeMin.toStringAsFixed(0)} min · Max slope ${route.maxSlopeDeg.toStringAsFixed(1)}°',
-                    style: const TextStyle(fontSize: 12, color: MarsTheme.dim),
-                  ),
-                ],
+            Text(
+              title,
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: selected ? accentColor : MarsTheme.fg,
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text('RISK ${risk.score}/100', style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: MarsTheme.marsDeep)),
-                Text('SCI ${risk.scienceScore}/100', style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: MarsTheme.atmosDeep)),
-              ],
+            const SizedBox(height: 2),
+            Text(
+              '${(route.distanceM / 1000).toStringAsFixed(1)}km · ${risk.estimatedTimeMin.toStringAsFixed(0)}m',
+              style: const TextStyle(fontSize: 10, color: MarsTheme.dim),
+            ),
+            Text(
+              mode == RouteMode.science ? 'SCI ${risk.scienceScore}' : 'RISK ${risk.score}',
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                color: selected ? accentColor : MarsTheme.dim,
+              ),
             ),
           ],
         ),
@@ -415,13 +571,15 @@ class _TerrainPainter extends CustomPainter {
       }
     }
 
+    // Cited Science Targets
     if (st.showTargets) {
-      final tp = Paint()..color = MarsTheme.atmos;
+      final tp = Paint()..color = const Color(0xFFF06543);
       for (final t in kDemoTargets) {
-        canvas.drawCircle(Offset((t.x + 0.5) * cw, (t.y + 0.5) * ch), 3.5, tp);
+        canvas.drawCircle(Offset((t.x + 0.5) * cw, (t.y + 0.5) * ch), 4.0, tp);
       }
     }
 
+    // Traversed Routes
     for (final entry in st.routes.entries) {
       final route = entry.value;
       if (route == null || route.path.length < 2) continue;
@@ -433,7 +591,7 @@ class _TerrainPainter extends CustomPainter {
       };
       final rp = Paint()
         ..color = color.withOpacity(isFocus ? 1.0 : 0.45)
-        ..strokeWidth = isFocus ? 3.0 : 1.6
+        ..strokeWidth = isFocus ? 3.5 : 1.8
         ..style = PaintingStyle.stroke;
       final path = Path();
       path.moveTo((route.path.first.x + 0.5) * cw, (route.path.first.y + 0.5) * ch);
@@ -443,18 +601,29 @@ class _TerrainPainter extends CustomPainter {
       canvas.drawPath(path, rp);
     }
 
+    // Start / End Markers
     if (st.start != null) {
       canvas.drawCircle(
         Offset((st.start!.x + 0.5) * cw, (st.start!.y + 0.5) * ch),
-        5.5,
-        Paint()..color = MarsTheme.ink,
+        6.5,
+        Paint()..color = const Color(0xFF0D0A0B),
+      );
+      canvas.drawCircle(
+        Offset((st.start!.x + 0.5) * cw, (st.start!.y + 0.5) * ch),
+        4.5,
+        Paint()..color = const Color(0xFF7FA99B),
       );
     }
     if (st.end != null) {
       canvas.drawCircle(
         Offset((st.end!.x + 0.5) * cw, (st.end!.y + 0.5) * ch),
-        5.5,
-        Paint()..color = MarsTheme.mars,
+        6.5,
+        Paint()..color = const Color(0xFF0D0A0B),
+      );
+      canvas.drawCircle(
+        Offset((st.end!.x + 0.5) * cw, (st.end!.y + 0.5) * ch),
+        4.5,
+        Paint()..color = const Color(0xFFF06543),
       );
     }
   }

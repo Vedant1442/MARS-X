@@ -27,3 +27,4 @@ flutter:
   assets:
     - assets/terrain/jezero-dem.bin
     - assets/terrain/jezero-dem.json
+    - assets/images/

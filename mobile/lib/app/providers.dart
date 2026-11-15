@@ -176,3 +176,5 @@ final riskProvider = Provider<RiskAssessment?>((ref) {
 });
 
 final missionRepoProvider = Provider<MissionRepo>((ref) => MissionRepo());
+
+final tabIndexProvider = StateProvider<int>((ref) => 0);

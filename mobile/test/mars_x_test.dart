@@ -5,6 +5,7 @@ import 'package:mars_x/domain/routing/astar.dart';
 import 'package:mars_x/domain/terrain/terrain_grid.dart';
 import 'package:mars_x/domain/track/landmark_selector.dart';
 import 'package:mars_x/domain/track/risk.dart';
+import 'package:mars_x/features/report/mission_report_screen.dart';
 
 void main() {
   test('MarsGeodesy uses Mars radius (~59.27 km per degree latitude)', () {
@@ -108,5 +109,15 @@ void main() {
     )!;
 
     expect(sciCapped.distanceM, lessThanOrEqualTo(fastest.distanceM * 1.5 + 1e-3));
+  });
+
+  test('All three route profiles have defined advantages and compromises', () {
+    for (final mode in RouteMode.values) {
+      final tradeoff = kRouteTradeoffs.firstWhere((t) => t.mode == mode);
+      expect(tradeoff.advantages, isNotEmpty);
+      expect(tradeoff.compromises, isNotEmpty);
+      expect(tradeoff.advantageSummary, isNotEmpty);
+      expect(tradeoff.compromiseSummary, isNotEmpty);
+    }
   });
 }
