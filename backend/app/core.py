@@ -58,6 +58,7 @@ def _find_dem_path() -> str | None:
     env_path = os.environ.get("MARSX_DEM_PATH")
     if env_path:
         candidates.append(env_path)
+    candidates.append(os.path.join(os.path.dirname(__file__), "..", "data", "jezero-dem.dat"))
     candidates.append(os.path.join(os.path.dirname(__file__), "..", "data", "jezero-dem.bin"))
     candidates.append(os.path.join(os.path.dirname(__file__), "..", "..", "public", "jezero-dem.bin"))
     for p in candidates:
