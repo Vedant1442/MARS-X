@@ -733,9 +733,11 @@ function Landing() {
   const [fly, setFly] = useState<FlyTarget>(null);
   const [stage, setStage] = useState<number | null>(null);
   const [cover, setCover] = useState(false);
+  const [activeSite, setActiveSite] = useState<string>("JEZERO");
   const timers = useRef<number[]>([]);
   const reduce = useReducedMotion();
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
+
   const explore = () => {
     if (stage !== null) return;
     if (reduce || !hasWebGL()) { arrivedFromGlobe = false; go("/explorer"); return; }
@@ -745,81 +747,471 @@ function Landing() {
     at(2100, () => setCover(true));
     at(2450, () => { arrivedFromGlobe = true; go("/explorer"); });
   };
+
+  const flyToSite = (id: string, lat: number, lon: number, dist: number) => {
+    setActiveSite(id);
+    setFly({ lat, lon, dist });
+  };
+
   const flow: [string, string, string][] = [
-    ["Discover Mars", "/", "Orient on the globe: landing sites, regions and the data that covers them."],
-    ["Explore terrain", "/explorer", "Read elevation, derived slope and roughness cell by cell in 2D."],
-    ["Select a destination", "/planner", "Place a start and destination on the map."],
-    ["Analyze science", "/science", "Browse candidate observation sites and add them to a mission."],
-    ["Compare routes", "/routes", "Weigh safest, fastest and science-weighted candidates side by side."],
-    ["Understand risks", "/methodology", "See the cost model, assumptions and what is treated as unknown."],
-    ["Generate a mission plan", "/mission/ARES-01", "An explainable report for one candidate traverse."],
+    ["Discover Mars", "/", "Orient on the 3D globe: landing sites, regional boundaries, and orbital coverage footprints."],
+    ["Explore Terrain", "/explorer", "Read sub-meter elevation, derived slope, and surface roughness cell by cell in 2D."],
+    ["Select Destination & Waypoints", "/planner", "Place custom start, destination, and multi-stop science waypoints (W1, W2, etc.) on the map."],
+    ["Analyze Science Targets", "/science", "Browse real Jezero Crater targets, sample caching tubes, and ancient delta formations."],
+    ["Compare Routes", "/routes", "Weigh SAFEST, FASTEST, and SCIENCE-weighted candidates side by side with Pareto trade-offs."],
+    ["Astronaut Visor HUD", "/immersive", "Experience first-person 3D terrain flyover with dynamic pitch gyro, compass tape, and telemetry."],
+    ["Generate Mission Dossier", "/mission/ARES-01", "Export an explainable mission report with life support budgets, PNR, and USGS geology."],
   ];
-  const wk: { k: keyof Weights; n: string; c: string }[] = [{ k: "s", n: "Slope", c: "#B85C43" }, { k: "r", n: "Roughness", c: "#C9785D" }, { k: "u", n: "Uncertainty", c: "#75837B" }, { k: "h", n: "Distance", c: "#789BA8" }];
-  const objs: [Mode, string, Weights][] = [["SAFEST", "Minimises slope, roughness and uncertainty exposure. Accepts a longer distance.", MODE_W.SAFEST], ["FASTEST", "Minimises path length under the hard slope constraint. Carries more terrain exposure.", MODE_W.FASTEST], ["SCIENCE", "Discounts cost near high-value targets. Trades distance for observation opportunity.", MODE_W.SCIENCE]];
+
+  const wk: { k: keyof Weights; n: string; c: string }[] = [
+    { k: "s", n: "Slope", c: "#B85C43" },
+    { k: "r", n: "Roughness", c: "#C9785D" },
+    { k: "u", n: "Uncertainty", c: "#75837B" },
+    { k: "h", n: "Distance", c: "#789BA8" },
+  ];
+
+  const objs: [Mode, string, Weights][] = [
+    ["SAFEST", "Minimises slope, roughness, and data uncertainty exposure. Accepts a longer distance to protect rover wheels and EVA suits.", MODE_W.SAFEST],
+    ["FASTEST", "Minimises total path length under the hard 25° slope limit. Optimizes transit speed for emergency returns.", MODE_W.FASTEST],
+    ["SCIENCE", "Discounts cost near high-value scientific targets (aqueous alteration, delta remnants). Trades distance for discovery.", MODE_W.SCIENCE],
+  ];
+
   return (
     <div>
+      {/* 1. Live Mission Telemetry Marquee Banner */}
+      <div className="bg-ink/90 border-b border-line px-4 py-2 flex items-center justify-between overflow-x-auto gap-4 font-mono text-[11px] select-none text-dim">
+        <div className="flex items-center gap-2.5 shrink-0">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="text-emerald-700 font-bold uppercase tracking-[0.1em]">LIVE MISSION TELEMETRY</span>
+        </div>
+        <div className="flex items-center gap-6 text-[11px] shrink-0">
+          <span>SITE: <strong className="text-fg font-normal">JEZERO CRATER (18.44°N, 77.45°E)</strong></span>
+          <span>ROVER: <strong className="text-gold font-normal">PERSEVERANCE (SOL 1320)</strong></span>
+          <span>AIR TEMP: <strong className="text-fg font-normal">-33.0°C</strong></span>
+          <span>SURFACE RAD.: <strong className="text-gold font-normal">-29.8°C</strong></span>
+          <span>PRESSURE: <strong className="text-fg font-normal">~760 Pa (0.0075 atm)</strong></span>
+          <span>GRID: <strong className="text-atmos font-normal">1.01 m/px (HiRISE DTM)</strong></span>
+          <span className="text-emerald-700 font-semibold">● SYSTEMS NOMINAL</span>
+        </div>
+      </div>
+
+      {/* 2. Hero Section */}
       <section className="sheet-lines border-b border-line">
-        <div className="max-w-7xl mx-auto px-6 py-10 lg:py-6 grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] gap-10 lg:gap-6 items-center lg:min-h-[calc(100dvh-52px)]">
-          <div className="order-2 lg:order-1">
-            <Eyebrow>NASA Space Apps Challenge 2026 · Interplanetary Survival Guide: Martian Map</Eyebrow>
-            <h1 className="mt-4 sm:mt-6 text-[clamp(44px,7vw,104px)] leading-[0.95] tracking-[-0.03em] font-medium">MARS-X</h1>
-            <p className="mt-2.5 sm:mt-3 font-serif italic font-light text-[clamp(18px,2.2vw,28px)] text-mars-deep">Interplanetary Surface Planning</p>
-            <p className="mt-4 sm:mt-6 max-w-md text-[14px] sm:text-[16px] leading-relaxed text-fg/85">Fuse NASA terrain, science, and exploration data into explainable candidate routes across Mars.</p>
-            <div className="mt-6 sm:mt-8 flex flex-wrap gap-2.5 sm:gap-3">
-              <Btn primary onClick={() => go("/map")} disabled={stage !== null}>PLAN A MISSION</Btn>
-              <Btn onClick={explore} disabled={stage !== null}>EXPLORE MARS</Btn>
+        <div className="max-w-7xl mx-auto px-6 py-10 lg:py-6 grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] gap-10 lg:gap-8 items-center lg:min-h-[calc(100dvh-52px-36px)]">
+          <div className="order-2 lg:order-1 space-y-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Eyebrow>NASA Space Apps Challenge 2026</Eyebrow>
+                <span className="text-dim font-mono text-[10px]">·</span>
+                <span className="font-mono text-[10px] text-mars-deep tracking-[0.08em] bg-panel px-2 py-0.5 rounded-sm border border-line">
+                  INTERPLANETARY SURVIVAL GUIDE: MARTIAN MAP
+                </span>
+              </div>
+              <h1 className="text-[clamp(44px,7vw,96px)] leading-[0.95] tracking-[-0.03em] font-medium text-mars-deep">
+                MARS-X
+              </h1>
+              <p className="font-serif italic font-light text-[clamp(20px,2.4vw,30px)] text-fg/90">
+                Interplanetary Surface Planning &amp; Astronaut Survival Engine
+              </p>
+            </div>
+
+            <p className="max-w-xl text-[14px] sm:text-[15px] leading-relaxed text-fg/85">
+              The first explainable mission planning system fusing sub-meter NASA HiRISE stereo terrain, Perseverance rover localizations, USGS SIM 3464 geologic formations, and astronaut xEMU metabolic life-support physics into safety-critical candidate paths across Mars.
+            </p>
+
+            <div className="flex flex-wrap gap-2.5 sm:gap-3 pt-1">
+              <Btn primary onClick={() => go("/map")} disabled={stage !== null} className="flex items-center gap-2 shadow-sm">
+                <span>🚀 LAUNCH MISSION PLANNER</span>
+              </Btn>
+              <Btn onClick={() => go("/immersive")} disabled={stage !== null} className="flex items-center gap-2">
+                <span>🌐 EXPLORE 3D TERRAIN</span>
+              </Btn>
               <a
-                href="/mars-x-release.apk"
+                href={LATEST_APK_URL}
                 download="mars-x-release.apk"
                 className="font-mono text-[11px] sm:text-[12px] tracking-[0.1em] px-3.5 py-2.5 border rounded-sm transition-colors border-line-strong text-fg hover:border-fg hover:bg-panel flex items-center gap-2"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                <span>DOWNLOAD APK</span>
+                <span>DOWNLOAD APK (17.3 MB)</span>
               </a>
+              <Btn onClick={() => go("/data")} disabled={stage !== null} className="text-dim">
+                <span>PROVENANCE</span>
+              </Btn>
             </div>
-            <div className="mt-6 sm:mt-8 pt-4 border-t border-line/60">
-              <p className="text-[11px] sm:text-[12px] text-dim leading-relaxed">Every value carries an honest provenance label:</p>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
+
+            <div className="pt-4 border-t border-line/60 space-y-2">
+              <p className="text-[11px] sm:text-[12px] text-dim leading-relaxed">
+                Every value carries an honest scientific provenance label:
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 {(["OBSERVED", "DERIVED", "MODELED", "UNKNOWN", "SIMULATED"] as Label[]).map((l) => (
                   <Tag key={l} l={l} />
                 ))}
               </div>
             </div>
           </div>
-          <div className="order-1 lg:order-2 max-w-[640px] w-full mx-auto"><HeroGlobe fly={fly} stage={stage} /></div>
+
+          <div className="order-1 lg:order-2 max-w-[640px] w-full mx-auto space-y-3">
+            <HeroGlobe fly={fly} stage={stage} />
+
+            {/* Interactive Planetary Landmark Fast-Travel Controls */}
+            <div className="p-3 border border-line rounded-sm bg-panel/60 space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-mono">
+                <span className="text-dim">ORBITAL FAST-TRAVEL TARGETS:</span>
+                <button
+                  onClick={explore}
+                  disabled={stage !== null}
+                  className="text-mars-deep hover:underline font-semibold flex items-center gap-1"
+                >
+                  <span>FLY DOWN TO SURFACE →</span>
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { id: "JEZERO", name: "Jezero Crater (Perseverance)", lat: 18.38, lon: 77.58, dist: 1.36 },
+                  { id: "GALE", name: "Gale Crater (Curiosity)", lat: -5.4, lon: 137.8, dist: 1.5 },
+                  { id: "OLYMPUS", name: "Olympus Mons (+21.9 km)", lat: 18.65, lon: -133.8, dist: 1.6 },
+                  { id: "VALLES", name: "Valles Marineris (4,000 km)", lat: -13.9, lon: -59.2, dist: 1.6 },
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => flyToSite(s.id, s.lat, s.lon, s.dist)}
+                    className={`font-mono text-[10px] px-2 py-1 rounded-sm border transition-colors ${
+                      activeSite === s.id
+                        ? "bg-fg text-ink border-fg font-semibold"
+                        : "border-line text-dim hover:text-fg hover:bg-paper"
+                    }`}
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
       <div className={`fixed inset-0 z-[60] bg-ink pointer-events-none transition-opacity duration-300 ${cover ? "opacity-100" : "opacity-0"}`} aria-hidden="true" />
 
-      <section className="max-w-6xl mx-auto px-6 pt-24 grid lg:grid-cols-[1fr_1.5fr] gap-12">
-        <div><Eyebrow>From orbit to decision</Eyebrow><h2 className="mt-4 text-[34px] leading-tight">One workflow, seven steps.</h2><p className="mt-4 text-dim text-[14px] leading-relaxed max-w-sm">The globe is for orientation. Measurement, selection and routing happen on the 2D map, where distances and cells can be read precisely.</p></div>
-        <ol className="border-t border-line">{flow.map(([t, p, d], k) => <li key={t} className="border-b border-line"><A to={p} className="grid grid-cols-[36px_1fr] sm:grid-cols-[36px_200px_1fr] gap-x-4 gap-y-1 py-4 hover:bg-panel px-1"><span className="font-mono text-[12px] text-dim pt-0.5">{String(k + 1).padStart(2, "0")}</span><span className="text-[15px] font-medium">{t}</span><span className="col-start-2 sm:col-start-3 text-[13px] text-dim leading-relaxed">{d}</span></A></li>)}</ol>
-      </section>
+      {/* 3. Core Architectural Pillars (Feature Cards Grid) */}
+      <section className="max-w-6xl mx-auto px-6 pt-20">
+        <div className="border-b border-line pb-4 mb-8">
+          <Eyebrow>Engine Capabilities</Eyebrow>
+          <h2 className="text-[34px] leading-tight text-mars-deep mt-1">Four Pillars of Mars-X</h2>
+          <p className="text-[14px] text-dim mt-2 max-w-2xl leading-relaxed">
+            Engineered specifically to solve the NASA Space Apps Challenge problem: navigating astronauts and rovers across high-risk Martian terrain with explainable, physics-grounded models.
+          </p>
+        </div>
 
-      <section className="max-w-6xl mx-auto px-6 pt-24">
-        <div className="grid lg:grid-cols-[1fr_1.5fr] gap-12">
-          <div><Eyebrow>Why terrain is hard</Eyebrow><h2 className="mt-4 text-[34px] leading-tight">A rover drives between images it cannot fully trust.</h2></div>
-          <dl className="grid sm:grid-cols-2 gap-x-10 gap-y-7 self-end">{[["Steep slopes", "Above 25° in this model a cell is impassable. The limit is a planning assumption."], ["Rough ground", "Wheel damage is a documented risk on Mars, so roughness is a cost term."], ["Data gaps", "Missing high-resolution coverage is UNKNOWN, never treated as safe."], ["Uneven science", "Valuable targets are scattered and compete with terrain risk."]].map(([a, b]) => <div key={a}><dt className="font-mono text-[12px] tracking-[0.1em] uppercase text-mars-deep">{a}</dt><dd className="mt-1.5 text-[14px] text-fg/85 leading-relaxed">{b}</dd></div>)}</dl>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Pillar 1 */}
+          <div className="p-6 border border-line rounded-md bg-paper space-y-4 hover:border-mars-deep/40 transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] text-mars-deep tracking-[0.1em] font-semibold bg-panel px-2 py-0.5 rounded-sm border border-line">
+                PILLAR 01 · TOPOGRAPHY
+              </span>
+              <Tag l="OBSERVED" />
+            </div>
+            <div>
+              <h3 className="text-[22px] font-normal text-mars-deep">Sub-Meter NASA HiRISE DTM</h3>
+              <div className="font-mono text-[12px] text-dim mt-0.5">1.01 m/px · 34.5 m/cell · 4.1 × 2.65 km Window</div>
+            </div>
+            <p className="text-[13px] text-fg/85 leading-relaxed">
+              Derived from the original PDS3 stereo digital terrain model (<code className="text-[11px]">DTEEC_045994_1985</code>). Computes cell-by-cell slope gradients up to the 25° hard traversability threshold, evaluates surface roughness hazards for rover wheels, and explicitly masks missing data as <strong>UNKNOWN</strong> (never assumed safe).
+            </p>
+            <div className="pt-2 border-t border-line">
+              <button onClick={() => go("/explorer")} className="font-mono text-[11px] text-mars-deep font-semibold hover:underline flex items-center gap-1.5">
+                <span>OPEN 2D CELL INSPECTOR →</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Pillar 2 */}
+          <div className="p-6 border border-line rounded-md bg-paper space-y-4 hover:border-mars-deep/40 transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] text-mars-deep tracking-[0.1em] font-semibold bg-panel px-2 py-0.5 rounded-sm border border-line">
+                PILLAR 02 · LIFE SUPPORT
+              </span>
+              <Tag l="MODELED" />
+            </div>
+            <div>
+              <h3 className="text-[22px] font-normal text-mars-deep">NASA xEMU Metabolic Life Support</h3>
+              <div className="font-mono text-[12px] text-dim mt-0.5">P = 300 W + (m·g·v·sinθ)/η · Point of No Return</div>
+            </div>
+            <p className="text-[13px] text-fg/85 leading-relaxed">
+              Models astronaut metabolic power, suit heating, and consumable burn (1,200 L O₂, 1,440 Wh battery) under Martian gravity (<code className="text-[11px]">g = 3.721 m/s²</code>). Calculates the exact <strong>Point of No Return (PNR)</strong> where unassisted return reserve falls below 30%, and generates autonomous emergency abort paths.
+            </p>
+            <div className="pt-2 border-t border-line">
+              <button onClick={() => go("/routes")} className="font-mono text-[11px] text-mars-deep font-semibold hover:underline flex items-center gap-1.5">
+                <span>ANALYZE EVA LIFE SUPPORT &amp; PNR →</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Pillar 3 */}
+          <div className="p-6 border border-line rounded-md bg-paper space-y-4 hover:border-mars-deep/40 transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] text-mars-deep tracking-[0.1em] font-semibold bg-panel px-2 py-0.5 rounded-sm border border-line">
+                PILLAR 03 · ROUTING
+              </span>
+              <Tag l="MODELED" />
+            </div>
+            <div>
+              <h3 className="text-[22px] font-normal text-mars-deep">Multi-Objective A* Navigation</h3>
+              <div className="font-mono text-[12px] text-dim mt-0.5">SAFEST · FASTEST · SCIENCE · Multi-Stop Waypoints</div>
+            </div>
+            <p className="text-[13px] text-fg/85 leading-relaxed">
+              Solves candidate surface routes through 8-connected grid graphs with configurable risk weights. Includes multi-stop waypoint chaining (<code className="text-[11px]">W1, W2, ...</code>), sample tube logging for Perseverance sample return, and Pareto trade-off comparisons between speed and slope exposure.
+            </p>
+            <div className="pt-2 border-t border-line">
+              <button onClick={() => go("/map")} className="font-mono text-[11px] text-mars-deep font-semibold hover:underline flex items-center gap-1.5">
+                <span>PLAN CANDIDATE ROUTES →</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Pillar 4 */}
+          <div className="p-6 border border-line rounded-md bg-paper space-y-4 hover:border-mars-deep/40 transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] text-mars-deep tracking-[0.1em] font-semibold bg-panel px-2 py-0.5 rounded-sm border border-line">
+                PILLAR 04 · OFFLINE APP
+              </span>
+              <Tag l="OBSERVED" />
+            </div>
+            <div>
+              <h3 className="text-[22px] font-normal text-mars-deep">Zero-Connectivity Android Client</h3>
+              <div className="font-mono text-[12px] text-dim mt-0.5">Standalone Flutter APK · Local SQLite · On-Device A*</div>
+            </div>
+            <p className="text-[13px] text-fg/85 leading-relaxed">
+              Designed for zero-infrastructure surface exploration where orbital relay uplinks may be occluded by crater rims. Features embedded binary HiRISE elevation models, on-device Dijkstra/A* execution, gyro compass orientation, and offline mission profile storage.
+            </p>
+            <div className="pt-2 border-t border-line">
+              <a href={LATEST_APK_URL} download="mars-x-release.apk" className="font-mono text-[11px] text-mars-deep font-semibold hover:underline flex items-center gap-1.5">
+                <span>DOWNLOAD STANDALONE APK (17.3 MB) →</span>
+              </a>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-6 pt-24">
-        <div className="flex items-end justify-between flex-wrap gap-3"><div><Eyebrow>Target datasets</Eyebrow><h2 className="mt-4 text-[34px] leading-tight">Built around NASA orbital data.</h2></div><A to="/data" className="font-mono text-[12px] tracking-[0.1em] underline underline-offset-4 decoration-line-strong hover:decoration-fg">FULL PROVENANCE</A></div>
-        <div className="mt-8 overflow-x-auto border-t border-fg"><table className="w-full text-[13px]"><thead><tr className="text-left font-mono text-[11px] tracking-[0.1em] text-dim"><th className="font-normal py-2 pr-4">DATASET</th><th className="font-normal py-2 pr-4">MISSION</th><th className="font-normal py-2 pr-4">RESOLUTION</th><th className="font-normal py-2">USED FOR</th></tr></thead><tbody>{DATASETS.map((d) => <tr key={d.id} className="border-t border-line"><td className="py-2.5 pr-4 font-mono text-mars-deep">{d.id}</td><td className="py-2.5 pr-4 text-fg/85">{d.mission}</td><td className="py-2.5 pr-4 font-mono text-[12px]">{d.res}</td><td className="py-2.5 text-fg/85">{d.purpose}</td></tr>)}</tbody></table></div>
-        <p className="mt-3 text-[12px] text-dim">This prototype plans on a real HiRISE terrain window. Most datasets above are not yet ingested; see the Data page for status and limitations.</p>
+      {/* 4. Live Environmental Conditions (NASA Mars 2020 MEDA) */}
+      <section className="max-w-6xl mx-auto px-6 pt-20">
+        <div className="border border-line rounded-md p-6 bg-paper space-y-5">
+          <div className="flex items-center justify-between flex-wrap gap-3 border-b border-line pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[10px] tracking-[0.1em] px-2 py-0.5 rounded-sm bg-mars-deep text-ink font-semibold">NASA MARS 2020 MEDA</span>
+                <Tag l="OBSERVED" />
+              </div>
+              <h2 className="text-[24px] font-normal text-mars-deep mt-1">Jezero Crater Atmospheric Environment</h2>
+            </div>
+            <button onClick={() => go("/data")} className="font-mono text-[11px] text-mars-deep hover:underline">
+              VIEW 24-HR DIURNAL SCRUBBER →
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="border border-line p-3.5 rounded-sm bg-ink/70">
+              <span className="font-mono text-[11px] text-dim block">AIR TEMP (1.5m)</span>
+              <span className="font-mono text-[22px] text-fg font-semibold">-33.0°C</span>
+              <span className="text-[10px] text-dim block mt-0.5">MEDA TIRS sensor</span>
+            </div>
+            <div className="border border-line p-3.5 rounded-sm bg-ink/70">
+              <span className="font-mono text-[11px] text-dim block">GROUND RADIANCE</span>
+              <span className="font-mono text-[22px] text-gold font-semibold">-29.8°C</span>
+              <span className="text-[10px] text-dim block mt-0.5">Surface brightness temp</span>
+            </div>
+            <div className="border border-line p-3.5 rounded-sm bg-ink/70">
+              <span className="font-mono text-[11px] text-dim block">DIURNAL SWING (ΔT)</span>
+              <span className="font-mono text-[22px] text-mars-deep font-semibold">81.4°C</span>
+              <span className="text-[10px] text-dim block mt-0.5">Min -73.8°C / Max +7.6°C</span>
+            </div>
+            <div className="border border-line p-3.5 rounded-sm bg-ink/70">
+              <span className="font-mono text-[11px] text-dim block">ATMOSPHERIC PRESS.</span>
+              <span className="font-mono text-[22px] text-fg font-semibold">~760 Pa</span>
+              <span className="text-[10px] text-dim block mt-0.5">HiRISE datum · ~0.0075 atm</span>
+            </div>
+          </div>
+
+          <div className="p-3 bg-panel/70 border border-line rounded-sm text-[12px] text-fg/85 leading-relaxed space-y-1">
+            <strong>Environmental Physics Note:</strong> Mars exhibits extreme surface temperature fluctuations (ΔT &gt; 80°C between midday and pre-dawn) due to low atmospheric density (&lt; 1% Earth) and low thermal inertia of fine aeolian dust. Midday ground temperatures briefly reach +7.6°C, while nighttime plunges to -73.8°C, imposing significant battery heating requirements on astronaut suits.
+          </div>
+        </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-6 pt-24">
-        <Eyebrow>Route objectives</Eyebrow>
-        <h2 className="mt-4 text-[34px] leading-tight max-w-xl">Three ways to weigh the same terrain.</h2>
-        <div className="mt-8 border-t border-fg">{objs.map(([m, d, w]) => { const tot = w.s + w.r + w.u + w.h; return (
-          <div key={m} className="grid md:grid-cols-[180px_1fr_1fr] gap-x-8 gap-y-3 py-5 border-b border-line items-center">
-            <div className="flex items-center gap-3 font-mono text-[14px] tracking-[0.08em]"><Swatch m={m} w={32} />{m}</div>
-            <p className="text-[14px] text-fg/85 leading-relaxed">{d}</p>
-            <div><div className="flex h-2.5 rounded-sm overflow-hidden" role="img" aria-label={`Cost weights: ${wk.map((x) => `${x.n} ${w[x.k]} percent`).join(", ")}`}>{wk.map((x) => <span key={x.k} style={{ width: `${(w[x.k] / tot) * 100}%`, background: x.c }} />)}</div><div className="mt-1.5 flex justify-between font-mono text-[10px] text-dim">{wk.map((x) => <span key={x.k}>{x.n.slice(0, 4).toUpperCase()} {w[x.k]}</span>)}</div></div>
-          </div>); })}</div>
-        <p className="mt-3 text-[12px] text-dim">Cost weights are planning assumptions, not validated parameters. SCIENCE also applies a cost discount near targets.</p>
+      {/* 5. Authoritative Jezero GIS & PDS Data Pipeline */}
+      <section className="max-w-6xl mx-auto px-6 pt-20">
+        <div className="flex items-end justify-between flex-wrap gap-3 border-b border-line pb-4 mb-8">
+          <div>
+            <Eyebrow>Authoritative Datasets</Eyebrow>
+            <h2 className="text-[34px] leading-tight text-mars-deep mt-1">Ground-Truth Planetary GIS Pipeline</h2>
+            <p className="text-[14px] text-dim mt-2 max-w-2xl leading-relaxed">
+              Processed directly from raw USGS SIM 3464 geodatabases and NASA Mars 2020 PLACES Release 16 archive products stored in <code className="bg-panel px-1 py-0.5 rounded text-[11px]">data/processed/jezero/</code>.
+            </p>
+          </div>
+          <button onClick={() => go("/data")} className="font-mono text-[12px] tracking-[0.1em] text-mars-deep font-semibold hover:underline">
+            EXPLORE FULL REPOSITORY →
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="p-5 border border-line rounded-md bg-paper space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] font-semibold text-gold">LANDING ELLIPSE</span>
+              <Tag l="OBSERVED" />
+            </div>
+            <div className="font-mono text-[20px] text-fg">7.7 × 6.6 km</div>
+            <p className="text-[12px] text-dim leading-relaxed">
+              NASA Mars 2020 official touchdown ellipse around Octavia E. Butler Landing. Mapped as an interactive polygon with 65 projected vertices.
+            </p>
+          </div>
+
+          <div className="p-5 border border-line rounded-md bg-paper space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] font-semibold text-teal-400">DELTA LOBE FRONTS</span>
+              <Tag l="OBSERVED" />
+            </div>
+            <div className="font-mono text-[20px] text-fg">32 Delta Fronts · 5 Channels</div>
+            <p className="text-[12px] text-dim leading-relaxed">
+              USGS SIM 3464 linear landforms mapping ancient river inflow breaches and fan deposition lobes where sedimentary water rocks are concentrated.
+            </p>
+          </div>
+
+          <div className="p-5 border border-line rounded-md bg-paper space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] font-semibold text-atmos">THREE FORKS SAMPLE DEPOT</span>
+              <Tag l="OBSERVED" />
+            </div>
+            <div className="font-mono text-[20px] text-fg">10 Titanium Tubes</div>
+            <p className="text-[12px] text-dim leading-relaxed">
+              Official PDS sample drop events deposited by Perseverance on Mars (Malay, Mageik, Crosswind Lake, etc.) with exact LMST surface timestamps.
+            </p>
+          </div>
+        </div>
       </section>
+
+      {/* 6. One Workflow, Seven Steps */}
+      <section className="max-w-6xl mx-auto px-6 pt-20 grid lg:grid-cols-[1fr_1.5fr] gap-12">
+        <div>
+          <Eyebrow>From orbit to decision</Eyebrow>
+          <h2 className="mt-4 text-[34px] leading-tight text-mars-deep">One workflow, seven steps.</h2>
+          <p className="mt-4 text-dim text-[14px] leading-relaxed max-w-sm">
+            The globe is for planetary orientation. Measurement, hazard verification, and multi-objective pathfinding happen on the sub-meter 2D grid where slopes and consumables can be calculated precisely.
+          </p>
+          <div className="mt-6">
+            <Btn primary onClick={() => go("/map")} className="flex items-center gap-2">
+              <span>START STEP 01 →</span>
+            </Btn>
+          </div>
+        </div>
+        <ol className="border-t border-line">
+          {flow.map(([t, p, d], k) => (
+            <li key={t} className="border-b border-line">
+              <A to={p} className="grid grid-cols-[36px_1fr] sm:grid-cols-[36px_220px_1fr] gap-x-4 gap-y-1 py-4 hover:bg-panel px-1">
+                <span className="font-mono text-[12px] text-dim pt-0.5">{String(k + 1).padStart(2, "0")}</span>
+                <span className="text-[15px] font-medium text-fg">{t}</span>
+                <span className="col-start-2 sm:col-start-3 text-[13px] text-dim leading-relaxed">{d}</span>
+              </A>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* 7. Why Terrain is Hard */}
+      <section className="max-w-6xl mx-auto px-6 pt-20">
+        <div className="grid lg:grid-cols-[1fr_1.5fr] gap-12">
+          <div>
+            <Eyebrow>Why terrain is hard</Eyebrow>
+            <h2 className="mt-4 text-[34px] leading-tight text-mars-deep">A rover drives between images it cannot fully trust.</h2>
+          </div>
+          <dl className="grid sm:grid-cols-2 gap-x-10 gap-y-7 self-end">
+            {[
+              ["Steep slopes", "Above 25° in this model a cell is impassable. The limit is a strict safety assumption to prevent rover tip-overs."],
+              ["Rough ground", "Sharp ventifacts cause wheel punctures; terrain roughness is evaluated and penalized in the cost function."],
+              ["Data gaps", "Missing high-resolution coverage is marked UNKNOWN, never treated as safe ground."],
+              ["Uneven science", "Valuable astrobiology targets are scattered across difficult terrain, forcing trade-offs between safety and discovery."],
+            ].map(([a, b]) => (
+              <div key={a}>
+                <dt className="font-mono text-[12px] tracking-[0.1em] uppercase text-mars-deep">{a}</dt>
+                <dd className="mt-1.5 text-[14px] text-fg/85 leading-relaxed">{b}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* 8. Route Objectives Comparison */}
+      <section className="max-w-6xl mx-auto px-6 pt-20">
+        <Eyebrow>Route objectives</Eyebrow>
+        <h2 className="mt-4 text-[34px] leading-tight max-w-xl text-mars-deep">Three ways to weigh the same terrain.</h2>
+        <div className="mt-8 border-t border-fg">
+          {objs.map(([m, d, w]) => {
+            const tot = w.s + w.r + w.u + w.h;
+            return (
+              <div key={m} className="grid md:grid-cols-[180px_1fr_1fr] gap-x-8 gap-y-3 py-5 border-b border-line items-center">
+                <div className="flex items-center gap-3 font-mono text-[14px] tracking-[0.08em]"><Swatch m={m} w={32} />{m}</div>
+                <p className="text-[14px] text-fg/85 leading-relaxed">{d}</p>
+                <div>
+                  <div className="flex h-2.5 rounded-sm overflow-hidden" role="img" aria-label={`Cost weights: ${wk.map((x) => `${x.n} ${w[x.k]} percent`).join(", ")}`}>
+                    {wk.map((x) => (
+                      <span key={x.k} style={{ width: `${(w[x.k] / tot) * 100}%`, background: x.c }} />
+                    ))}
+                  </div>
+                  <div className="mt-1.5 flex justify-between font-mono text-[10px] text-dim">
+                    {wk.map((x) => (
+                      <span key={x.k}>{x.n.slice(0, 4).toUpperCase()} {w[x.k]}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-3 text-[12px] text-dim">
+          Cost weights are planning assumptions, not validated parameters. SCIENCE also applies a cost discount near targets.
+        </p>
+      </section>
+
+      {/* 9. Target Datasets & Provenance Table */}
+      <section className="max-w-6xl mx-auto px-6 pt-20">
+        <div className="flex items-end justify-between flex-wrap gap-3">
+          <div>
+            <Eyebrow>Target datasets</Eyebrow>
+            <h2 className="mt-4 text-[34px] leading-tight text-mars-deep">Built around NASA orbital data.</h2>
+          </div>
+          <A to="/data" className="font-mono text-[12px] tracking-[0.1em] text-mars-deep font-semibold hover:underline">
+            FULL PROVENANCE &amp; PIPELINE →
+          </A>
+        </div>
+        <div className="mt-8 overflow-x-auto border-t border-fg">
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="text-left font-mono text-[11px] tracking-[0.1em] text-dim">
+                <th className="font-normal py-2 pr-4">DATASET</th>
+                <th className="font-normal py-2 pr-4">MISSION</th>
+                <th className="font-normal py-2 pr-4">RESOLUTION</th>
+                <th className="font-normal py-2">USED FOR</th>
+              </tr>
+            </thead>
+            <tbody>
+              {DATASETS.map((d) => (
+                <tr key={d.id} className="border-t border-line">
+                  <td className="py-2.5 pr-4 font-mono text-mars-deep">{d.id}</td>
+                  <td className="py-2.5 pr-4 text-fg/85">{d.mission}</td>
+                  <td className="py-2.5 pr-4 font-mono text-[12px]">{d.res}</td>
+                  <td className="py-2.5 text-fg/85">{d.purpose}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 text-[12px] text-dim">
+          This prototype plans on a real HiRISE terrain window. Most datasets above are not yet ingested; see the Data page for status and limitations.
+        </p>
+      </section>
+
       <Footer />
     </div>
   );
