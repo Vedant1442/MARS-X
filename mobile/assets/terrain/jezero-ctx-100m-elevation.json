@@ -1,0 +1,68 @@
+{
+  "formatVersion": 1,
+  "source": "M20_JezeroCrater_CTXDEM_20m.tif",
+  "sourceCitation": "Fred Calef; USGS Astrogeology Science Center; Planetary Data System. Cite the USGS product page and the source papers listed in the XML metadata.",
+  "sourceUrl": "https://planetarymaps.usgs.gov/mosaic/mars2020_trn/CTX/ScienceInvestigationMaps_JPL/M20_JezeroCrater_CTXDEM_20m.tif",
+  "sourceSha256": "ba7f706ea1b5d63a562f28a7dcf7a7f3c79bce7f048e6974b57e8a33c30d1ba2",
+  "sourceResolutionM": [
+    20.0,
+    20.0
+  ],
+  "sourceDimensions": [
+    4456,
+    5067
+  ],
+  "processing": "Mean of each 5 by 5 CTX DEM block; output stored as signed 16-bit metres. Any output cell containing a source NoData sample is retained as NoData.",
+  "width": 891,
+  "height": 1013,
+  "cellProjectedM": [
+    100.0,
+    100.0
+  ],
+  "cellWidthGroundM": 94.85101221289392,
+  "cellHeightGroundM": 100.0,
+  "cellM": 97.39148433661637,
+  "originProjectedM": [
+    4328999.999999998,
+    1143420.0000000028
+  ],
+  "gridCenterX": 4373549.999999998,
+  "gridCenterY": 1092770.0000000028,
+  "longitudeScaleCos": 0.9485101221289391,
+  "standardParallelPlanetocentricDeg": 18.4663,
+  "centralMeridianEastDeg": 0.0,
+  "sphereRadiusM": 3396190.0,
+  "coordinateSystem": "Mars 2000 sphere, Equidistant Cylindrical (equirectangular); east-positive longitude and planetocentric latitude.",
+  "boundsEastLonPlanetocentricLatDeg": [
+    76.99743706146002,
+    17.58119473473908,
+    78.58220759557324,
+    19.29018700686615
+  ],
+  "elevationUnit": "metre",
+  "noDataValue": -32768,
+  "validCellCount": 901692,
+  "totalCellCount": 902583,
+  "validCellFraction": 0.9990128331688055,
+  "knownLimitations": [
+    "100 m route grid derived from a 20 m CTX DEM; it smooths terrain at the planning scale and does not resolve small rocks or suit-scale hazards.",
+    "The full raster footprint includes terrain surrounding Jezero crater; the rectangular raster edge is not the crater rim.",
+    "CTX stereo elevations and derived slopes are model products; route results are educational candidates and are not certified safe."
+  ],
+  "overviewImage": {
+    "file": "jezero-ctx-overview.png",
+    "source": "M20_JezeroCrater_CTXortho_mosaic_5m.tif",
+    "sourceUrl": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/mars2020_trn/CTX/ScienceInvestigationMaps_JPL/M20_JezeroCrater_CTXortho_mosaic_5m.tif",
+    "sourceSha256": "cd9f4b2154fdd43e8c17abfbae63210b72507db2209d1d7db63f6f855b18d2df",
+    "nativePixelM": [
+      5.0020646811,
+      -5.0022629716
+    ],
+    "outputAlignedToPlanningGrid": true,
+    "outputCellM": [
+      100.0,
+      100.0
+    ],
+    "coverageHandling": "Pixels outside the source ortho footprint are transparent; the source is geospatially resampled, not stretched to the DEM bounds."
+  }
+}

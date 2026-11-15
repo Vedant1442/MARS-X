@@ -1,5 +1,5 @@
 name: mars_x
-description: Offline Mars surface excursion planner for Jezero Crater using real HiRISE DTM terrain data.
+description: Offline Mars surface excursion planner for the crater-wide Jezero CTX terrain mosaic.
 publish_to: "none"
 version: 1.0.0+1
 
@@ -27,5 +27,9 @@ flutter:
   assets:
     - assets/terrain/jezero-dem.bin
     - assets/terrain/jezero-dem.json
+    - assets/terrain/jezero-ctx-100m-elevation.bin
+    - assets/terrain/jezero-ctx-100m-elevation.json
+    - assets/terrain/jezero-ctx-overview.png
+    - assets/terrain/jezero-ctx-crater-rim.geojson
     - assets/terrain/jezero-landmarks.geojson
     - assets/terrain/perseverance-rover-stops.geojson

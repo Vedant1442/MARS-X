@@ -30,7 +30,7 @@ class MissionReportScreen extends ConsumerWidget {
             pw.Text('Mode: ${route.mode.name.toUpperCase()}  |  Safety: NOT CERTIFIED'),
             pw.Divider(),
             pw.Text('Distance: ${(route.distanceM / 1000).toStringAsFixed(2)} km'),
-            pw.Text('Max slope: ${route.maxSlopeDeg.toStringAsFixed(1)} deg (DERIVED from HiRISE DTM)'),
+            pw.Text('Max slope: ${route.maxSlopeDeg.toStringAsFixed(1)} deg (DERIVED from CTX DTM at 100 m grid spacing)'),
             pw.Text('Elevation gain: ${route.elevGainM.toStringAsFixed(0)} m (DERIVED)'),
             pw.Text('Simulated risk score: ${risk.score}/100 (${risk.level})'),
             pw.Text('Simulated science score: ${risk.scienceScore}/100'),
@@ -40,7 +40,7 @@ class MissionReportScreen extends ConsumerWidget {
             for (final l in lms)
               pw.Text('${l.n}. ${l.name} — ${l.desc}'),
             pw.SizedBox(height: 12),
-            pw.Text('Limitations: Terrain is resampled from USGS HiRISE DTM (35.99 m/cell). Sub-cell hazards are unknown. Risk, time, targets, and pressure are simulated.'),
+            pw.Text('Limitations: Terrain is aggregated from USGS CTX 20 m DEM to 100 m route cells. Small rocks and other sub-cell hazards are unknown. Risk, time, targets, and pressure are simulated.'),
           ],
         ),
       ),
@@ -150,7 +150,7 @@ class MissionReportScreen extends ConsumerWidget {
                         ),
                       const Divider(),
                       const Text(
-                        'Limitations: Terrain is resampled from USGS HiRISE DTM DTEEC_045994_1985_046060_1985_U01 (CC0) at 35.99 m/cell. Sub-cell rocks and sand traps are UNKNOWN. Candidate route only; safety is NOT CERTIFIED.',
+                        'Limitations: Terrain is aggregated from the USGS M20 Jezero CTX 20 m DEM to 100 m route cells. Sub-cell rocks and sand traps are UNKNOWN. Candidate route only; safety is NOT CERTIFIED.',
                         style: TextStyle(fontSize: 12, color: MarsTheme.dim),
                       ),
                     ],

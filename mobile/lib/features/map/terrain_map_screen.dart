@@ -18,6 +18,7 @@ class TerrainMapScreen extends ConsumerWidget {
     final gridAsync = ref.watch(terrainGridProvider);
     final landmarksAsync = ref.watch(jezeroLandmarksProvider);
     final roverStopsAsync = ref.watch(roverStopsProvider);
+    final craterRimAsync = ref.watch(ctxCraterRimPathsProvider);
     final st = ref.watch(plannerProvider);
     final notifier = ref.read(plannerProvider.notifier);
 
@@ -27,10 +28,12 @@ class TerrainMapScreen extends ConsumerWidget {
         Expanded(
           child: gridAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Failed to load HiRISE DTM: $e')),
+            error: (e, _) => Center(child: Text('Failed to load crater-wide CTX terrain: $e')),
             data: (grid) => ListView(
               padding: const EdgeInsets.all(12),
               children: [
+                _CoverageSummary(grid: grid),
+                const SizedBox(height: 8),
                 _LayerControls(st: st, notifier: notifier, grid: grid),
                 const SizedBox(height: 8),
                 _InteractiveMapCard(
@@ -39,6 +42,7 @@ class TerrainMapScreen extends ConsumerWidget {
                   notifier: notifier,
                   landmarks: landmarksAsync.valueOrNull ?? const [],
                   roverStops: roverStopsAsync.valueOrNull ?? const [],
+                  craterRimPaths: craterRimAsync.valueOrNull ?? const [],
                 ),
                 const SizedBox(height: 8),
                 _LandmarksInfoCard(
@@ -74,6 +78,43 @@ class TerrainMapScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _CoverageSummary extends StatelessWidget {
+  final TerrainGrid grid;
+
+  const _CoverageSummary({required this.grid});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('JEZERO · CRATER-WIDE MAP', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600)),
+                DataBadge(DataType.observed),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Offline CTX coverage is about ${(grid.cellWidthM * grid.w / 1000).toStringAsFixed(0)} × ${(grid.cellHeightM * grid.h / 1000).toStringAsFixed(0)} km, including terrain around the crater. Route planning uses ${grid.w} × ${grid.h} elevation cells at 100 m spacing.',
+              style: const TextStyle(fontSize: 12, color: MarsTheme.dim),
+            ),
+            const SizedBox(height: 3),
+            const Text(
+              'The map rectangle is the image-data footprint, not the crater rim. Pinch to zoom; small rocks are below this route grid’s resolution.',
+              style: TextStyle(fontSize: 11, color: MarsTheme.dim),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -123,8 +164,9 @@ class _InteractiveMapCard extends StatelessWidget {
   final PlannerNotifier notifier;
   final List<JezeroLandmark> landmarks;
   final List<RoverStop> roverStops;
+  final List<List<List<double>>> craterRimPaths;
 
-  const _InteractiveMapCard({required this.grid, required this.st, required this.notifier, required this.landmarks, required this.roverStops});
+  const _InteractiveMapCard({required this.grid, required this.st, required this.notifier, required this.landmarks, required this.roverStops, required this.craterRimPaths});
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +178,7 @@ class _InteractiveMapCard extends StatelessWidget {
             aspectRatio: grid.w / grid.h,
             child: LayoutBuilder(
               builder: (context, constraints) {
-                Widget mapWidget = GestureDetector(
+                final mapWidget = GestureDetector(
                   onTapUp: (details) {
                     final dx = details.localPosition.dx / constraints.maxWidth;
                     final dy = details.localPosition.dy / constraints.maxHeight;
@@ -144,21 +186,50 @@ class _InteractiveMapCard extends StatelessWidget {
                     final y = (dy * grid.h).floor().clamp(0, grid.h - 1);
                     notifier.tapCell(grid, GridPoint(x, y));
                   },
-                  child: CustomPaint(
-                    painter: _TerrainPainter(grid: grid, st: st, landmarks: landmarks, roverStops: roverStops),
-                    size: Size(constraints.maxWidth, constraints.maxHeight),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        'assets/terrain/jezero-ctx-overview.png',
+                        fit: BoxFit.fill,
+                        filterQuality: FilterQuality.medium,
+                        errorBuilder: (context, error, stack) => const ColoredBox(color: MarsTheme.mapBg),
+                      ),
+                      CustomPaint(
+                        painter: _TerrainPainter(
+                          grid: grid,
+                          st: st,
+                          landmarks: landmarks,
+                          roverStops: roverStops,
+                          craterRimPaths: craterRimPaths,
+                          showTerrain: st.layer != TerrainLayer.imagery,
+                        ),
+                        size: Size(constraints.maxWidth, constraints.maxHeight),
+                      ),
+                    ],
+                  ),
+                );
+                Widget interactiveMap = InteractiveViewer(
+                  minScale: 1.0,
+                  maxScale: 8.0,
+                  boundaryMargin: const EdgeInsets.all(36),
+                  constrained: false,
+                  child: SizedBox(
+                    width: constraints.maxWidth,
+                    height: constraints.maxHeight,
+                    child: mapWidget,
                   ),
                 );
                 if (st.tilt3D) {
-                  mapWidget = Transform(
+                  interactiveMap = Transform(
                     alignment: Alignment.center,
                     transform: Matrix4.identity()
                       ..setEntry(3, 2, 0.0012)
                       ..rotateX(-0.55 * (st.verticalExag / 2.5).clamp(0.6, 1.4)),
-                    child: mapWidget,
+                    child: interactiveMap,
                   );
                 }
-                return Container(color: MarsTheme.mapBg, child: mapWidget);
+                return ClipRect(child: Container(color: MarsTheme.mapBg, child: interactiveMap));
               },
             ),
           ),
@@ -185,13 +256,24 @@ class _InteractiveMapCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Terrain colors come from the real HiRISE DTM. CTX image texture is not displayed yet.', style: TextStyle(fontSize: 11, color: MarsTheme.dim)),
+                Text(
+                  st.layer == TerrainLayer.imagery
+                      ? 'Whole-crater CTX image. Pinch to zoom and pan; mapped rim segments are incomplete.'
+                      : 'Colors are derived from the USGS 20 m CTX DEM on a 100 m route grid. Small rocks are not resolved.',
+                  style: const TextStyle(fontSize: 11, color: MarsTheme.dim),
+                ),
                 const SizedBox(height: 4),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Flexible(child: Text('Tap map: Start → Destination · gold dots: archived rover positions', style: TextStyle(fontSize: 12, color: MarsTheme.dim))),
-                    DataBadge(st.layer == TerrainLayer.pressure ? DataType.simulated : DataType.derived),
+                    const Flexible(child: Text('Full Jezero CTX footprint · tap to set Start, then Destination · gold dots: archived rover positions', style: TextStyle(fontSize: 12, color: MarsTheme.dim))),
+                    DataBadge(
+                      st.layer == TerrainLayer.imagery
+                          ? DataType.observed
+                          : st.layer == TerrainLayer.pressure
+                              ? DataType.simulated
+                              : DataType.derived,
+                    ),
                   ],
                 ),
               ],
@@ -223,7 +305,7 @@ class _LandmarksInfoCard extends StatelessWidget {
             Text(
               grid.georeference == null
                   ? 'Landmark coordinates are installed offline. This DEM has no geographic transform, so pins are withheld until the georeferenced terrain package is installed.'
-                  : 'Coordinates follow the installed HiRISE grid reference. Label anchors place printed map text; they are not feature centers.',
+                  : 'Coordinates are transformed into the crater-wide CTX grid. USGS label anchors place printed text; they are not feature centers.',
               style: const TextStyle(fontSize: 12, color: MarsTheme.dim),
             ),
             const Divider(),
@@ -287,12 +369,12 @@ class _RoverDataCard extends StatelessWidget {
             const Text('PERSEVERANCE ARCHIVE POSITIONS', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600)),
             const SizedBox(height: 5),
             Text(
-              '${roverStops.length} offline per-sol positions from PDS PLACES Release 16; $visible fall inside this small HiRISE map window.',
+              '${roverStops.length} offline per-sol positions from PDS PLACES Release 16; $visible fall inside the crater-wide CTX footprint.',
               style: const TextStyle(fontSize: 12, color: MarsTheme.dim),
             ),
             const SizedBox(height: 4),
             Text(
-              'This view covers about ${(grid.cellWidthM * grid.w / 1000).toStringAsFixed(1)} × ${(grid.cellHeightM * grid.h / 1000).toStringAsFixed(1)} km around the landing site. Route planning is limited to this HiRISE patch; the crater-wide CTX raster is not yet rendered or used for routes.',
+              'This map covers about ${(grid.cellWidthM * grid.w / 1000).toStringAsFixed(1)} × ${(grid.cellHeightM * grid.h / 1000).toStringAsFixed(1)} km of Jezero and surrounding terrain. Route calculations use the 100 m CTX grid; unknown cells remain unavailable and small obstacles are unresolved.',
               style: const TextStyle(fontSize: 11, color: MarsTheme.dim),
             ),
             const SizedBox(height: 4),
@@ -323,7 +405,7 @@ class _InspectorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final i = pt.y * grid.w + pt.x;
     final passable = grid.nodata[i] == 0 && grid.slope[i] <= MarsRouter.defaultMaxSlopeDeg;
-    final coordinates = grid.georeference?.pointForCell(pt.x, pt.y);
+    final coordinates = grid.georeference?.pointForCell(pt.x, pt.y, grid.w, grid.h);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -366,6 +448,20 @@ class _RoutesComparisonCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (st.isPlanning) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(14),
+          child: Row(
+            children: [
+              SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+              SizedBox(width: 10),
+              Expanded(child: Text('Calculating route candidates across the whole crater…')),
+            ],
+          ),
+        ),
+      );
+    }
     if (st.routes.isEmpty) {
       return const Card(
         child: Padding(
@@ -423,6 +519,7 @@ class _RoutesComparisonCard extends ConsumerWidget {
                           riskScore: rk.score,
                           currentStep: st.landmarkStep,
                           createdAt: DateTime.now().toIso8601String(),
+                          gridId: grid.gridId,
                         ));
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -506,8 +603,10 @@ class _TerrainPainter extends CustomPainter {
   final PlannerState st;
   final List<JezeroLandmark> landmarks;
   final List<RoverStop> roverStops;
+  final List<List<List<double>>> craterRimPaths;
+  final bool showTerrain;
 
-  _TerrainPainter({required this.grid, required this.st, required this.landmarks, required this.roverStops});
+  _TerrainPainter({required this.grid, required this.st, required this.landmarks, required this.roverStops, required this.craterRimPaths, required this.showTerrain});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -516,62 +615,79 @@ class _TerrainPainter extends CustomPainter {
     final paint = Paint();
     final elevSpan = (grid.maxElev - grid.minElev) == 0 ? 1.0 : (grid.maxElev - grid.minElev);
 
-    for (var y = 0; y < grid.h; y++) {
-      for (var x = 0; x < grid.w; x++) {
-        final i = y * grid.w + x;
-        if (grid.nodata[i] != 0) {
-          paint.color = const Color(0xFF16181B);
-          canvas.drawRect(Rect.fromLTWH(x * cw, y * ch, cw + 0.4, ch + 0.4), paint);
-          paint
-            ..color = const Color(0xFF383B3E)
-            ..strokeWidth = 0.7;
-          canvas.drawLine(Offset(x * cw, (y + 1) * ch), Offset((x + 1) * cw, y * ch), paint);
-          continue;
-        }
-        final eL = grid.elev[y * grid.w + math.max(0, x - 1)];
-        final eR = grid.elev[y * grid.w + math.min(grid.w - 1, x + 1)];
-        final shade = (0.55 + (eL - eR) / 140.0).clamp(0.2, 1.15);
+    if (showTerrain) {
+      // Draw at screen resolution, not once per 100 m cell. The underlying
+      // grid remains full resolution for route calculations and inspection.
+      final displayCols = math.min(grid.w, math.max(1, size.width.ceil()));
+      final displayRows = math.min(grid.h, math.max(1, size.height.ceil()));
+      final stepX = (grid.w / displayCols).ceil();
+      final stepY = (grid.h / displayRows).ceil();
+      for (var y = 0; y < grid.h; y += stepY) {
+        final blockH = math.min(stepY, grid.h - y);
+        for (var x = 0; x < grid.w; x += stepX) {
+          final blockW = math.min(stepX, grid.w - x);
+          final sx = x + blockW ~/ 2;
+          final sy = y + blockH ~/ 2;
+          final i = sy * grid.w + sx;
+          if (grid.nodata[i] != 0) {
+            paint.color = const Color(0xFF16181B);
+            canvas.drawRect(Rect.fromLTWH(x * cw, y * ch, blockW * cw + 0.5, blockH * ch + 0.5), paint);
+            paint
+              ..color = const Color(0xFF55585A)
+              ..strokeWidth = 0.7;
+            canvas.drawLine(Offset(x * cw, (y + blockH) * ch), Offset((x + blockW) * cw, y * ch), paint);
+            continue;
+          }
+          final eL = grid.elev[sy * grid.w + math.max(0, sx - stepX)];
+          final eR = grid.elev[sy * grid.w + math.min(grid.w - 1, sx + stepX)];
+          final shade = (0.55 + (eL - eR) / 140.0).clamp(0.2, 1.15);
 
-        double t;
-        Color base;
-        switch (st.layer) {
-          case TerrainLayer.slope:
-            t = (grid.slope[i] / MarsRouter.defaultMaxSlopeDeg).clamp(0.0, 1.0);
-            base = Color.lerp(const Color(0xFF2B2724), const Color(0xFFB85C43), t)!;
-            break;
-          case TerrainLayer.roughness:
-            t = grid.rough[i].clamp(0.0, 1.0);
-            base = Color.lerp(const Color(0xFF2B2724), const Color(0xFFD3A24C), t)!;
-            break;
-          case TerrainLayer.pressure:
-            t = ((grid.elev[i] - grid.minElev) / elevSpan).clamp(0.0, 1.0);
-            base = Color.lerp(const Color(0xFF789BA8), const Color(0xFF2A2F3D), t)!;
-            break;
-          case TerrainLayer.elevation:
-            t = ((grid.elev[i] - grid.minElev) / elevSpan).clamp(0.0, 1.0);
-            base = Color.lerp(const Color(0xFF2F3540), const Color(0xFFEFE2C8), t)!;
-            break;
-          case TerrainLayer.hillshade:
-            t = ((grid.elev[i] - grid.minElev) / elevSpan).clamp(0.0, 1.0);
-            base = Color.lerp(const Color(0xFF3E2D24), const Color(0xFFC2A284), t)!;
-            break;
-        }
+          double t;
+          Color base;
+          switch (st.layer) {
+            case TerrainLayer.imagery:
+              base = const Color(0x00000000);
+              t = 0;
+              break;
+            case TerrainLayer.slope:
+              t = (grid.slope[i] / MarsRouter.defaultMaxSlopeDeg).clamp(0.0, 1.0);
+              base = Color.lerp(const Color(0xFF2B2724), const Color(0xFFB85C43), t)!;
+              break;
+            case TerrainLayer.roughness:
+              t = grid.rough[i].clamp(0.0, 1.0);
+              base = Color.lerp(const Color(0xFF2B2724), const Color(0xFFD3A24C), t)!;
+              break;
+            case TerrainLayer.pressure:
+              t = ((grid.elev[i] - grid.minElev) / elevSpan).clamp(0.0, 1.0);
+              base = Color.lerp(const Color(0xFF789BA8), const Color(0xFF2A2F3D), t)!;
+              break;
+            case TerrainLayer.elevation:
+              t = ((grid.elev[i] - grid.minElev) / elevSpan).clamp(0.0, 1.0);
+              base = Color.lerp(const Color(0xFF2F3540), const Color(0xFFEFE2C8), t)!;
+              break;
+            case TerrainLayer.hillshade:
+              t = ((grid.elev[i] - grid.minElev) / elevSpan).clamp(0.0, 1.0);
+              base = Color.lerp(const Color(0xFF3E2D24), const Color(0xFFC2A284), t)!;
+              break;
+          }
 
-        paint.color = Color.fromARGB(
-          255,
-          (base.red * shade).round().clamp(0, 255),
-          (base.green * shade).round().clamp(0, 255),
-          (base.blue * shade).round().clamp(0, 255),
-        );
-        canvas.drawRect(Rect.fromLTWH(x * cw, y * ch, cw + 0.4, ch + 0.4), paint);
+          paint.color = Color.fromARGB(
+            255,
+            (base.red * shade).round().clamp(0, 255),
+            (base.green * shade).round().clamp(0, 255),
+            (base.blue * shade).round().clamp(0, 255),
+          );
+          canvas.drawRect(Rect.fromLTWH(x * cw, y * ch, blockW * cw + 0.4, blockH * ch + 0.4), paint);
 
-        if (st.showContours && x + 1 < grid.w && y + 1 < grid.h) {
-          final b0 = (grid.elev[i] / 20.0).floor();
-          final bx = (grid.elev[y * grid.w + x + 1] / 20.0).floor();
-          final by = (grid.elev[(y + 1) * grid.w + x] / 20.0).floor();
-          if (b0 != bx || b0 != by) {
-            paint.color = const Color(0xAAFAF8F2);
-            canvas.drawRect(Rect.fromLTWH(x * cw, y * ch, cw, ch), paint);
+          if (st.showContours && x + stepX < grid.w && y + stepY < grid.h) {
+            final contourIntervalM = 50.0;
+            final b0 = (grid.elev[i] / contourIntervalM).floor();
+            final bx = (grid.elev[sy * grid.w + math.min(grid.w - 1, sx + stepX)] / contourIntervalM).floor();
+            final by = (grid.elev[math.min(grid.h - 1, sy + stepY) * grid.w + sx] / contourIntervalM).floor();
+            if (b0 != bx || b0 != by) {
+              paint.color = const Color(0xAAFAF8F2);
+              canvas.drawRect(Rect.fromLTWH(x * cw, y * ch, blockW * cw, blockH * ch), paint);
+            }
           }
         }
       }
@@ -579,12 +695,32 @@ class _TerrainPainter extends CustomPainter {
 
     final georef = grid.georeference;
     if (georef != null) {
+      final rimPaint = Paint()
+        ..color = const Color(0xFFFFD34F)
+        ..strokeWidth = 1.5
+        ..style = PaintingStyle.stroke;
+      for (final line in craterRimPaths) {
+        final path = Path();
+        var first = true;
+        for (final coordinate in line) {
+          final cell = georef.positionFor(coordinate[0], coordinate[1], grid.w, grid.h);
+          final point = Offset((cell.x + 0.5) * cw, (cell.y + 0.5) * ch);
+          if (first) {
+            path.moveTo(point.dx, point.dy);
+            first = false;
+          } else {
+            path.lineTo(point.dx, point.dy);
+          }
+        }
+        canvas.drawPath(path, rimPaint);
+      }
+
       for (final stop in roverStops) {
         final cell = georef.cellFor(stop.longitudeEastDeg, stop.latitudePlanetocentricDeg, grid.w, grid.h);
         if (cell == null) continue;
         final position = Offset((cell.x + 0.5) * cw, (cell.y + 0.5) * ch);
-        canvas.drawCircle(position, 4.3, Paint()..color = const Color(0xFFF3C969));
-        canvas.drawCircle(position, 2.8, Paint()..color = const Color(0xFF1C2A31));
+        canvas.drawCircle(position, 2.8, Paint()..color = const Color(0xFFF3C969));
+        canvas.drawCircle(position, 1.7, Paint()..color = const Color(0xFF1C2A31));
       }
 
       for (final landmark in landmarks) {

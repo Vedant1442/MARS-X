@@ -3,6 +3,8 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
 class SavedMission {
+  static const legacyPatchGridId = 'jezero_hirise_patch_v1';
+
   final int? id;
   final String name;
   final String mode;
@@ -14,6 +16,7 @@ class SavedMission {
   final int riskScore;
   final int currentStep;
   final String createdAt;
+  final String gridId;
 
   const SavedMission({
     this.id,
@@ -27,6 +30,7 @@ class SavedMission {
     required this.riskScore,
     required this.currentStep,
     required this.createdAt,
+    this.gridId = 'jezero_ctx_100m_v1',
   });
 
   Map<String, dynamic> toMap() => {
@@ -41,6 +45,7 @@ class SavedMission {
         'risk_score': riskScore,
         'current_step': currentStep,
         'created_at': createdAt,
+        'grid_id': gridId,
       };
 
   factory SavedMission.fromMap(Map<String, dynamic> m) => SavedMission(
@@ -55,6 +60,7 @@ class SavedMission {
         riskScore: m['risk_score'] as int,
         currentStep: m['current_step'] as int,
         createdAt: m['created_at'] as String,
+        gridId: m['grid_id'] as String? ?? legacyPatchGridId,
       );
 
   String toJson() => jsonEncode(toMap());
@@ -68,7 +74,7 @@ class MissionRepo {
     final dbPath = p.join(await getDatabasesPath(), 'mars_x_missions.db');
     _db = await openDatabase(
       dbPath,
-      version: 1,
+      version: 2,
       onCreate: (database, version) async {
         await database.execute('''
           CREATE TABLE missions (
@@ -82,9 +88,18 @@ class MissionRepo {
             distance_m REAL NOT NULL,
             risk_score INTEGER NOT NULL,
             current_step INTEGER NOT NULL,
-            created_at TEXT NOT NULL
+            created_at TEXT NOT NULL,
+            grid_id TEXT NOT NULL DEFAULT 'jezero_ctx_100m_v1'
           )
         ''');
+      },
+      onUpgrade: (database, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          // Keep v1 missions and mark their coordinates as HiRISE patch cells.
+          await database.execute(
+            "ALTER TABLE missions ADD COLUMN grid_id TEXT NOT NULL DEFAULT '$legacyPatchGridId'",
+          );
+        }
       },
     );
     return _db!;

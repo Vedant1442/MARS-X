@@ -176,7 +176,7 @@ class LandmarkSelector {
           kind: LandmarkKind.terrain,
           name: name,
           desc: desc,
-          why: 'Terrain landmark derived from the HiRISE elevation model.',
+          why: 'Terrain landmark derived from the crater-wide CTX elevation model at 100 m grid spacing.',
         );
       }
     }
