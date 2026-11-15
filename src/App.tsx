@@ -9,6 +9,14 @@ import { JEZERO_META } from "./jezeroGrid";
 import type { Cam, Probe, Telemetry3D, View3D } from "./Terrain3D";
 import { ROVER_TRAVERSE_SEGMENTS } from "./roverTraverse";
 import { SIM3464_CONTACTS, SIM3464_UNITS } from "./geologyLayers";
+import {
+  LANDING_ELLIPSE,
+  LINEAR_LANDFORMS,
+  SMALL_CRATERS,
+  NOMENCLATURE_ANCHORS,
+  PROCESSED_ROVER_STOPS,
+  THREE_FORKS_SAMPLES,
+} from "./processedDataLayers";
 import { AVAILABLE_SOLS, getMedaWeather, MEDA_SOLS, solHourToSun } from "./medaData";
 import { API_BASE } from "./api";
 
@@ -268,7 +276,41 @@ function RouteLine({ route, focus, animate, uid }: { route: Route; focus: boolea
     </g>
   );
 }
-function MarsMap({ layer = "hillshade", onPick, showTargets = true, showRover = true, showGeology = false, highlight, inspect, loadingLabel = "Loading terrain…", contours = false, landmarks, current, marker, waypoints }: { layer?: Layer; onPick?: (p: Pt) => void; showTargets?: boolean; showRover?: boolean; showGeology?: boolean; highlight?: Mode | "ALL"; inspect?: Pt | null; loadingLabel?: string; contours?: boolean; landmarks?: Landmark[]; current?: number; marker?: Pt | null; waypoints?: Pt[] }) {
+function MarsMap({
+  layer = "hillshade",
+  onPick,
+  showTargets = true,
+  showRover = true,
+  showGeology = false,
+  showEllipse = true,
+  showLandforms = true,
+  showCraters = true,
+  highlight,
+  inspect,
+  loadingLabel = "Loading terrain…",
+  contours = false,
+  landmarks,
+  current,
+  marker,
+  waypoints,
+}: {
+  layer?: Layer;
+  onPick?: (p: Pt) => void;
+  showTargets?: boolean;
+  showRover?: boolean;
+  showGeology?: boolean;
+  showEllipse?: boolean;
+  showLandforms?: boolean;
+  showCraters?: boolean;
+  highlight?: Mode | "ALL";
+  inspect?: Pt | null;
+  loadingLabel?: string;
+  contours?: boolean;
+  landmarks?: Landmark[];
+  current?: number;
+  marker?: Pt | null;
+  waypoints?: Pt[];
+}) {
   const { T, start, end, routes, mission, mode } = useStore();
   const ref = useRef<HTMLCanvasElement>(null);
   const uid = useId().replace(/:/g, "");
@@ -323,6 +365,95 @@ function MarsMap({ layer = "hillshade", onPick, showTargets = true, showRover = 
                     strokeWidth={0.45}
                     strokeDasharray={c.type === "approximate" ? "1.5 1.0" : undefined}
                   />
+                ))}
+              </g>
+            )}
+            {showEllipse && (
+              <g>
+                <polygon
+                  points={LANDING_ELLIPSE.pts.map(([x, y]) => `${x + 0.5},${y + 0.5}`).join(" ")}
+                  fill="none"
+                  stroke="#E5A93C"
+                  strokeWidth={0.45}
+                  strokeDasharray="2.2 1.4"
+                  opacity={0.85}
+                />
+                <text
+                  x={LANDING_ELLIPSE.pts[15][0] - 2}
+                  y={Math.max(2.5, Math.min(H - 2.5, LANDING_ELLIPSE.pts[15][1] + 2.5))}
+                  fontSize={1.8}
+                  fill="#E5A93C"
+                  stroke={outline}
+                  strokeWidth={0.4}
+                  paintOrder="stroke"
+                  fontFamily="IBM Plex Mono"
+                  letterSpacing={0.06}
+                >
+                  NASA MARS 2020 LANDING ELLIPSE (7.7×6.6 km)
+                </text>
+              </g>
+            )}
+            {showLandforms && (
+              <g>
+                {LINEAR_LANDFORMS.map((lf, idx) => (
+                  <g key={`lf-${idx}`}>
+                    <polyline
+                      points={lf.pts.map(([x, y]) => `${x + 0.5},${y + 0.5}`).join(" ")}
+                      fill="none"
+                      stroke="#4CD3C5"
+                      strokeWidth={0.55}
+                      strokeDasharray="1.5 0.8"
+                      opacity={0.85}
+                    />
+                    {lf.pts[0] && (
+                      <text
+                        x={lf.pts[0][0] + 0.5}
+                        y={lf.pts[0][1] - 0.6}
+                        fontSize={1.6}
+                        fill="#4CD3C5"
+                        stroke={outline}
+                        strokeWidth={0.35}
+                        paintOrder="stroke"
+                        fontFamily="IBM Plex Mono"
+                      >
+                        DELTA LOBE FRONT
+                      </text>
+                    )}
+                  </g>
+                ))}
+              </g>
+            )}
+            {showCraters && (
+              <g>
+                {SMALL_CRATERS.map((c, idx) => (
+                  <g key={`crater-${idx}`}>
+                    <circle
+                      cx={c.pt[0] + 0.5}
+                      cy={c.pt[1] + 0.5}
+                      r={1.2}
+                      fill="none"
+                      stroke="#E56A54"
+                      strokeWidth={0.35}
+                    />
+                    <circle
+                      cx={c.pt[0] + 0.5}
+                      cy={c.pt[1] + 0.5}
+                      r={0.4}
+                      fill="#E56A54"
+                    />
+                    <text
+                      x={c.pt[0] + 1.8}
+                      y={c.pt[1] + 0.6}
+                      fontSize={1.6}
+                      fill="#E56A54"
+                      stroke={outline}
+                      strokeWidth={0.35}
+                      paintOrder="stroke"
+                      fontFamily="IBM Plex Mono"
+                    >
+                      CRATER #{c.sourceFid} ({c.diameterM}m)
+                    </text>
+                  </g>
                 ))}
               </g>
             )}
@@ -1081,12 +1212,18 @@ function Planner() {
 }
 
 // ---------- Explorer ----------
-type LayerItem = { k: Layer | "targets" | "contours" | "rover" | "geology"; name: string; tag: Label; off?: string };
+type LayerItem = { k: Layer | "targets" | "contours" | "rover" | "geology" | "ellipse" | "landforms" | "craters"; name: string; tag: Label; off?: string };
 const LAYER_GROUPS: { g: string; items: LayerItem[] }[] = [
   { g: "Terrain", items: [{ k: "hillshade", name: "Hillshade", tag: "DERIVED" }, { k: "elev", name: "Elevation", tag: "DERIVED" }, { k: "slope", name: "Slope", tag: "DERIVED" }, { k: "rough", name: "Roughness", tag: "DERIVED" }, { k: "unc", name: "Data uncertainty", tag: "MODELED" }, { k: "pressure", name: "Pressure (relative)", tag: "SIMULATED" }, { k: "contours", name: "Contour lines (100 m)", tag: "DERIVED" }] },
   { g: "Imagery", items: [{ k: "hillshade", name: "CTX", tag: "UNKNOWN", off: "CTX" }, { k: "hillshade", name: "HiRISE", tag: "UNKNOWN", off: "HiRISE" }] },
   { g: "Science", items: [{ k: "targets", name: "Science targets (Jezero Crater)", tag: "DERIVED" }, { k: "hillshade", name: "Mineralogy", tag: "UNKNOWN", off: "CRISM" }, { k: "hillshade", name: "Observations", tag: "UNKNOWN", off: "mission data" }] },
-  { g: "Exploration", items: [{ k: "rover", name: "Perseverance traverse (Sol 0-407)", tag: "OBSERVED" }, { k: "geology", name: "USGS SIM 3464 Geologic Units", tag: "OBSERVED" }] },
+  { g: "Exploration", items: [
+      { k: "rover", name: "Perseverance traverse (Sol 0-407)", tag: "OBSERVED" },
+      { k: "ellipse", name: "NASA Landing Ellipse (7.7×6.6 km)", tag: "OBSERVED" },
+      { k: "geology", name: "USGS SIM 3464 Geologic Units", tag: "OBSERVED" },
+      { k: "landforms", name: "USGS Delta Lobe Fronts", tag: "OBSERVED" },
+      { k: "craters", name: "USGS Small Craters (<100m)", tag: "OBSERVED" },
+  ] },
   { g: "Environment", items: [{ k: "hillshade", name: "Temperature map", tag: "UNKNOWN", off: "THEMIS thermal; rover MEDA readings are point data only" }] },
 ];
 const LAYER_NAME: Record<Layer, string> = { hillshade: "Hillshade", elev: "Elevation", slope: "Slope", rough: "Roughness", unc: "Data uncertainty", pressure: "Pressure (simulated)" };
@@ -1095,7 +1232,14 @@ function Explorer() {
   const { T } = useStore();
   const reduce = useReducedMotion();
   const arrive = useRef(arrivedFromGlobe && !reduce); useEffect(() => { arrivedFromGlobe = false; }, []);
-  const [layer, setLayer] = useState<Layer>("hillshade"); const [targets, setTargets] = useState(true); const [contours, setContours] = useState(false); const [rover, setRover] = useState(true); const [geology, setGeology] = useState(true);
+  const [layer, setLayer] = useState<Layer>("hillshade");
+  const [targets, setTargets] = useState(true);
+  const [contours, setContours] = useState(false);
+  const [rover, setRover] = useState(true);
+  const [geology, setGeology] = useState(true);
+  const [ellipse, setEllipse] = useState(true);
+  const [landforms, setLandforms] = useState(true);
+  const [craters, setCraters] = useState(true);
   const [p, setP] = useState<Pt | null>({ x: 60, y: 38 });
   const [sheet, setSheet] = useState<"layers" | "inspector" | null>(null);
   const i = p ? p.y * W + p.x : 0, nd = p && T.nodata[i];
@@ -1107,9 +1251,19 @@ function Explorer() {
         <div role="group" aria-label="Map layers" className="space-y-3">{LAYER_GROUPS.map(({ g, items }) => (
           <div key={g}><Eyebrow className="mb-1">{g}</Eyebrow>
             {items.map((it) => {
-              const off = !!it.off; const on = it.k === "targets" ? targets : it.k === "contours" ? contours : it.k === "rover" ? rover : it.k === "geology" ? geology : !off && layer === it.k;
+              const off = !!it.off;
+              const on = it.k === "targets" ? targets : it.k === "contours" ? contours : it.k === "rover" ? rover : it.k === "geology" ? geology : it.k === "ellipse" ? ellipse : it.k === "landforms" ? landforms : it.k === "craters" ? craters : !off && layer === it.k;
               return <button key={g + it.name} disabled={off} aria-pressed={!off ? on : undefined} title={off ? `Target dataset: ${it.off}. Not ingested in this build.` : undefined}
-                onClick={() => (it.k === "targets" ? setTargets((t) => !t) : it.k === "contours" ? setContours((c) => !c) : it.k === "rover" ? setRover((r) => !r) : it.k === "geology" ? setGeology((g) => !g) : setLayer(it.k))}
+                onClick={() => (
+                  it.k === "targets" ? setTargets((t) => !t) :
+                  it.k === "contours" ? setContours((c) => !c) :
+                  it.k === "rover" ? setRover((r) => !r) :
+                  it.k === "geology" ? setGeology((g) => !g) :
+                  it.k === "ellipse" ? setEllipse((e) => !e) :
+                  it.k === "landforms" ? setLandforms((l) => !l) :
+                  it.k === "craters" ? setCraters((c) => !c) :
+                  setLayer(it.k)
+                )}
                 className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 text-[13px] rounded-sm ${off ? "text-dim/80 cursor-not-allowed" : on ? "bg-fg text-ink" : "text-fg hover:bg-panel"}`}>
                 <span className="flex items-center gap-2"><span aria-hidden="true" className={`w-2.5 h-2.5 border ${it.k === "targets" ? "rounded-none rotate-45" : "rounded-full"} ${on ? "bg-ink border-ink" : "border-line-strong"}`} />{it.name}</span>
                 {off ? <span className="font-mono text-[10px] tracking-[0.08em] text-dim">NOT INGESTED</span> : <span className={on ? "opacity-80" : ""}><Tag l={it.tag} /></span>}
@@ -1118,7 +1272,7 @@ function Explorer() {
           </div>))}</div>
         <div className="border-t border-line pt-3"><Eyebrow className="mb-2">Legend · {LAYER_NAME[layer]}</Eyebrow><div className="h-2.5 rounded-sm border border-line" style={{ background: rampCss(layer) }} aria-hidden="true" /><div className="flex justify-between font-mono text-[10px] text-dim mt-1"><span>{LAYER_UNITS[layer][0]}</span><span>{LAYER_UNITS[layer][1]}</span></div><div className="flex items-center gap-2 mt-3 text-[12px] text-dim"><Glyph k="nodata" />Unknown / insufficient data</div></div>
       </Sheet>
-      <main className="relative flex flex-col min-h-0 h-[calc(100dvh-52px-56px)] lg:h-auto"><SynthBanner /><div className="relative flex-1 min-h-0"><MarsMap layer={layer} onPick={setP} inspect={p} showTargets={targets} showRover={rover} showGeology={geology} contours={contours} loadingLabel="Processing elevation…" /></div></main>
+      <main className="relative flex flex-col min-h-0 h-[calc(100dvh-52px-56px)] lg:h-auto"><SynthBanner /><div className="relative flex-1 min-h-0"><MarsMap layer={layer} onPick={setP} inspect={p} showTargets={targets} showRover={rover} showGeology={geology} showEllipse={ellipse} showLandforms={landforms} showCraters={craters} contours={contours} loadingLabel="Processing elevation…" /></div></main>
       <Sheet open={sheet === "inspector"} onClose={() => setSheet(null)} title="Inspector" className="lg:border-l lg:border-line">
         <Panel title="Location inspector" tag={nd ? "UNKNOWN" : "MODELED"}>
           {!p ? <p className="text-dim text-[13px]">Select a cell.</p> : nd ? <><Row k="Cell" v={`${p.x}, ${p.y}`} /><p className="text-[13px] mt-2">Unknown / insufficient data.</p><p className="text-[12px] text-dim mt-1">This cell is excluded from routing. Absence of data is not treated as safe.</p></> : <>
@@ -1129,6 +1283,28 @@ function Explorer() {
             <Row k="Roughness" v={T.rough[i].toFixed(2)} l="DERIVED" />
             <Row k="Uncertainty" v={T.unc[i].toFixed(2)} l="MODELED" />
             <Row k="Traversable" v={T.slope[i] > MAX_SLOPE ? <span className="text-mars-deep">NO (slope)</span> : "within limits"} l="MODELED" />
+            {(() => {
+              // Check landing ellipse
+              let insideEllipse = false;
+              const pts = LANDING_ELLIPSE.pts;
+              for (let pi = 0, pj = pts.length - 1; pi < pts.length; pj = pi++) {
+                const xi = pts[pi][0], yi = pts[pi][1];
+                const xj = pts[pj][0], yj = pts[pj][1];
+                const intersect = ((yi > p.y) !== (yj > p.y)) && (p.x < (xj - xi) * (p.y - yi) / (yj - yi) + xi);
+                if (intersect) insideEllipse = !insideEllipse;
+              }
+              return insideEllipse ? <Row k="Landing zone" v="Within Mars 2020 Landing Ellipse (Octavia E. Butler)" l="OBSERVED" /> : null;
+            })()}
+            {(() => {
+              // Check nearby small craters
+              const nearCrater = SMALL_CRATERS.find((c) => Math.hypot(c.pt[0] - p.x, c.pt[1] - p.y) < 3.0);
+              return nearCrater ? <Row k="USGS crater" v={`Crater #${nearCrater.sourceFid} (${nearCrater.diameterM}m dia)`} l="OBSERVED" /> : null;
+            })()}
+            {(() => {
+              // Check rover localized stop
+              const stop = PROCESSED_ROVER_STOPS.find((s) => Math.hypot(s.pt[0] - p.x, s.pt[1] - p.y) < 1.2);
+              return stop ? <Row k="Perseverance stop" v={`Sol ${stop.sol} · Site ${stop.site} · Elev ${stop.elevM.toFixed(1)}m`} l="OBSERVED" /> : null;
+            })()}
             {(() => {
               const unit = SIM3464_UNITS.find((u) => {
                 let inside = false;
@@ -2492,6 +2668,167 @@ function DataPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Authoritative Jezero GIS & PDS Processed Data Repository */}
+      <div className="border border-line rounded-md p-6 bg-paper space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-line pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] tracking-[0.1em] px-2 py-0.5 rounded-sm bg-gold text-ink font-semibold">PROCESSED GEODATA REPOSITORY</span>
+              <Tag l="OBSERVED" />
+            </div>
+            <h2 className="text-[24px] font-normal text-mars-deep mt-1">Processed Jezero GIS &amp; NASA PDS Catalog</h2>
+            <p className="text-[13px] text-dim mt-1 max-w-2xl leading-relaxed">
+              Authoritative datasets converted from raw USGS SIM 3464 geodatabases and NASA Mars 2020 PLACES Release 16 tables stored in <code className="bg-panel px-1 py-0.5 rounded text-[11px]">data/processed/jezero/</code> and integrated directly into the MARS-X frontend.
+            </p>
+          </div>
+          <span className="font-mono text-[11px] text-dim">11 GEOJSON LAYERS · USGS &amp; NASA</span>
+        </div>
+
+        {/* Processed Vector Layers Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="border border-line p-3.5 rounded-sm bg-ink/70 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] font-semibold text-gold">LANDING ELLIPSE</span>
+              <Tag l="OBSERVED" />
+            </div>
+            <div className="font-mono text-[18px] text-fg">7.7 × 6.6 km</div>
+            <p className="text-[11px] text-dim">
+              NASA Mars 2020 Landing Ellipse polygon around Octavia E. Butler Landing. Mapped in <code className="text-[10px]">sim3464_landing_ellipse.geojson</code>.
+            </p>
+          </div>
+
+          <div className="border border-line p-3.5 rounded-sm bg-ink/70 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] font-semibold text-atmos">PERSEVERANCE STOPS</span>
+              <Tag l="OBSERVED" />
+            </div>
+            <div className="font-mono text-[18px] text-fg">{PROCESSED_ROVER_STOPS.length} Window Stops</div>
+            <p className="text-[11px] text-dim">
+              531 unique localized Sol stops from PDS PLACES Release 16; 112 stops within the HiRISE exploration window.
+            </p>
+          </div>
+
+          <div className="border border-line p-3.5 rounded-sm bg-ink/70 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] font-semibold text-teal-400">DELTA LOBE FRONTS</span>
+              <Tag l="OBSERVED" />
+            </div>
+            <div className="font-mono text-[18px] text-fg">{LINEAR_LANDFORMS.length} Active Fronts</div>
+            <p className="text-[11px] text-dim">
+              USGS SIM 3464 linear landforms mapping ancient Jezero delta depositional fronts and fluvial inflow channels.
+            </p>
+          </div>
+
+          <div className="border border-line p-3.5 rounded-sm bg-ink/70 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] font-semibold text-mars-deep">USGS SMALL CRATERS</span>
+              <Tag l="OBSERVED" />
+            </div>
+            <div className="font-mono text-[18px] text-fg">{SMALL_CRATERS.length} Cataloged Craters</div>
+            <p className="text-[11px] text-dim">
+              USGS SIM 3464 location features cataloging impact crater rims and diameters across the crater floor.
+            </p>
+          </div>
+
+          <div className="border border-line p-3.5 rounded-sm bg-ink/70 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] font-semibold text-fg">GEOLOGIC UNITS</span>
+              <Tag l="OBSERVED" />
+            </div>
+            <div className="font-mono text-[18px] text-fg">1,021 Polygons</div>
+            <p className="text-[11px] text-dim">
+              Sun &amp; Stack (2020) geologic units: Lower etched (Nle), Jezero floor (Njf), Delta fan (NHjf2), Crater rim.
+            </p>
+          </div>
+
+          <div className="border border-line p-3.5 rounded-sm bg-ink/70 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] font-semibold text-gold">NOMENCLATURE</span>
+              <Tag l="OBSERVED" />
+            </div>
+            <div className="font-mono text-[18px] text-fg">{NOMENCLATURE_ANCHORS.length} Named Anchors</div>
+            <p className="text-[11px] text-dim">
+              USGS official planetary nomenclature text anchors: Belva, Neretva Vallis, Una Vallis, Marysville, Hartwell.
+            </p>
+          </div>
+        </div>
+
+        {/* PDS Three Forks Sample Depot Catalog Table */}
+        <div className="space-y-3 pt-2 border-t border-line">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 className="font-mono text-[15px] font-semibold text-mars-deep flex items-center gap-2">
+                <span>PDS Mars 2020 Three Forks Sample Depot Catalog</span>
+                <Tag l="OBSERVED" />
+              </h3>
+              <p className="text-[12px] text-dim">
+                Authoritative sample drop timestamps deposited by Perseverance on the Martian surface, parsed from PDS sample drop events.
+              </p>
+            </div>
+            <span className="font-mono text-[11px] text-dim">10 Sealed Titanium Tubes</span>
+          </div>
+
+          <div className="overflow-x-auto border border-line rounded-sm">
+            <table className="w-full text-left font-mono text-[12px]">
+              <thead className="bg-ink/80 text-dim border-b border-line text-[11px]">
+                <tr>
+                  <th className="py-2 px-3">TUBE #</th>
+                  <th className="py-2 px-3">SAMPLE DESIGNATION</th>
+                  <th className="py-2 px-3">SAMPLE NAME</th>
+                  <th className="py-2 px-3">SURFACE TIMESTAMP (LMST)</th>
+                  <th className="py-2 px-3">STATUS</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {THREE_FORKS_SAMPLES.map((s, idx) => (
+                  <tr key={s.designation} className="hover:bg-panel/40">
+                    <td className="py-2 px-3 text-dim">#{idx + 1}</td>
+                    <td className="py-2 px-3 text-gold font-semibold">{s.designation}</td>
+                    <td className="py-2 px-3 text-fg font-medium">{s.name}</td>
+                    <td className="py-2 px-3 text-dim">{s.timestampLMST}</td>
+                    <td className="py-2 px-3">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-green-950/60 border border-green-800 text-green-300">
+                        DEPOSITED ON MARS
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* USGS Planetary Nomenclature Anchors */}
+        <div className="space-y-3 pt-2 border-t border-line">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 className="font-mono text-[15px] font-semibold text-mars-deep flex items-center gap-2">
+                <span>USGS SIM 3464 Regional Planetary Nomenclature Anchors</span>
+                <Tag l="OBSERVED" />
+              </h3>
+              <p className="text-[12px] text-dim">
+                Centroid coordinates of text annotations from Sun &amp; Stack (2020) geologic map of Jezero Crater and Nili Planum.
+              </p>
+            </div>
+            <span className="font-mono text-[11px] text-dim">USGS SIM 3464</span>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+            {NOMENCLATURE_ANCHORS.map((anc) => (
+              <div key={anc.name} className="border border-line p-2.5 rounded-sm bg-ink/50 space-y-0.5">
+                <span className="font-mono text-[12px] font-semibold text-fg block">{anc.name}</span>
+                <span className="font-mono text-[10px] text-dim block">
+                  Grid: ({anc.pt[0].toFixed(1)}, {anc.pt[1].toFixed(1)})
+                </span>
+                <span className="text-[10px] text-gold block">
+                  {anc.inWindow ? "Within HiRISE Window" : "Regional Jezero Reference"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Dataset Explorer */}
