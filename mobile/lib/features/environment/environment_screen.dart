@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../data/mission_repo.dart';
@@ -29,6 +31,48 @@ class _EnvironmentAndSavedScreenState extends ConsumerState<EnvironmentAndSavedS
     });
   }
 
+  Future<void> _openMission(SavedMission mission, TerrainGrid grid) async {
+    final georef = grid.georeference;
+    if (georef == null) return;
+    GridPoint? start;
+    GridPoint? end;
+    if (mission.gridId == grid.gridId) {
+      if (mission.startX >= 0 && mission.startY >= 0 && mission.startX < grid.w && mission.startY < grid.h) {
+        start = GridPoint(mission.startX, mission.startY);
+      }
+      if (mission.endX >= 0 && mission.endY >= 0 && mission.endX < grid.w && mission.endY < grid.h) {
+        end = GridPoint(mission.endX, mission.endY);
+      }
+    } else if (mission.gridId == SavedMission.legacyPatchGridId) {
+      final metadata = jsonDecode(await rootBundle.loadString('assets/terrain/jezero-dem.json')) as Map<String, dynamic>;
+      final oldGrid = MarsGridReference(
+        centerX: (metadata['gridCenterX'] as num).toDouble(),
+        centerY: (metadata['gridCenterY'] as num).toDouble(),
+        stepX: (metadata['gridStepXM'] as num).toDouble(),
+        stepY: (metadata['gridStepYM'] as num).toDouble(),
+        radiusM: (metadata['radiusM'] as num).toDouble(),
+      );
+      final oldStart = oldGrid.pointForCell(mission.startX, mission.startY, TerrainGrid.gridW, TerrainGrid.gridH);
+      final oldEnd = oldGrid.pointForCell(mission.endX, mission.endY, TerrainGrid.gridW, TerrainGrid.gridH);
+      final s = georef.cellFor(oldStart.longitudeEastDeg, oldStart.latitudePlanetocentricDeg, grid.w, grid.h);
+      final e = georef.cellFor(oldEnd.longitudeEastDeg, oldEnd.latitudePlanetocentricDeg, grid.w, grid.h);
+      if (s != null) start = GridPoint(s.x, s.y);
+      if (e != null) end = GridPoint(e.x, e.y);
+    }
+    if (start == null || end == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This saved route does not match the installed Jezero map coverage.')),
+        );
+      }
+      return;
+    }
+    final notifier = ref.read(plannerProvider.notifier);
+    notifier.tapCell(grid, start);
+    notifier.tapCell(grid, end);
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Loaded ${mission.name} on the crater-wide map.')));
+  }
+
   @override
   Widget build(BuildContext context) {
     final grid = ref.watch(terrainGridProvider).valueOrNull;
@@ -55,7 +99,7 @@ class _EnvironmentAndSavedScreenState extends ConsumerState<EnvironmentAndSavedS
                       ),
                       const SizedBox(height: 6),
                       const Text(
-                        'Perseverance MEDA & Curiosity RAD: archived mission subsets are not yet bundled in this build. Spatial pressure is SIMULATED from HiRISE elevation using P(h) = P0 * exp(-(h - h0) / 11100 m). Radiation is HISTORICAL (Gale Crater, other location).',
+                        'Perseverance MEDA & Curiosity RAD: archived mission subsets are not yet bundled in this build. Spatial pressure is SIMULATED from CTX elevation using P(h) = P0 * exp(-(h - h0) / 11100 m). Radiation is HISTORICAL (Gale Crater, other location).',
                         style: TextStyle(fontSize: 12, color: MarsTheme.dim),
                       ),
                     ],
@@ -101,16 +145,7 @@ class _EnvironmentAndSavedScreenState extends ConsumerState<EnvironmentAndSavedS
                                 }
                               },
                             ),
-                            onTap: grid == null
-                                ? null
-                                : () {
-                                    final notifier = ref.read(plannerProvider.notifier);
-                                    notifier.tapCell(grid, GridPoint(m.startX, m.startY));
-                                    notifier.tapCell(grid, GridPoint(m.endX, m.endY));
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Loaded ${m.name}.')),
-                                    );
-                                  },
+                            onTap: grid == null ? null : () => _openMission(m, grid),
                           ),
                         ),
                     ],

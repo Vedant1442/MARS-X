@@ -36,6 +36,9 @@ class MarsGridReference {
   final double stepX;
   final double stepY;
   final double radiusM;
+  /// X-axis scale used by the source equirectangular projection.
+  /// CTX uses cos(standard parallel); the local HiRISE grid uses 1.0.
+  final double longitudeScaleCos;
 
   const MarsGridReference({
     required this.centerX,
@@ -43,26 +46,40 @@ class MarsGridReference {
     required this.stepX,
     required this.stepY,
     this.radiusM = MarsGeodesy.marsRadiusM,
+    this.longitudeScaleCos = 1.0,
   });
 
-  ({int x, int y})? cellFor(double longitudeEastDeg, double latitudePlanetocentricDeg, int width, int height) {
-    final xM = radiusM * longitudeEastDeg * math.pi / 180.0;
+  ({double x, double y}) positionFor(
+    double longitudeEastDeg,
+    double latitudePlanetocentricDeg,
+    int width,
+    int height,
+  ) {
+    final xM = radiusM * longitudeScaleCos * longitudeEastDeg * math.pi / 180.0;
     final yM = radiusM * latitudePlanetocentricDeg * math.pi / 180.0;
-    final x = ((xM - centerX) / stepX).round();
-    final y = ((centerY - yM) / stepY).round();
+    return (
+      x: (xM - centerX) / stepX + (width - 1) / 2.0,
+      y: (centerY - yM) / stepY + (height - 1) / 2.0,
+    );
+  }
+
+  ({int x, int y})? cellFor(double longitudeEastDeg, double latitudePlanetocentricDeg, int width, int height) {
+    final position = positionFor(longitudeEastDeg, latitudePlanetocentricDeg, width, height);
+    final x = position.x.round();
+    final y = position.y.round();
     if (x < 0 || y < 0 || x >= width || y >= height) return null;
     return (x: x, y: y);
   }
 
-  ({double longitudeEastDeg, double latitudePlanetocentricDeg}) pointForCell(int x, int y) {
+  ({double longitudeEastDeg, double latitudePlanetocentricDeg}) pointForCell(int x, int y, int width, int height) {
     return (
-      longitudeEastDeg: (centerX + x * stepX) / radiusM * 180.0 / math.pi,
-      latitudePlanetocentricDeg: (centerY - y * stepY) / radiusM * 180.0 / math.pi,
+      longitudeEastDeg: (centerX + (x - (width - 1) / 2.0) * stepX) / (radiusM * longitudeScaleCos) * 180.0 / math.pi,
+      latitudePlanetocentricDeg: (centerY - (y - (height - 1) / 2.0) * stepY) / radiusM * 180.0 / math.pi,
     );
   }
 }
 
-/// Terrain planning grid loaded from the bundled HiRISE DTM binary (jezero-dem.bin).
+/// Terrain grids for the whole-crater CTX DEM and the landing-site HiRISE DTM.
 class TerrainGrid {
   static const int gridW = 120;
   static const int gridH = 76;
@@ -84,6 +101,7 @@ class TerrainGrid {
   final double minElev;
   final double maxElev;
   final String terrainSource;
+  final String gridId;
   final MarsGridReference? georeference;
 
   TerrainGrid({
@@ -100,6 +118,7 @@ class TerrainGrid {
     required this.minElev,
     required this.maxElev,
     required this.terrainSource,
+    this.gridId = 'unknown_grid_v1',
     this.georeference,
   });
 
@@ -152,6 +171,7 @@ class TerrainGrid {
             stepX: ((metadata['gridStepXM'] as num?)?.toDouble() ?? cellM),
             stepY: ((metadata['gridStepYM'] as num?)?.toDouble() ?? cellM),
             radiusM: ((metadata['radiusM'] as num?)?.toDouble() ?? MarsGeodesy.marsRadiusM),
+            longitudeScaleCos: ((metadata['longitudeScaleCos'] as num?)?.toDouble() ?? 1.0),
           )
         : null;
 
@@ -165,6 +185,53 @@ class TerrainGrid {
       nodata: nodata,
       georeference: ref,
       terrainSource: metadata?['source'] as String? ?? 'USGS HiRISE DTM (DTEEC_045994_1985_046060_1985_U01)',
+      gridId: metadata?['gridId'] as String? ?? 'jezero_hirise_patch_v1',
+    );
+  }
+
+  /// Build the whole-crater route grid from signed 16-bit metre elevations.
+  /// The asset is aggregated from the USGS 20 m CTX DEM to 100 m cells.
+  factory TerrainGrid.fromCtxBytes(
+    Uint8List bytes, {
+    required Map<String, dynamic> metadata,
+  }) {
+    final w = (metadata['width'] as num).toInt();
+    final h = (metadata['height'] as num).toInt();
+    final noDataValue = (metadata['noDataValue'] as num).toInt();
+    if (bytes.length != w * h * 2) {
+      throw FormatException('CTX elevation asset has ${bytes.length} bytes; expected ${w * h * 2}.');
+    }
+    final data = ByteData.sublistView(bytes);
+    final elev = Float32List(w * h);
+    final nodata = Uint8List(w * h);
+    for (var i = 0; i < w * h; i++) {
+      final value = data.getInt16(i * 2, Endian.little);
+      if (value == noDataValue) {
+        nodata[i] = 1;
+      } else {
+        elev[i] = value.toDouble();
+      }
+    }
+    final stepX = (metadata['cellProjectedM'] as List<dynamic>)[0] as num;
+    final stepY = (metadata['cellProjectedM'] as List<dynamic>)[1] as num;
+    return TerrainGrid.fromElevation(
+      w: w,
+      h: h,
+      cellM: (metadata['cellM'] as num).toDouble(),
+      cellWidthM: (metadata['cellWidthGroundM'] as num).toDouble(),
+      cellHeightM: (metadata['cellHeightGroundM'] as num).toDouble(),
+      elev: elev,
+      nodata: nodata,
+      terrainSource: metadata['source'] as String? ?? 'USGS M20 Jezero CTX DEM, aggregated to 100 m',
+      gridId: metadata['gridId'] as String? ?? 'jezero_ctx_100m_v1',
+      georeference: MarsGridReference(
+        centerX: (metadata['gridCenterX'] as num).toDouble(),
+        centerY: (metadata['gridCenterY'] as num).toDouble(),
+        stepX: stepX.toDouble(),
+        stepY: stepY.toDouble(),
+        radiusM: (metadata['sphereRadiusM'] as num).toDouble(),
+        longitudeScaleCos: (metadata['longitudeScaleCos'] as num).toDouble(),
+      ),
     );
   }
 
@@ -178,6 +245,7 @@ class TerrainGrid {
     required Float32List elev,
     Uint8List? nodata,
     String terrainSource = 'SYNTHETIC',
+    String gridId = 'unknown_grid_v1',
     MarsGridReference? georeference,
   }) {
     final nd = nodata ?? Uint8List(w * h);
@@ -247,6 +315,7 @@ class TerrainGrid {
       minElev: minE.isFinite ? minE : 0.0,
       maxElev: maxE.isFinite ? maxE : 0.0,
       terrainSource: terrainSource,
+      gridId: gridId,
       georeference: georeference,
     );
   }
