@@ -570,7 +570,7 @@ function Shell({ path, children }: { path: string; children: React.ReactNode }) 
     if (p === "/globe" && (path === "/" || path.startsWith("/globe"))) return true;
     return path.startsWith(p.split("/").slice(0, 2).join("/"));
   };
-  const full = path.startsWith("/map") || path.startsWith("/planner") || path.startsWith("/explorer") || path.startsWith("/immersive");
+
   return (
     <div className="min-h-full flex flex-col">
       <nav aria-label="Primary" className="h-[52px] shrink-0 border-b border-line flex items-center px-3 sm:px-4 gap-3 xl:gap-5 bg-ink/95 backdrop-blur-sm sticky top-0 z-30">
@@ -608,6 +608,7 @@ function Shell({ path, children }: { path: string; children: React.ReactNode }) 
     </div>
   );
 }
+
 function Footer() {
   return (
     <footer className="border-t border-line bg-panel mt-16 no-print">
@@ -619,6 +620,7 @@ function Footer() {
     </footer>
   );
 }
+
 
 // ---------- Landing ----------
 function hasWebGL() { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; } }
@@ -733,19 +735,11 @@ function HeroGlobe({ fly, stage }: { fly: FlyTarget; stage: number | null }) {
 
 function Landing() {
   const [fly, setFly] = useState<FlyTarget>(null);
-  const [stage, setStage] = useState<number | null>(null);
-  const [cover, setCover] = useState(false);
-  const timers = useRef<number[]>([]);
-  const reduce = useReducedMotion();
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
-  const explore = () => {
-    if (stage !== null) return;
-    if (reduce || !hasWebGL()) { arrivedFromGlobe = false; go("/explorer"); return; }
-    setStage(0); setFly({ lat: 18.38, lon: 77.58, dist: 1.36 });
-    const at = (ms: number, fn: () => void) => timers.current.push(window.setTimeout(fn, ms));
-    at(650, () => setStage(1)); at(1300, () => setStage(2)); at(1900, () => setStage(3));
-    at(2100, () => setCover(true));
-    at(2450, () => { arrivedFromGlobe = true; go("/explorer"); });
+  const [activeSite, setActiveSite] = useState<string>("JEZERO");
+
+  const flyToSite = (id: string, lat: number, lon: number, dist: number) => {
+    setActiveSite(id);
+    setFly({ lat, lon, dist });
   };
   return (
     <div>
@@ -759,6 +753,7 @@ function Landing() {
     </div>
   );
 }
+
 
 // ---------- Planner ----------
 const TERRAIN_LAYERS: [Layer, string][] = [["hillshade", "Hillshade"], ["elev", "Elevation"], ["slope", "Slope"], ["rough", "Roughness"], ["pressure", "Pressure (simulated)"]];
@@ -3135,9 +3130,11 @@ function TerrainLoading() {
   );
 }
 export default function App() {
-  const path = useHashRoute();
   const [T, setT] = useState<Terrain | null>(null);
-  useEffect(() => { const id = window.setTimeout(() => setT(buildTerrain()), 0); return () => clearTimeout(id); }, []);
+  useEffect(() => {
+    const id = window.setTimeout(() => setT(buildTerrain()), 0);
+    return () => clearTimeout(id);
+  }, []);
   const [start, setStart] = useState<Pt | null>(null);
   const [end, setEnd] = useState<Pt | null>(null);
   const [mode, setMode] = useState<Mode>("SAFEST");
