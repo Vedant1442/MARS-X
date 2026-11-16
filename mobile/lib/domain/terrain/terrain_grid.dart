@@ -4,6 +4,19 @@ import '../geo/mars_geodesy.dart';
 
 enum DataType { observed, derived, modeled, unknown, simulated }
 
+class GridPoint {
+  final int x;
+  final int y;
+
+  const GridPoint(this.x, this.y);
+
+  @override
+  bool operator ==(Object other) => other is GridPoint && other.x == x && other.y == y;
+
+  @override
+  int get hashCode => Object.hash(x, y);
+}
+
 class ScienceTarget {
   final String id;
   final String name;

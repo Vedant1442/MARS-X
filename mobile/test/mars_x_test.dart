@@ -142,11 +142,11 @@ void main() {
     for (var y = 0; y < h; y++) {
       for (var x = 0; x < w; x++) {
         var z = 0.0;
-        // Central steep ridge between x=25 and x=35
+        // Central steep ridge between x=25 and x=35 (passable ~18 deg slope below 25 deg cutoff)
         if (x >= 25 && x <= 35 && y >= 10 && y <= 40) {
-          z = 250.0 * (1.0 - (x - 30).abs() / 6.0); // steep scarp
+          z = 70.0 * (1.0 - (x - 30).abs() / 6.0); // moderate passable ridge
         } else if (y > 40) {
-          z = (y - 40) * 2.0; // gentle bypass corridor
+          z = (y - 40) * 1.0; // gentle bypass corridor
         }
         elev[y * w + x] = z;
       }

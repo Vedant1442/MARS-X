@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import '../terrain/terrain_grid.dart';
 import '../track/mission_config.dart';
 
+export '../terrain/terrain_grid.dart' show GridPoint;
+
 enum RouteMode { safest, fastest, science }
 
 enum SearchAlgorithm { astar, dijkstra }
@@ -72,18 +74,6 @@ class ScienceBreakdown {
   });
 }
 
-class GridPoint {
-  final int x;
-  final int y;
-
-  const GridPoint(this.x, this.y);
-
-  @override
-  bool operator ==(Object other) => other is GridPoint && other.x == x && other.y == y;
-
-  @override
-  int get hashCode => Object.hash(x, y);
-}
 
 class RouteWeights {
   final double s;
@@ -218,13 +208,6 @@ class MarsRouter {
   }) {
     final w = grid.w;
     final h = grid.h;
-    final sum = (weights.s + weights.r + weights.u + weights.h) == 0
-        ? 1.0
-        : (weights.s + weights.r + weights.u + weights.h);
-    final ws = weights.s / sum;
-    final wr = weights.r / sum;
-    final wu = weights.u / sum;
-    final wh = weights.h / sum;
 
     double stepCost(int i, int j, int nx, int ny, double stepDistM) {
       if (grid.nodata[j] != 0 || grid.slope[j] > maxSlopeDeg) {
